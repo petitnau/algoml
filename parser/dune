@@ -5,9 +5,11 @@
 (menhir
   (modules parser))
 
-(executable
- (name amlint)
- (libraries batteries))
+
+
+(library
+ (name amlparser)
+ (libraries general batteries))
 ; (libraries lexer))
  
  

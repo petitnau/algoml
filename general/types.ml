@@ -1,4 +1,3 @@
-
 type contract = Contract of decl list * aclause list
 and ide = Ide of string
 and decl = Declaration of statetype * muttype * vartype * ide * exp option

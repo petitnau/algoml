@@ -1,4 +1,4 @@
-open General
+open Types
 
 
 module Ide = struct

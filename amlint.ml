@@ -1,7 +1,6 @@
-open Ast
-open Parse
 open General
-open Modules
+open Int
+open Amlparser
 open Batteries
 
 let crowdfunding_script = parse()
