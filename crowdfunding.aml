@@ -3,6 +3,8 @@ glob int endDate
 glob int fundCloseDate
 glob int goal
 glob address receiver 
+glob int donated_total
+loc int escrow_local
 
 Create create(int startDate, int endDate, int fundCloseDate, int goal, address receiver) {
 	glob.startDate = startDate
@@ -10,26 +12,34 @@ Create create(int startDate, int endDate, int fundCloseDate, int goal, address r
 	glob.fundCloseDate = fundCloseDate
 	glob.goal = goal
 	glob.receiver = receiver
+	glob.donated_total = 0
 }
 
-OptIn optin() {}
+OptIn optin() {
+	loc.escrow_local = 0
+}
 
 @timestamp (glob.startDate, glob.endDate)
-@pay call.sender -> escrow.addr
-NoOp donate() {}
+@pay $amount : call.sender -> escrow
+NoOp donate() {
+	glob.donated_total += amount
+	loc.escrow_local += amount
+}
 
-@assert escrow.total < glob.goal
+@assert glob.donated_total < glob.goal
 @timestamp (glob.endDate, )
-@pay (, escrow.local) ALGO : escrow.addr -> call.sender	
-NoOp reclaim() {}
+@pay (, escrow_local)$amount ALGO : escrow -> call.sender	
+NoOp reclaim() {
+	loc.escrow_local -= amount
+}
 
-@assert escrow.total >= glob.goal 
+@assert glob.donated_total >= glob.goal 
 @timestamp (glob.endDate, ) 
-@pay escrow.total : escrow.addr -> glob.receiver
+@pay glob.donated_total : escrow -> glob.receiver
 NoOp claim() {} 
 
-@assert escrow.total == 0
+@assert glob.donated_total == 0
 @timestamp (glob.fundCloseDate, )
-@close escrow.addr -> global.creator
+@close escrow -> global.creator
 @from global.creator
 Delete delete() {}

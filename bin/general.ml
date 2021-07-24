@@ -26,7 +26,7 @@ and exp =
 | Not of exp
 | Global of ide
 | Call of ide
-| Escrow of ide
+| Escrow
 and cmd = 
 | Assign of key * exp
 | AssignOp of ibop * key * exp

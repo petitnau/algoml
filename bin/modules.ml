@@ -13,8 +13,8 @@ module Env = struct
 
   let apply_ex (d:env) (i:ide) : eval = 
     match apply d i with
-    | DUnbound -> failwith ("Ide "^(Ide.to_str i)^" not in env")
-    | DBound(_,_,None) -> failwith ("Ide"^(Ide.to_str i)^" not initialized")
+    | DUnbound -> failwith ("Can't get "^(Ide.to_str i)^": ide not bound")
+    | DBound(_,_,None) -> failwith ("Can't get "^(Ide.to_str i)^": ide not initialized")
     | DBound(_,_,Some(v)) -> v
   
   let bind (d:env) (i:ide) (m:muttype) (t:vartype) (v:eval option) : env =
@@ -28,7 +28,7 @@ module Env = struct
 
   let update (d:env) (i:ide) (v:eval) : env = 
     match apply d i with
-    | DUnbound -> failwith ("Ide "^(Ide.to_str i)^" not bound") (* TO CHANGE WITH STATIC CHECK*)
+    | DUnbound -> failwith ("Can't update "^(Ide.to_str i)^": ide not bound") (* TO CHANGE WITH STATIC CHECK*)
     | DBound(m,t,_) -> bind d i m t (Some v)
 
   let rec init_state (d:env) (s:statetype) (dl:decl list) : env =
@@ -93,8 +93,7 @@ module Account = struct
   let empty_contract (p:contract) (creator:address) : account =
     let Contract(dl,_) = p in
     let gd = Env.init_state Env.empty TGlob dl in
-    let gd' = Env.init gd (Ide "escrow.total") Mutable TInt (VInt 0) in
-    ContractAccount(Address.create(), Balance.empty, LocalEnvs.empty, creator, p, gd')
+    ContractAccount(Address.create(), Balance.empty, LocalEnvs.empty, creator, p, gd)
 
   let get_address (a:account) : address = 
     match a with
@@ -121,6 +120,11 @@ module Account = struct
     match a with
     | ContractAccount(_,_,_,c,_,_) -> c
     | UserAccount(_,_,_) -> failwith "User accounts do not have a creator"
+
+  let get_contract_ex (a:account) : contract = 
+    match a with
+    | ContractAccount(_,_,_,_,p,_) -> p
+    | UserAccount(_,_,_) -> failwith "User accounts do not have a contract"
 
   let bind_balance (a:account) (t:tok) (amt:int option) : account = 
     match a with
@@ -151,8 +155,7 @@ module Account = struct
       | UserAccount(_,_,_) -> failwith "Cannot opt into user account"
       | ContractAccount(_, _, _, _, Contract(dl,_), _) -> dl) in 
     let ld = Env.init_state Env.empty TLoc dl in
-    let ld' = Env.init ld (Ide "escrow.local") Mutable TInt (VInt 0) in
-    bind_localenv a cx ld'
+    bind_localenv a cx ld
 
   let get_localv_ex (a:account) (cx:address) (i:ide) : eval = 
     let lds = get_localenvs a in

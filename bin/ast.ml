@@ -84,16 +84,9 @@ let rec eval_exp (s:state) (d:env) (ci:callinfo) (e:exp) : eval =
     | Ide("sender") -> VAddress(ci.caller)
     | _ -> failwith ((Ide.to_str i)^" is not a call field"))
 
-  | Escrow(i) -> 
-    let acaller = State.get_account_ex s ci.caller in
-    let acalled = State.get_account_ex s ci.called in
-    (match i with
-    | Ide("total") -> Account.get_globalv_ex acalled (Ide "escrow.total") 
-    | Ide("local") -> Account.get_localv_ex acaller ci.called (Ide "escrow.local")
-    | Ide("addr") -> VAddress(ci.called)
-    | _ -> failwith ((Ide.to_str i)^" is not an escrow field"))
+  | Escrow -> VAddress(ci.called)
 
-
+    
 let rec run_cmds (s:state) (d:env) (ci:callinfo) (cl:cmd list) : state * env =
   let rec run_cmd (s:state) (d:env) (c:cmd) : state * env = 
     (match c with
@@ -189,24 +182,7 @@ let rec run_aclause (s:state) (d:env) (ao:aclause) (ci:callinfo) (txnl: transact
     let b2, d2 = match_pattern(s, d1, ci, tkn_p, VToken(tkn)) in
     let b3, d3 = match_pattern(s, d2, ci, afr_p, VAddress(afr)) in
     let b4, d4 = match_pattern(s, d3, ci, ato_p, VAddress(ato)) in
-    if b1 && b2 && b3 && b4 then 
-      if ci.called = afr || ci.called = ato then
-        let amt_delta = if ci.called = ato then amt else -amt in
-        let acalled = State.get_account_ex s ci.called in
-        let old_gamt = Account.get_globalv_ex acalled (Ide "escrow.total") in
-        let acalled' = (match old_gamt with
-        | VInt(old_gamt) ->  Account.set_globalv_ex acalled (Ide "escrow.total") (VInt(old_gamt+amt_delta) )
-        | _ -> raise TypeError) in
-        let s' = State.bind s acalled' in
-        let acaller = State.get_account_ex s ci.caller in
-        let old_lamt = Account.get_localv_ex acaller ci.called (Ide "escrow.local") in
-        let acaller' = (match old_lamt with
-        | VInt(old_lamt) ->  Account.set_localv_ex acaller ci.called (Ide "escrow.local") (VInt(old_lamt-amt_delta)) 
-        | _ -> raise TypeError) in
-        let s'' = State.bind s' acaller' in
-        run_aclause s'' d4 aotl ci txntl
-      else
-        run_aclause s d4 aotl ci txntl
+    if b1 && b2 && b3 && b4 then run_aclause s d4 aotl ci txntl
     else None
 
   | CloseClause(tkn_p, afr_p, ato_p)::aotl, CloseTransaction(tkn, afr, ato)::txntl ->
@@ -310,19 +286,13 @@ let run_txns (s:state) (txnl:transaction list) : state =
       os''
 
     | CallTransaction(xfr, xto, onc, fn, params) -> 
-      let acaller = State.get_account_ex s xfr in
       let acalled = State.get_account_ex s xto in
-      let os' = (match  acalled with 
-      | ContractAccount(_, _, _, _, p, _) -> 
-        let cinf = {caller=xfr; called=xto; onc=onc; fn=fn; params=params} in
-        let os' = run_contract s p cinf txnl in
-        os'
-      | _ -> None) in 
-      (match os' with
-      | Some(s') when onc = OptIn -> 
-        let acaller' = Account.opt_in acaller acalled in
-        Some(State.bind s' acaller')
-      | _ -> os')) in
+      let acaller = State.get_account_ex s xfr in
+      let s' = if onc <> OptIn then s
+        else State.bind s (Account.opt_in acaller acalled) in
+      let p = Account.get_contract_ex acalled in
+      let cinf = {caller=xfr; called=xto; onc=onc; fn=fn; params=params} in
+      run_contract s' p cinf txnl) in
 
   let rec run_txns_aux s' toexectxnl =
     (match toexectxnl with

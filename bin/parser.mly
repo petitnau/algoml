@@ -209,7 +209,7 @@ exp:
 
 | GLOBAL; DOT; i=ide; { Global(i)}
 | CALL; DOT; i=ide; { Call(i)}
-| ESCROW; DOT; i=ide; { Escrow(i)}
+| ESCROW; { Escrow }
 
 key:
 | i=ide; { NormVar(i) }

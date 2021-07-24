@@ -8,21 +8,21 @@ Create create(int roundLimit) {
 
 OptIn optin() {}
 
-@pay $algoAmount ALGO : sender -> escrow.addr
-@pay $cafeAmount CAFE : escrow.addr -> sender
+@pay $algoAmount ALGO : sender -> escrow
+@pay $cafeAmount CAFE : escrow -> sender
 @assert algoAmount*2 == cafeAmount*3 
 NoOp buy() {}
 
 @from $sender
 @round (, roundLimit)
-@pay (, escrow.local)$algoAmount ALGO : escrow.addr -> sender
-@pay $cafeAmount CAFE : sender -> escrow.addr
+@pay (, escrow.local)$algoAmount ALGO : escrow -> sender
+@pay $cafeAmount CAFE : sender -> escrow
 @assert algoAmount*2 == cafeAmount*3 
 NoOp refund() {}
 
 @from $sender
 @round (roundLimit, )
-@close ALGO : escrow.addr -> sender
-@close CAFE : escrow.addr -> sender
+@close ALGO : escrow -> sender
+@close CAFE : escrow -> sender
 @from global.Creator
 Delete delete() {}
