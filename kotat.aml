@@ -1,0 +1,28 @@
+int start = 50000
+int dethroneFee = 1000
+int rate = 2
+int curseDuration = 60*60*24*14
+
+glob mut int claimPrice
+glob mut address monarch
+glob mut int curseStart
+glob mut string kingName
+
+@timestamp (, curseStart + curseDuration)
+@pay dehtroneFee ALGO : * -> global.CreatorAddress
+@pay claimPrice ALGO : * -> monarch
+NoOp dethrone(string kingName) {
+	curseStart = call.Round
+	monarch = call.sender
+	glob.kingName = kingName
+	claimPrice *= rate
+}
+
+@timestamp (curseStart + curseDuration, )
+@pay (start+dethroneFee) ALGO : * -> global.CreatorAddress
+NoOp dethrone(string kingName) {
+	curseStart = call.Round
+	monarch = call.sender
+	glob.kingName = kingName
+	claimPrice = start*rate
+}

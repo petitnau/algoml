@@ -1,0 +1,35 @@
+glob int startDate
+glob int endDate
+glob int fundCloseDate
+glob int goal
+glob address receiver 
+
+Create create(int startDate, int endDate, int fundCloseDate, int goal, address receiver) {
+	glob.startDate = startDate
+	glob.endDate = endDate
+	glob.fundCloseDate = fundCloseDate
+	glob.goal = goal
+	glob.receiver = receiver
+}
+
+OptIn optin() {}
+
+@timestamp (glob.startDate, glob.endDate)
+@pay call.sender -> escrow.addr
+NoOp donate() {}
+
+@assert escrow.total < glob.goal
+@timestamp (glob.endDate, )
+@pay (, escrow.local) ALGO : escrow.addr -> call.sender	
+NoOp reclaim() {}
+
+@assert escrow.total >= glob.goal 
+@timestamp (glob.endDate, ) 
+@pay escrow.total : escrow.addr -> glob.receiver
+NoOp claim() {} 
+
+@assert escrow.total == 0
+@timestamp (glob.fundCloseDate, )
+@close escrow.addr -> global.creator
+@from global.creator
+Delete delete() {}

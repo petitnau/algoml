@@ -1,0 +1,28 @@
+token CAFE = 0xcafe
+
+glob int roundLimit
+
+Create create(int roundLimit) {
+    glob.roundLimit = roundLimit
+}
+
+OptIn optin() {}
+
+@pay $algoAmount ALGO : sender -> escrow.addr
+@pay $cafeAmount CAFE : escrow.addr -> sender
+@assert algoAmount*2 == cafeAmount*3 
+NoOp buy() {}
+
+@from $sender
+@round (, roundLimit)
+@pay (, escrow.local)$algoAmount ALGO : escrow.addr -> sender
+@pay $cafeAmount CAFE : sender -> escrow.addr
+@assert algoAmount*2 == cafeAmount*3 
+NoOp refund() {}
+
+@from $sender
+@round (roundLimit, )
+@close ALGO : escrow.addr -> sender
+@close CAFE : escrow.addr -> sender
+@from global.Creator
+Delete delete() {}

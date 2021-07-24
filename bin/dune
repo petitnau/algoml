@@ -1,0 +1,13 @@
+
+(ocamllex
+  (modules lexer))
+
+(menhir
+  (modules parser))
+
+(executable
+ (name amlint)
+ (libraries batteries))
+; (libraries lexer))
+ 
+ 
