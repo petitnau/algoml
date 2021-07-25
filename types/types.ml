@@ -30,7 +30,6 @@ and cmd =
 | Assign of key * exp
 | AssignOp of ibop * key * exp
 | Ifte of exp * cmd list * cmd list
-| Nop
 and pattern = 
 | RangePattern of exp option * exp option * ide option
 | FixedPattern of exp * ide option
@@ -80,4 +79,5 @@ and dval =
 | DBound of muttype * vartype * eval option
 | DUnbound
 
+type typeenv = (key * vartype) list
 

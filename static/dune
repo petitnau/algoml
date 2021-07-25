@@ -1,0 +1,3 @@
+(library
+ (name static)
+ (libraries general types int))

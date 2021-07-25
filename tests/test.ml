@@ -3,6 +3,7 @@ open General
 open Amlparser
 open Amlprinter
 open Int
+open Static
 open OUnit2
 
 let rec create_accs (s:state) (accnum:int) : state * address list = 
@@ -33,52 +34,66 @@ let test_call_raises (name:string) (s:state) (afr:address) (ato:address) (fn:str
     | Some(ex) -> assert_raises ex f
     | None -> f())
 
+let test_static_error (name:string) (ex:exn option) (code:string) = 
+  name >:: (fun _ ->
+    let f = fun _ ->
+      let _ = parse_string code in ()
+    in match ex with
+    | Some(ex) -> assert_raises ex f
+    | None -> f())
 
 (* TEST SUITE 1
  *
  * ? *)
 
-
 let s, xc, xl = setup 1 [] "
 glob int x
 glob int y
+loc int y
 
 Create create() {}
+
+OptIn opt() {}
 
 NoOp op1(int x) { glob.x = x }
 
 NoOp op2() { glob.y = glob.x }
+
+NoOp op3() { loc.y = 5 }
 " 
-let xa = List.hd xl
+let xa = List.hd xl 
 let testsuite1 = "contract 1 test suite" >::: [
   "op1 into op2" >:: (fun _ -> 
     let s = begin
       s >=> [CallTransaction(xa, xc, NoOp, Ide("op1"), [VInt(5)])]
-        >=> [CallTransaction(xa, xc, NoOp, Ide("op2"), [])]
+        >=> [CallTransaction(xa, xc, OptIn, Ide("opt"), [])]
+        >=> [CallTransaction(xa, xc, NoOp, Ide("op3"), [])]
     end in
-    let acc_z = State.get_account_ex s xc in
-    let v = Account.get_globalv_ex acc_z (Ide "y") in
+    let aa = State.get_account_ex s xa in
+    let v = Account.get_localv_ex aa xc (Ide "y") in
     assert_equal v (VInt(5)) ~printer:string_of_eval);
 
   test_call_raises "wrong parameter type" s xa xc 
     "op1" [VString("ok")] (Some (Failure "Can't update x: wrong type"));
   test_call_raises "get non initialized var" s xa xc 
     "op2" [] (Some (Failure "Can't get x: ide not initialized"));
+  test_call_raises "use local while not opted in" s xa xc 
+    "op3" [] (Some (Failure "User not opted in"));
 ]
 
 (* TEST SUITE 2
  *
  * NON BOUND VARS *)
-
+(* 
 let s, xc, xl = setup 1 [] "
 glob int x
 loc int z
 
 Create create() {}
 
-NoOp op1(int x) { glob.x = y }
+NoOp op1(int x) { glob.x = loc.z }
 
-NoOp op2(int x) { glob.y = x }
+NoOp op2(int x) { loc.z = glob.x }
 
 NoOp op3() { loc.z = 15 }
 " 
@@ -90,7 +105,7 @@ let testsuite2 = "contract 2 test suite" >::: [
     "op2" [VInt(22)] (Some (Failure "Can't update y: ide not bound"));
   test_call_raises "use local while not opted" s xa xc 
     "op3" [] (Some (Failure "User not opted in"));
-]
+] *)
 
 (* TEST SUITE 3
  *
@@ -125,59 +140,38 @@ let testsuite3 = "3 test suite" >::: [
       Account.bind_globalenv_ex aa Env.empty));
 ]
 
-
 (* TEST SUITE 4
  *
  * TYPE CHECKS *)
 
-
-let s, xc, xl = setup 2 [VInt(3); VString("G"); VBool(true)] "
-glob int x
-glob string y
-glob bool z
-
-Create create(int x, string y, bool z) {
-  glob.x = x
-  glob.y = y
-  glob.z = z
-}
-
-NoOp op1a() { glob.x += \"\" }
-
-NoOp op1b() { glob.x += 3 }
-
-NoOp op2a() { glob.z = !\"\" }
-
-NoOp op2b() { glob.z = !false }
-
-NoOp op3a() { glob.z = glob.z && \"\" }
-
-NoOp op3b() { glob.z = glob.z && false }
-
-NoOp op4a() { glob.z = glob.x <= \"\" }
-
-NoOp op4b() { glob.z = glob.x <= 4 }
-
-NoOp op5a() { if (8) {} }
-
-NoOp op5b() { if (true) {} }
-"
-
-let xa, xb = (match xl with [xa;xb] -> xa, xb | _ -> failwith "2 Users required")
 let testsuite4 = "r test suite" >::: [
-  test_call_raises "sum int and string" s xa xc "op1a" [] (Some TypeError);
-  test_call_raises "sum int and int" s xa xc "op1b" [] (None);
-  test_call_raises "negate string" s xa xc "op2a" [] (Some TypeError);
-  test_call_raises "negate bool" s xa xc "op2b" [] (None);
-  test_call_raises "and between bool and string" s xa xc "op3a" [] (Some TypeError);
-  test_call_raises "and between bool and bool" s xa xc "op3b" [] (None);
-  test_call_raises "leq between int and string" s xa xc "op4a" [] (Some TypeError);
-  test_call_raises "leq between int and int" s xa xc "op4b" [] (None);
-  test_call_raises "if int condition" s xa xc "op5a" [] (Some TypeError);
-  test_call_raises "if bool condition" s xa xc "op5b" [] (None);
+  test_static_error "sum int string" None 
+    "glob int x\n Create fn(string y) { glob.x = glob.x + y }" ;
+  test_static_error "sum int int" (Some TypeError) 
+    "glob int x\n Create fn(int y) { glob.x = glob.x + y }";
+
+  test_static_error "negate string" None 
+    "loc bool x\n Create fn(string y) { glob.x = !y }" ;
+  test_static_error "negate bool" (Some TypeError) 
+    "loc bool x\n Create fn(bool y) { glob.x = !y }";
+
+  test_static_error "and bool string" None 
+    "loc bool x\n Create fn(string y) { glob.x = glob.x && y }" ;
+  test_static_error "and bool bool" (Some TypeError) 
+    "loc bool x\n Create fn(bool y) { glob.x = glob.x && y }";
+
+  test_static_error "leq int string" None 
+    "loc bool x\n Create fn(int y, string z) { glob.x = y <= z }" ;
+  test_static_error "leq int int" (Some TypeError) 
+    "loc bool x\n Create fn(int y, int z) { glob.x = y <= z }";
+
+  test_static_error "if condition int" (Some TypeError)
+    "loc bool x\n Create fn(int z) { if (z) {} }";
+  test_static_error "if condition int" (None)
+    "loc bool x\n Create fn(bool z) { if (z) {} }";
 ]
 
 let _ = run_test_tt_main testsuite1
-let _ = run_test_tt_main testsuite2
+(* let _ = run_test_tt_main testsuite2 *)
 let _ = run_test_tt_main testsuite3
-let _ = run_test_tt_main testsuite4
+(* let _ = run_test_tt_main testsuite4 *)

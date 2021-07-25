@@ -1,4 +1,5 @@
 open Types
+include Monads
 (* open Amlprinter *)
 
 module Ide = struct

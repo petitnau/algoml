@@ -2,8 +2,6 @@ open Types
 open General
 (* open Batteries *)
 
-exception TypeError
-
 let rec eval_exp (s:state) (d:env) (ci:callinfo) (e:exp) : eval = 
   match e with
   | EInt(i) -> VInt(i)
@@ -32,7 +30,7 @@ let rec eval_exp (s:state) (d:env) (ci:callinfo) (e:exp) : eval =
       | Diff -> VInt(v1 - v2)
       | Mul -> VInt(v1 * v2)
       | Div -> VInt(v1 / v2))
-    | _, _ -> raise TypeError)
+    | _, _ -> failwith "Incorrect type check")
       
 
   | LBop(op, e1, e2) -> 
@@ -43,7 +41,7 @@ let rec eval_exp (s:state) (d:env) (ci:callinfo) (e:exp) : eval =
       (match op with
       | And -> VBool(v1 && v2)
       | Or -> VBool(v1 || v2))
-    | _, _ -> raise TypeError)
+    | _, _ -> failwith "Incorrect type check")
 
   | CBop(op, e1, e2) -> 
     let v1 = eval_exp s d ci e1 in
@@ -57,13 +55,13 @@ let rec eval_exp (s:state) (d:env) (ci:callinfo) (e:exp) : eval =
       | Leq -> VBool(v1 <= v2)
       | Eq -> VBool(v1 = v2)
       | Neq -> VBool(v1 <> v2))
-    | _, _ -> raise TypeError)
+    | _, _ -> failwith "Incorrect type check")
 
   | Not(e1) ->
     let v1 = eval_exp s d ci e1 in
     (match v1 with
     | VBool(v1) -> VBool(not(v1))
-    | _ -> raise TypeError)
+    | _ -> failwith "Incorrect type check")
 
   | Global(i) ->
     let acalled = State.get_account_ex s ci.called in
@@ -111,10 +109,8 @@ let rec run_cmds (s:state) (d:env) (ci:callinfo) (cl:cmd list) : state * env =
         run_cmds s d ci cl1
       | VBool(false) -> 
         run_cmds s d ci cl2
-      | _ -> raise TypeError)
+      | _ -> failwith "Incorrect type check")) in
       
-    | Nop -> (s,d)) in
-
   match cl with
   | c::cltl -> 
     let s', d' = run_cmd s d c in
@@ -131,19 +127,19 @@ let match_pattern ((s:state), (d:env), (ci:callinfo), (p:pattern), (v:eval)) : b
         (match va, v, vb with
         | VInt(va), VInt(v), VInt(vb) -> 
           va <= v && v <= vb
-        | _ -> raise TypeError) 
+        | _ -> failwith "Incorrect type check") 
 
       | None, Some(b) -> 
         let vb = eval_exp s d ci b in
         (match v, vb with
         |  VInt(v), VInt(vb) -> v <= vb
-        | _ -> raise TypeError)
+        | _ -> failwith "Incorrect type check")
 
       | Some(a), None -> 
         let va = eval_exp s d ci a in
         (match va, v with
         |  VInt(va), VInt(v) -> va <= v
-        | _ -> raise TypeError)
+        | _ -> failwith "Incorrect type check")
 
       | None, None -> true) 
     in

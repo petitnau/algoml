@@ -2,6 +2,7 @@
 (* open Format *)
 (* open General *)
 open Batteries
+open Static
 
 exception Error of exn * (int * int * string)
 
@@ -12,9 +13,11 @@ let parse_buf (lexbuf:Lexing.lexbuf) =
     | Contract(dl, cl) -> *)
       (* Printf.printf "DL: %d CL: %d\n" (List.length dl) (List.length cl); *)
       (* print_endline (dump ast); *)
-    ast
+    let types = check_program ast in
+    if types = None then raise TypeError
+    else ast
   with
-    | exn ->
+    | Parser.Error as exn -> 
     begin
       let curr = lexbuf.Lexing.lex_curr_p in
       let line = curr.Lexing.pos_lnum in

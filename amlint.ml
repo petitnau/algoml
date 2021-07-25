@@ -4,7 +4,7 @@ open Amlparser
 open Amlprinter
 open Batteries
 
-let crowdfunding_script = parse_file "contracts/crowdfunding.aml"
+let crowdfunding_script = parse_file "contracts/crowdfunding.aml";;
 
 let account_a = Account.bind_balance (Account.empty_user()) Algo 100
 let address_a = Account.get_address account_a

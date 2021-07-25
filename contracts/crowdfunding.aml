@@ -28,7 +28,7 @@ NoOp donate() {
 
 @assert glob.donated_total < glob.goal
 @timestamp (glob.endDate, )
-@pay (, escrow_local)$amount ALGO : escrow -> call.sender	
+@pay (, loc.escrow_local)$amount ALGO : escrow -> call.sender	
 NoOp reclaim() {
 	loc.escrow_local -= amount
 }

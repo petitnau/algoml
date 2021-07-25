@@ -6,4 +6,4 @@
 
 (library
  (name amlparser)
- (libraries types batteries))
+ (libraries types batteries static))

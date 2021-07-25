@@ -105,13 +105,17 @@ contract:
 | eols?; dl = optterm_list(eols, declaration); cl = optterm_list(MEOL, aclause); eols?; EOF{ Contract(dl, cl) }
 
 declaration: 
-| s=statetype; MUT; t=vartype; i=ide; { Declaration(s,Mutable,t,i,None) }
-| s=statetype; t=vartype; i=ide; { Declaration(s,Immutable,t,i,None) }
-| t=vartype; i=ide; EQUALS; e=exp; { Declaration(TNorm,Immutable,t,i,Some(e)) }
+| s=statetype; m=muttype; t=vartype; i=ide; { Declaration(s,m,t,i,None) }
+| s=statetype; m=muttype; t=vartype; i=ide; EQUALS; e=exp; { Declaration(s,m,t,i,Some(e)) }
+
+muttype:
+| MUT; { Mutable }
+| (* epsilon *) { Immutable }
 
 statetype:
 | GLOB; { TGlob }
 | LOC; { TLoc }
+| (* epsilon *) { TNorm }
 
 vartype:
 | TINT; { TInt }

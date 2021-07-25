@@ -70,20 +70,20 @@ rule read =
     | "if" { IF }
     | "else" { ELSE }
 
-    | "mut" { MUT }
-    | "glob" { GLOB }
-    | "loc" { LOC }
     
     | "global" { GLOBAL }
     | "call" { CALL }
     | "escrow" { ESCROW }
     | "ALGO" { ALGO }
 
+    | "mut" { MUT }
+    | "glob" { GLOB }
+    | "loc" { LOC }
+    
     | "true" { TRUE }
     | "false" { FALSE }
 
-
-    | str { STR (Lexing.lexeme lexbuf) }
     | id { IDE (Lexing.lexeme lexbuf) }
+    | str { STR (Lexing.lexeme lexbuf) }
     | int { INTEGER (int_of_string(Lexing.lexeme lexbuf))}
     | eof { EOF }
