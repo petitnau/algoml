@@ -51,12 +51,12 @@ and account =
 | UserAccount of address * balance * localenvs
 | ContractAccount of address * balance * localenvs * address * contract * env
 and address = Address of int
-and balance = tok -> int option
-and localenvs = address -> env option
-and env = ide -> dval
+and balance = (tok * int) list
+and localenvs = (address * env) list
+and env = (ide * dval) list
 and tok = Token of int | Algo
 
-and state = {accounts : address -> account option; round : int; timestamp : int}
+and state = {accounts : (address * account) list; round : int; timestamp : int}
 and stateop =   
 | Wait of int * int
 | Transaction of transaction list

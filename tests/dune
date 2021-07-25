@@ -1,0 +1,3 @@
+(executable
+ (name test)
+ (libraries general int amlparser amlprinter ounit2)) 

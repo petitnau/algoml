@@ -1,6 +1,3 @@
 (library
  (name int)
- (libraries general batteries))
-; (libraries lexer))
- 
- 
+ (libraries general types batteries))

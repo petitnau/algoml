@@ -1,15 +1,9 @@
-
 (ocamllex
   (modules lexer))
 
 (menhir
   (modules parser))
 
-
-
 (library
  (name amlparser)
- (libraries general batteries))
-; (libraries lexer))
- 
- 
+ (libraries types batteries))

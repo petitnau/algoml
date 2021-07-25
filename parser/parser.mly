@@ -1,5 +1,5 @@
 %{
-  open General
+  open Types
 %}
 
 %token EOF
@@ -87,7 +87,7 @@
 %left TIMES
 %left DIV
 
-%start <General.contract> contract
+%start <Types.contract> contract
 
 %%
 
@@ -102,7 +102,7 @@ optterm_nonempty_list(separator, X):
      { x :: xs }
 
 contract:
-| dl = optterm_list(eols, declaration); cl = optterm_list(MEOL, aclause); eols?; EOF{ Contract(dl, cl) }
+| eols?; dl = optterm_list(eols, declaration); cl = optterm_list(MEOL, aclause); eols?; EOF{ Contract(dl, cl) }
 
 declaration: 
 | s=statetype; MUT; t=vartype; i=ide; { Declaration(s,Mutable,t,i,None) }
@@ -187,6 +187,7 @@ cmdpart:
 exp:
 | LPAREN; e=exp; RPAREN { e }
 | n=INTEGER; { EInt(n) }
+| s=STR; { EString(s) }
 | TRUE; { EBool(true) }
 | FALSE; { EBool(false) }
 | ALGO; { EToken(Algo) }

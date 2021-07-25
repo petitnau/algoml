@@ -78,6 +78,11 @@ rule read =
     | "call" { CALL }
     | "escrow" { ESCROW }
     | "ALGO" { ALGO }
+
+    | "true" { TRUE }
+    | "false" { FALSE }
+
+
     | str { STR (Lexing.lexeme lexbuf) }
     | id { IDE (Lexing.lexeme lexbuf) }
     | int { INTEGER (int_of_string(Lexing.lexeme lexbuf))}

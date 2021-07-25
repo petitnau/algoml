@@ -1,15 +1,8 @@
+open Types
 open General
 (* open Batteries *)
 
 exception TypeError
-
-let get_type (v:eval) : vartype = 
-  match v with
-  | VInt(_) -> TInt
-  | VString(_) -> TString
-  | VBool(_) -> TBool
-  | VToken(_) -> TToken
-  | VAddress(_) -> TAddress
 
 let rec eval_exp (s:state) (d:env) (ci:callinfo) (e:exp) : eval = 
   match e with
@@ -155,7 +148,7 @@ let match_pattern ((s:state), (d:env), (ci:callinfo), (p:pattern), (v:eval)) : b
       | None, None -> true) 
     in
     let d' = (match x with
-      | Some(x) -> Env.init d x Mutable (get_type v) v 
+      | Some(x) -> Env.init d x Mutable (Eval.get_type v) v 
       | None -> d) in
     b, d'
 
@@ -163,13 +156,13 @@ let match_pattern ((s:state), (d:env), (ci:callinfo), (p:pattern), (v:eval)) : b
     let a = eval_exp s d ci a in
     let b = (a = v) in
     let d' = (match x with
-      | Some(x) -> Env.init d x Mutable (get_type v) v 
+      | Some(x) -> Env.init d x Mutable (Eval.get_type v) v 
       | None -> d) in
     b, d'
 
   | AnyPattern(x) ->
     let d' = (match x with
-      | Some(x) -> Env.init d x Mutable (get_type v) v 
+      | Some(x) -> Env.init d x Mutable (Eval.get_type v) v 
       | None -> d) in
     (true, d')
 
@@ -251,8 +244,8 @@ let run_txns (s:state) (txnl:transaction list) : state =
         let ato_amt = Account.apply_balance ato tkn in
         (match afr_amt, ato_amt with 
         | Some(afr_amt), Some(ato_amt) when afr_amt - amt >= 0 -> 
-          let afr' = Account.bind_balance afr tkn (Some(afr_amt - amt)) in
-          let ato' = Account.bind_balance ato tkn (Some(ato_amt + amt)) in
+          let afr' = Account.bind_balance afr tkn (afr_amt - amt) in
+          let ato' = Account.bind_balance ato tkn (ato_amt + amt) in
           let s' = State.bind s afr' in
           let s'' = State.bind s' ato' in
           Some(s'')
@@ -268,8 +261,8 @@ let run_txns (s:state) (txnl:transaction list) : state =
         let ato_amt = Account.apply_balance ato tkn in
         (match afr_amt, ato_amt with 
         | Some(afr_amt), Some(ato_amt) -> 
-          let afr' = Account.bind_balance afr tkn None in
-          let ato' = Account.bind_balance ato tkn (Some(ato_amt + afr_amt)) in
+          let afr' = Account.unbind_balance afr tkn in
+          let ato' = Account.bind_balance ato tkn (ato_amt + afr_amt) in
           let s' = State.bind s afr' in
           let s'' = State.bind s' ato' in
           Some(s'')
@@ -295,11 +288,11 @@ let run_txns (s:state) (txnl:transaction list) : state =
 
   let rec run_txns_aux s' toexectxnl =
     (match toexectxnl with
-    | [] -> print_endline "OK"; s'
+    | [] -> s'
     | hd::tl -> 
       let s'' = run_txn s' hd in
       (match s'' with
-      | None -> print_endline "FAIL"; s
+      | None -> s
       | Some(s'') ->  run_txns_aux s'' tl)) in
   run_txns_aux s txnl
 
@@ -307,3 +300,7 @@ let run_op ((s:state), (op:stateop)) : state =
   match op with
   | Wait(r, t) -> {s with round = r; timestamp = t}
   | Transaction(txnl) -> run_txns s txnl
+
+let (>:>) (s:state) ((r:int), (t:int)) : state = run_op (s, (Wait(r,t)))
+let (>=>) (s:state) (tl:transaction list) : state = run_op (s, (Transaction(tl)))
+let (>$>) (s:state) (a:account) : state = State.bind s a

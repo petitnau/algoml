@@ -5,15 +5,14 @@ open Batteries
 
 exception Error of exn * (int * int * string)
 
-let parse () = 
-  let lexbuf = Lexing.from_channel stdin in
+let parse_buf (lexbuf:Lexing.lexbuf) = 
   try
     let ast = Parser.contract Lexer.read lexbuf in 
-    match ast with
-    | Contract(dl, cl) ->
-      Printf.printf "DL: %d CL: %d\n" (List.length dl) (List.length cl);
-      print_endline (dump ast);
-      ast
+    (* match ast with
+    | Contract(dl, cl) -> *)
+      (* Printf.printf "DL: %d CL: %d\n" (List.length dl) (List.length cl); *)
+      (* print_endline (dump ast); *)
+    ast
   with
     | exn ->
     begin
@@ -28,6 +27,18 @@ let parse () =
       print_endline ("'"^tok^"'");
       raise (Error (exn,(line,cnum,tok)))
     end
-;;
+
+let parse_input () = 
+  let lexbuf = Lexing.from_channel stdin in
+  parse_buf lexbuf
+    
+let parse_file (filename:string) = 
+  let f = open_in filename in
+  let lexbuf = Lexing.from_channel f in
+  parse_buf lexbuf
+
+let parse_string (s:string) = 
+  let lexbuf = Lexing.from_string s in
+  parse_buf lexbuf
 
 (*ocamlbuild -use-menhir main.native && ./main.native < test*)
