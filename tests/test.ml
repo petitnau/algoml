@@ -62,7 +62,7 @@ NoOp op2() { glob.y = glob.x }
 NoOp op3() { loc.y = 5 }
 " 
 let xa = List.hd xl 
-let testsuite1 = "contract 1 test suite" >::: [
+let testsuite1 = "test suite 1" >::: [
   "op1 into op2" >:: (fun _ -> 
     let s = begin
       s >=> [CallTransaction(xa, xc, NoOp, Ide("op1"), [VInt(5)])]
@@ -83,38 +83,12 @@ let testsuite1 = "contract 1 test suite" >::: [
 
 (* TEST SUITE 2
  *
- * NON BOUND VARS *)
-(* 
-let s, xc, xl = setup 1 [] "
-glob int x
-loc int z
-
-Create create() {}
-
-NoOp op1(int x) { glob.x = loc.z }
-
-NoOp op2(int x) { loc.z = glob.x }
-
-NoOp op3() { loc.z = 15 }
-" 
-let xa = List.hd xl
-let testsuite2 = "contract 2 test suite" >::: [
-  test_call_raises "non bound get" s xa xc 
-    "op1" [VInt(11)] (Some (Failure "Can't get y: ide not bound"));
-  test_call_raises "non bound set" s xa xc 
-    "op2" [VInt(22)] (Some (Failure "Can't update y: ide not bound"));
-  test_call_raises "use local while not opted" s xa xc 
-    "op3" [] (Some (Failure "User not opted in"));
-] *)
-
-(* TEST SUITE 3
- *
  * MODULES UNIT TESTS *)
 
 let s, _, xl = setup 2 [] "";;
 let xa, xb = (match xl with [xa;xb] -> xa, xb | _ -> failwith "2 Users required")
 let aa, ab = State.get_account_ex s xa, State.get_account_ex s xb
-let testsuite3 = "3 test suite" >::: [
+let testsuite2 = "test suite 2" >::: [
   "get non-existent account" >:: (fun _ ->
     assert_raises (Failure "Account does not exist") (fun _ ->
       State.get_account_ex s (Address 1337)));
@@ -140,38 +114,52 @@ let testsuite3 = "3 test suite" >::: [
       Account.bind_globalenv_ex aa Env.empty));
 ]
 
-(* TEST SUITE 4
+(* TEST SUITE 3
  *
  * TYPE CHECKS *)
 
-let testsuite4 = "r test suite" >::: [
-  test_static_error "sum int string" None 
+let testsuite3 = "test suite 3" >::: [
+  test_static_error "sum int string" (Some TypeError)  
     "glob int x\n Create fn(string y) { glob.x = glob.x + y }" ;
-  test_static_error "sum int int" (Some TypeError) 
+  test_static_error "sum int int" None
     "glob int x\n Create fn(int y) { glob.x = glob.x + y }";
 
-  test_static_error "negate string" None 
-    "loc bool x\n Create fn(string y) { glob.x = !y }" ;
-  test_static_error "negate bool" (Some TypeError) 
-    "loc bool x\n Create fn(bool y) { glob.x = !y }";
+  test_static_error "negate string" (Some TypeError)  
+    "glob bool x\n Create fn(string y) { glob.x = !y }" ;
+  test_static_error "negate bool" None
+    "glob bool x\n Create fn(bool y) { glob.x = !y }";
 
-  test_static_error "and bool string" None 
-    "loc bool x\n Create fn(string y) { glob.x = glob.x && y }" ;
-  test_static_error "and bool bool" (Some TypeError) 
-    "loc bool x\n Create fn(bool y) { glob.x = glob.x && y }";
+  test_static_error "and bool string" (Some TypeError)  
+    "loc bool x\n Create fn(string y) { loc.x = loc.x && y }" ;
+  test_static_error "and bool bool" None
+    "loc bool x\n Create fn(bool y) { loc.x = loc.x && y }";
 
-  test_static_error "leq int string" None 
-    "loc bool x\n Create fn(int y, string z) { glob.x = y <= z }" ;
-  test_static_error "leq int int" (Some TypeError) 
-    "loc bool x\n Create fn(int y, int z) { glob.x = y <= z }";
+  test_static_error "leq int string" (Some TypeError) 
+    "loc bool x\n Create fn(int y, string z) { loc.x = y <= z }" ;
+  test_static_error "leq int int" None 
+    "loc bool x\n Create fn(int y, int z) { loc.x = y <= z }";
 
   test_static_error "if condition int" (Some TypeError)
     "loc bool x\n Create fn(int z) { if (z) {} }";
   test_static_error "if condition int" (None)
     "loc bool x\n Create fn(bool z) { if (z) {} }";
+
+  test_static_error "glob non-existent" (Some TypeError)
+    "loc int x\n Create fn() { glob.x = 7 }";
+  test_static_error "glob existent" (None)
+    "glob int x\n Create fn() { glob.x = 7 }";
+
+  test_static_error "loc non-existent" (Some TypeError)
+    "glob int x\n Create fn() { loc.x = 7 }";
+  test_static_error "loc existent" (None)
+    "loc int x\n Create fn() { loc.x = 7 }";
+
+  test_static_error "norm non-existent" (Some TypeError)
+    "glob int x\n Create fn() { x = 7 }";
+  test_static_error "norm existent" (None)
+    "Create fn(int x) { x = 7 }";
 ]
 
 let _ = run_test_tt_main testsuite1
-(* let _ = run_test_tt_main testsuite2 *)
+let _ = run_test_tt_main testsuite2
 let _ = run_test_tt_main testsuite3
-(* let _ = run_test_tt_main testsuite4 *)
