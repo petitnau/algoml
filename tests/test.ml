@@ -3,7 +3,6 @@ open General
 open Amlparser
 open Amlprinter
 open Int
-open Static
 open OUnit2
 
 let rec create_accs (s:state) (accnum:int) : state * address list = 
@@ -29,7 +28,7 @@ let setup (accnum:int) (pl:eval list) (code:string)  : state * address * address
 let test_call_raises (name:string) (s:state) (afr:address) (ato:address) (fn:string) (pl:eval list) (ex:exn option) : test = 
   name >:: (fun _ ->
     let f = fun _ ->
-      let _ = s >=> [CallTransaction(afr, ato, NoOp, Ide(fn), pl)] in ()
+      let _ = s >=>! [CallTransaction(afr, ato, NoOp, Ide(fn), pl)] in ()
     in match ex with
     | Some(ex) -> assert_raises ex f
     | None -> f())
@@ -38,7 +37,7 @@ let test_calls_raises (name:string) (s:state) (afr:address) (ato:address) (calls
   let rec do_calls s calls =
     match calls with
     | (onc,fn,pl)::tl ->
-      let s' = s >=> [CallTransaction(afr, ato, onc, Ide(fn), pl)] in
+      let s' = s >=>! [CallTransaction(afr, ato, onc, Ide(fn), pl)] in
       do_calls s' tl
     | [] -> ()
   in
@@ -95,30 +94,30 @@ let testsuite1 = "test suite 1" >::: [
     assert_equal v (VInt(5)) ~printer:string_of_eval);
 
   test_call_raises "Call to non-existent function" s x0 xc
-    "op0" [] (Some (Failure "Contract call failed: op0 not found."));
+    "op0" [] (Some (CallFail "op0 not found."));
   test_call_raises "Call to existent function but wrong parameters" s x0 xc
-    "op1" [] (Some (Failure "Contract call failed: op1 not found."));
+    "op1" [] (Some (CallFail "op1 not found."));
 
   test_call_raises "wrong parameter type" s x0 xc 
-    "op1" [VString("ok")] (Some (Failure "Can't update x: wrong type"));
+    "op1" [VString("ok")] (Some TypeError);
   test_call_raises "get non initialized var" s x0 xc 
-    "op2" [] (Some (Failure "Can't get x: ide not initialized"));
+    "op2" [] (Some (InitError "Can't get x: ide not initialized"));
 
   test_call_raises "use local while creator" s x0 xc 
     "op3" [] None;
   test_calls_raises "use local while opted in" s x1 xc 
     [(OptIn,"opt",[]);(NoOp,"op3",[])] None;
   test_call_raises "use local while not opted in" s x2 xc 
-    "op3" [] (Some (Failure "User not opted in"));    
+    "op3" [] (Some NonOptedError);    
 
   test_calls_raises "update immutable glob" s x0 xc
-    [(NoOp,"op1",[VInt(5)]);(NoOp,"op1",[VInt(5)])] (Some (Failure "Can't update x: immutable variable"));
+    [(NoOp,"op1",[VInt(5)]);(NoOp,"op1",[VInt(5)])] (Some (MutError "Can't update x: immutable variable"));
   test_calls_raises "update mutable glob" s x0 xc
     [(NoOp,"op4",[]);(NoOp,"op4",[])] None;
   test_calls_raises "update immutable loc while creator" s x0 xc
-    [(NoOp,"op3",[]);(NoOp,"op3",[])] (Some (Failure "Can't update y: immutable variable"));
+    [(NoOp,"op3",[]);(NoOp,"op3",[])] (Some (MutError "Can't update y: immutable variable"));
   test_calls_raises "update immutable loc while opted" s x1 xc
-    [(OptIn,"opt",[]);(NoOp,"op3",[]);(NoOp,"op3",[])] (Some (Failure "Can't update y: immutable variable"));
+    [(OptIn,"opt",[]);(NoOp,"op3",[]);(NoOp,"op3",[])] (Some (MutError "Can't update y: immutable variable"));
   test_calls_raises "update mutable loc" s x0 xc
     [(NoOp,"op5",[]);(NoOp,"op5",[])] None;
 ]

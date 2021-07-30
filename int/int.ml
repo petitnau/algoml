@@ -299,11 +299,14 @@ let run_txns (s:state) (txnl:transaction list) : state =
   in
   run_txns_aux s txnl
 
-let run_op ((s:state), (op:stateop)) : state =
+let run_op ?catch:(catch=true) (s:state) (op:stateop) : state =
   match op with
   | Wait(r, t) -> {s with round = r; timestamp = t}
-  | Transaction(txnl) -> (try run_txns s txnl with CallFail(_) -> s)
+  | Transaction(txnl) ->
+    if catch then (try run_txns s txnl with CallFail(_) -> s)
+    else run_txns s txnl
 
-let (>:>) (s:state) ((r:int), (t:int)) : state = run_op (s, (Wait(r,t)))
-let (>=>) (s:state) (tl:transaction list) : state = run_op (s, (Transaction(tl)))
+let (>:>) (s:state) ((r:int), (t:int)) : state = run_op s (Wait(r,t))
+let (>=>) (s:state) (tl:transaction list) : state = run_op s (Transaction(tl))
+let (>=>!) (s:state) (tl:transaction list) : state = run_op s (Transaction(tl)) ~catch:false
 let (>$>) (s:state) (a:account) : state = State.bind s a

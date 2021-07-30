@@ -25,6 +25,10 @@ module Env = struct
     | _::tl -> apply tl i
     | [] -> DUnbound
 
+  let apply_eval (d:env) (i:ide) : eval option = match apply d i with
+    | DUnbound -> None
+    | DBound(_,_,v) -> v
+
   let apply_ex (d:env) (i:ide) : eval = 
     match apply d i with
     | DUnbound -> raise (ErrDynamic ("Can't get "^(Ide.to_str i)^": ide not bound"))
@@ -198,6 +202,12 @@ module Account = struct
     let ld = Env.init_state Env.empty TLoc dl in
     bind_localenv a cx ld
 
+  let get_localv (a:account) (cx:address) (i:ide) : eval option =
+    let lds = get_localenvs a in
+    let* ld = LocalEnvs.apply lds cx in
+    Env.apply_eval ld i
+    
+
   let get_localv_ex (a:account) (cx:address) (i:ide) : eval = 
     let lds = get_localenvs a in
     let ld = LocalEnvs.apply_ex lds cx in
@@ -209,6 +219,13 @@ module Account = struct
     let ld' = Env.update ld i v in
     bind_localenv a cx ld'
   
+  let get_globalv (a:account) (i:ide) : eval option = 
+    let* gd = get_globalenv a in
+    let dv = Env.apply gd i in
+    match dv with
+    | DUnbound -> None
+    | DBound(_,_,v) -> v
+
   let get_globalv_ex (a:account) (i:ide) : eval = 
     let gd = get_globalenv_ex a in
     Env.apply_ex gd i
@@ -248,4 +265,13 @@ module State = struct
     let* a = get_account s x in
     match a with
     | UserAccount(_,b,_) | ContractAccount(_,b,_,_,_,_) -> Balance.apply b t  
+
+  let get_localv (s:state) (x:address) (cx:address) (i:ide) : eval option = 
+    let* a = get_account s x in
+    Account.get_localv a cx i 
+
+  let get_globalv (s:state) (x:address) (i:ide) : eval option = 
+    let* a = get_account s x in
+    Account.get_globalv a i
+    
 end

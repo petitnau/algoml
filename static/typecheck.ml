@@ -2,7 +2,6 @@ open General
 open Types
 open Amlprinter
 
-exception TypeError
 type typeenv = (key * vartype) list
 
 let string_of_typeenv : typeenv -> string = fun td ->

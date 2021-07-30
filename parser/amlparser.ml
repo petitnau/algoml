@@ -3,6 +3,7 @@
 (* open General *)
 open Batteries
 open Static
+open Types
 
 exception Error of exn * (int * int * string)
 
