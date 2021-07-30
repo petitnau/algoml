@@ -1,3 +1,13 @@
+exception TypeError
+exception ErrDynamic of string
+exception TmpDynamic of string
+exception InitError of string
+exception MutError of string
+exception NonOptedError
+exception NonOptedTokenError of string
+exception CallFail of string
+exception NotEnoughFundsError of string
+
 type contract = Contract of decl list * aclause list
 and ide = Ide of string
 and decl = Declaration of statetype * muttype * vartype * ide

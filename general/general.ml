@@ -27,8 +27,8 @@ module Env = struct
 
   let apply_ex (d:env) (i:ide) : eval = 
     match apply d i with
-    | DUnbound -> failwith ("ERRDYNAMIC: Can't get "^(Ide.to_str i)^": ide not bound")
-    | DBound(_,_,None) -> failwith ("Can't get "^(Ide.to_str i)^": ide not initialized")
+    | DUnbound -> raise (ErrDynamic ("Can't get "^(Ide.to_str i)^": ide not bound"))
+    | DBound(_,_,None) -> raise (InitError ("Can't get "^(Ide.to_str i)^": ide not initialized"))
     | DBound(_,_,Some(v)) -> v
   
   let unbind (d:env) (i:ide) : env = List.filter (fun e -> (fst e) <> i) d
@@ -44,11 +44,11 @@ module Env = struct
 
   let update (d:env) (i:ide) (v:eval) : env = 
     match apply d i with
-    | DUnbound -> failwith ("ERRDYNAMIC: Can't update "^(Ide.to_str i)^": ide not bound") (* TO CHANGE WITH STATIC CHECK*)
+    | DUnbound -> raise (ErrDynamic ("Can't update "^(Ide.to_str i)^": ide not bound")) (* TO CHANGE WITH STATIC CHECK*)
     | DBound(Mutable as m,t,_)
     | DBound(Immutable as m,t,None) when (Eval.get_type v) = t -> bind d i m t (Some v)
-    | DBound(Immutable,_,Some(_)) -> failwith ("Can't update "^(Ide.to_str i)^": immutable variable")
-    | _ -> failwith ("Can't update "^(Ide.to_str i)^": wrong type")
+    | DBound(Immutable,_,Some(_)) -> raise (MutError ("Can't update "^(Ide.to_str i)^": immutable variable"))
+    | _ -> raise TypeError
 
   let rec init_state (d:env) (s:statetype) (dl:decl list) : env =
     match dl with
@@ -79,7 +79,7 @@ module LocalEnvs = struct
 
   let apply_ex (lds:localenvs) (x:address) : env = 
     match apply lds x with
-    | None -> failwith "User not opted in"
+    | None -> raise NonOptedError
     | Some(d) -> d
 
   let unbind (lds:localenvs) (x:address) = List.filter (fun e -> (fst e) <> x) lds 
@@ -188,7 +188,7 @@ module Account = struct
   let apply_balance_ex (a:account) (t:tok) : int = 
     match apply_balance a t with
     | Some(n) -> n
-    | None -> failwith ("Account doesn't have a balance on the token"^(string_of_token t)^".")
+    | None -> raise (NonOptedTokenError (string_of_token t))
 
   let opt_in (a:account) (c:account) : account =
     let cx = get_address c in
@@ -243,4 +243,9 @@ module State = struct
       | UserAccount(x,_,_) -> x
       | ContractAccount(x,_,_,_,_,_) -> x in
     let s = unbind s x in {s with accounts = (x,a)::s.accounts}
+
+  let apply_balance (s:state) (x:address) (t:tok) : int option = 
+    let* a = get_account s x in
+    match a with
+    | UserAccount(_,b,_) | ContractAccount(_,b,_,_,_,_) -> Balance.apply b t  
 end

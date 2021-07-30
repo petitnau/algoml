@@ -22,7 +22,7 @@ let rec eval_exp (s:state) (d:env) (ci:callinfo) (e:exp) : eval =
       let v = eval_exp s d ci e in
       (match v with
       | VAddress(x) -> x
-      | _ -> failwith "ERRDYNAMIC: Non address local variables")
+      | _ -> raise (ErrDynamic "Non address local variables"))
     | None -> ci.caller) in
     let lacc = State.get_account_ex s laddr in
     Account.get_localv_ex lacc ci.called i
@@ -37,7 +37,7 @@ let rec eval_exp (s:state) (d:env) (ci:callinfo) (e:exp) : eval =
       | Diff -> VInt(v1 - v2)
       | Mul -> VInt(v1 * v2)
       | Div -> VInt(v1 / v2))
-    | _, _ -> failwith "ERRDYNAMIC: Integer operators can only operate on integers")
+    | _, _ -> raise (ErrDynamic "Integer operators can only operate on integers"))
 
   | LBop(op, e1, e2) -> 
     let v1 = eval_exp s d ci e1 in
@@ -47,7 +47,7 @@ let rec eval_exp (s:state) (d:env) (ci:callinfo) (e:exp) : eval =
       (match op with
       | And -> VBool(v1 && v2)
       | Or -> VBool(v1 || v2))
-    | _, _ -> failwith "ERRDYNAMIC: Logical operators can only operate on booleans")
+    | _, _ -> raise (ErrDynamic "Logical operators can only operate on booleans"))
 
   | CBop(op, e1, e2) -> 
     let v1 = eval_exp s d ci e1 in
@@ -61,24 +61,24 @@ let rec eval_exp (s:state) (d:env) (ci:callinfo) (e:exp) : eval =
       | Leq -> VBool(v1 <= v2)
       | Eq -> VBool(v1 = v2)
       | Neq -> VBool(v1 <> v2))
-    | _, _ -> failwith "ERRDYNAMIC: Compare operators can only operate on integers")
+    | _, _ -> raise (ErrDynamic "Compare operators can only operate on integers"))
 
   | Not(e1) ->
     let v1 = eval_exp s d ci e1 in
     (match v1 with
     | VBool(v1) -> VBool(not(v1))
-    | _ -> failwith "ERRDYNAMIC: Not can only operate on booleans")
+    | _ -> raise (ErrDynamic "Not can only operate on booleans"))
 
   | Global(i) ->
     let acalled = State.get_account_ex s ci.called in
     (match i with
     | Ide("creator") -> VAddress(Account.get_creator_ex acalled)
-    | _ -> failwith ("TMPDYNAMIC: "^(Ide.to_str i)^" is not a global field")) (* TODO: STATIC CHECK*)
+    | _ -> raise (TmpDynamic ((Ide.to_str i)^" is not a global field"))) (* TODO: STATIC CHECK*)
 
   | Call(i) ->
     (match i with
     | Ide("sender") -> VAddress(ci.caller)
-    | _ -> failwith ("TMPDYNAMIC: "^(Ide.to_str i)^" is not a call field"))
+    | _ -> raise (TmpDynamic ((Ide.to_str i)^" is not a call field")))
 
   | Escrow -> VAddress(ci.called)
 
@@ -105,7 +105,7 @@ let rec run_cmds (s:state) (d:env) (ci:callinfo) (cl:cmd list) : state * env =
           let v = eval_exp s d ci e in
           (match v with
           | VAddress(x) -> x
-          | _ -> failwith "ERRDYNAMIC: Non address local variables")
+          | _ -> raise (ErrDynamic "Non address local variables"))
         | None -> ci.caller) in
         let lacc = State.get_account_ex s laddr in
         let acaller' = Account.set_localv_ex lacc ci.called i v in
@@ -122,7 +122,7 @@ let rec run_cmds (s:state) (d:env) (ci:callinfo) (cl:cmd list) : state * env =
         run_cmds s d ci cl1
       | VBool(false) -> 
         run_cmds s d ci cl2
-      | _ -> failwith "ERRDYNAMIC: If condition must be of type bool")) in
+      | _ -> raise (ErrDynamic "If condition must be of type bool"))) in
       
   match cl with
   | c::cltl -> 
@@ -131,50 +131,51 @@ let rec run_cmds (s:state) (d:env) (ci:callinfo) (cl:cmd list) : state * env =
   | [] -> 
     s, d
 
-let match_pattern ((s:state), (d:env), (ci:callinfo), (p:pattern), (v:eval)) : bool * env = match p with
-  | RangePattern(a, b, x) -> 
-    let b = (match a, b with
-      | Some(a), Some(b) -> 
-        let va = eval_exp s d ci a in
-        let vb = eval_exp s d ci b in
-        (match va, v, vb with
-        | VInt(va), VInt(v), VInt(vb) -> 
-          va <= v && v <= vb
-        | _ -> failwith "ERRDYNAMIC: Range max and min should be of type int") 
+let match_pattern ((s:state), (d:env), (ci:callinfo), (p:pattern), (v:eval)) : bool * env = 
+  try (match p with
+    | RangePattern(a, b, x) -> 
+      let b = (match a, b with
+        | Some(a), Some(b) -> 
+          let va = eval_exp s d ci a in
+          let vb = eval_exp s d ci b in
+          (match va, v, vb with
+          | VInt(va), VInt(v), VInt(vb) -> 
+            va <= v && v <= vb
+          | _ -> raise (ErrDynamic "Range max and min should be of type int"))
 
-      | None, Some(b) -> 
-        let vb = eval_exp s d ci b in
-        (match v, vb with
-        |  VInt(v), VInt(vb) -> v <= vb
-        | _ -> failwith "ERRDYNAMIC: Range max should be of type int")
+        | None, Some(b) -> 
+          let vb = eval_exp s d ci b in
+          (match v, vb with
+          |  VInt(v), VInt(vb) -> v <= vb
+          | _ -> raise (ErrDynamic "Range max should be of type int"))
 
-      | Some(a), None -> 
-        let va = eval_exp s d ci a in
-        (match va, v with
-        |  VInt(va), VInt(v) -> va <= v
-        | _ -> failwith "ERRDYNAMIC: Range min should be of type int")
+        | Some(a), None -> 
+          let va = eval_exp s d ci a in
+          (match va, v with
+          |  VInt(va), VInt(v) -> va <= v
+          | _ -> raise (ErrDynamic "Range min should be of type int"))
 
-      | None, None -> true) 
-    in
-    let d' = (match x with
-      | Some(x) -> Env.init d x Mutable (Eval.get_type v) v 
-      | None -> d) in
-    b, d'
+        | None, None -> true) 
+      in
+      let d' = (match x with
+        | Some(x) -> Env.init d x Mutable (Eval.get_type v) v 
+        | None -> d) in
+      b, d'
 
-  | FixedPattern(a, x) -> 
-    let a = eval_exp s d ci a in
-    let b = (a = v) in
-    let d' = (match x with
-      | Some(x) -> Env.init d x Mutable (Eval.get_type v) v 
-      | None -> d) in
-    b, d'
+    | FixedPattern(a, x) -> 
+      let a = eval_exp s d ci a in
+      let b = (a = v) in
+      let d' = (match x with
+        | Some(x) -> Env.init d x Mutable (Eval.get_type v) v 
+        | None -> d) in
+      b, d'
 
-  | AnyPattern(x) ->
-    let d' = (match x with
-      | Some(x) -> Env.init d x Mutable (Eval.get_type v) v 
-      | None -> d) in
-    (true, d')
-
+    | AnyPattern(x) ->
+      let d' = (match x with
+        | Some(x) -> Env.init d x Mutable (Eval.get_type v) v 
+        | None -> d) in
+      (true, d'))
+  with InitError(_) | NonOptedError -> false, d
 
 let rec run_aclause (s:state) (d:env) (ao:aclause) (ci:callinfo) (txnl: transaction list) : state option = 
   match ao, txnl with
@@ -205,13 +206,15 @@ let rec run_aclause (s:state) (d:env) (ao:aclause) (ci:callinfo) (txnl: transact
 
   | FromClause(caller_p)::aotl, _ ->
     let b1, d1 = match_pattern(s, d, ci, caller_p, VAddress(ci.caller)) in
-    if b1 then  run_aclause s d1 aotl ci txnl
+    if b1 then run_aclause s d1 aotl ci txnl
     else None
   
   | AssertClause(e)::aotl, _ ->
-    let b1 = eval_exp s d ci e in
-    if b1 = VBool(true) then run_aclause s d aotl ci txnl
-    else None
+    (try 
+      let b1 = eval_exp s d ci e in
+      if b1 = VBool(true) then run_aclause s d aotl ci txnl
+      else None
+    with InitError(_) | NonOptedError -> None)
 
   | FunctionClause(onc, fn, pl, cl)::aotl, _ ->
     if onc <> ci.onc || fn <> ci.fn then None
@@ -242,7 +245,7 @@ let run_contract (s:state) (p:contract) (cinfo:callinfo) (txnl:transaction list)
   let os' = run_aclauses s Env.empty acl cinfo txnl in
   match os' with
   | Some(s') -> s'
-  | None -> failwith ("Contract call failed: "^(string_of_ide cinfo.fn)^" not found.")
+  | None -> raise (CallFail ((string_of_ide cinfo.fn)^" not found."))
   
 let run_txns (s:state) (txnl:transaction list) : state =  
   let run_txn s txn = 
@@ -252,7 +255,7 @@ let run_txns (s:state) (txnl:transaction list) : state =
       let ato = State.get_account_ex s xto in
       let afr_amt = Account.apply_balance_ex afr tkn in
       let ato_amt = Account.apply_balance_ex ato tkn in
-      if afr_amt - amt < 0 then failwith "Not enough funds for pay transaction."
+      if afr_amt - amt < 0 then raise (NotEnoughFundsError "Not enough funds for pay transaction.")
       else (
         let afr' = Account.bind_balance afr tkn (afr_amt - amt) in
         let ato' = Account.bind_balance ato tkn (ato_amt + amt) in
@@ -299,7 +302,7 @@ let run_txns (s:state) (txnl:transaction list) : state =
 let run_op ((s:state), (op:stateop)) : state =
   match op with
   | Wait(r, t) -> {s with round = r; timestamp = t}
-  | Transaction(txnl) -> run_txns s txnl
+  | Transaction(txnl) -> (try run_txns s txnl with CallFail(_) -> s)
 
 let (>:>) (s:state) ((r:int), (t:int)) : state = run_op (s, (Wait(r,t)))
 let (>=>) (s:state) (tl:transaction list) : state = run_op (s, (Transaction(tl)))
