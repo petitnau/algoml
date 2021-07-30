@@ -3,8 +3,8 @@ glob int endDate
 glob int fundCloseDate
 glob int goal
 glob address receiver 
-glob int donated_total
-loc int escrow_local
+glob mut int donated_total
+loc mut int escrow_local
 
 Create create(int startDate, int endDate, int fundCloseDate, int goal, address receiver) {
 	glob.startDate = startDate

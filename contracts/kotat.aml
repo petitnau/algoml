@@ -1,12 +1,14 @@
-int start = 50000
-int dethroneFee = 1000
-int rate = 2
-int curseDuration = 60*60*24*14
-
 glob mut int claimPrice
 glob mut address monarch
 glob mut int curseStart
 glob mut string kingName
+
+Create create(int start, int dethroneFee, int rate, int curseDuration) {
+	glob.start = start
+	glob.dethroneFee = dethroneFee
+	glob.rate = rate
+	glob.curseDuration = curseDuration
+}
 
 @timestamp (, curseStart + curseDuration)
 @pay dehtroneFee ALGO : * -> global.CreatorAddress

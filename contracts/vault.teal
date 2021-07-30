@@ -1,0 +1,211 @@
+// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ Create create(address recovery, int wait_time)
+
+int 0
+txn ApplicationID
+==                          // Assert create
+
+int 3
+txn NumAppArgs
+==                          // Assert 3 arguments
+&&
+
+byte "create"
+txna ApplicationArgs 0
+==                          // Assert first argument = create
+&&
+
+bz not_create
+
+// ******
+
+int 1
+global GroupSize 
+==                          // Assert 1 transaction
+
+bz not_create
+
+// ------
+
+byte "recovery"
+txna ApplicationArgs 1
+app_global_put              // glob recovery = 1st argument
+
+byte "wait_time"
+txna ApplicationArgs 2
+btoi
+app_global_put              // glob wait_time = 2nd argument
+
+b approve
+
+// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ NoOp withdraw(int amount)
+
+not create:
+
+int NoOp
+txn OnCompletion
+==                          // Assert NoOp
+
+int 2
+txn NumAppArgs
+==                          // Assert 2 arguments
+&&
+
+byte "withdraw"
+txna ApplicationArgs 0
+==                          // Assert first argument = withdraw
+&&
+
+bz not_withdraw
+
+// ******
+
+int 1
+global GroupSize 
+==                          // Assert 1 transaction
+
+bz not_withdraw
+
+// ------
+
+txn Sender
+byte "request_time"
+global Round
+app_local_put               // loc request_time = round
+
+txn Sender 
+byte "amount"
+txna ApplicationArgs 1
+btoi
+app_local_put               // loc amount = 1st argument
+
+txn Sender
+byte "requesting"
+int 1
+app_local_put               // loc requesting = true
+
+// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ NoOp finalize()
+
+not_withdraw:
+
+int NoOp
+txn OnCompletion
+==                          // Assert noop
+
+int 1
+txn NumAppArgs
+==                          // Assert 1 argument
+&&
+
+byte "finalize"
+txna ApplicationArgs 0
+==                          // Assert first argument = finalize
+&&
+
+bz not_finalize
+
+// ******
+
+int 2
+global GroupSize 
+==                          // Assert 2 transactions
+
+txn Sender
+byte "requesting"
+app_local_get
+int 1
+==                          // assert loc requesting
+&&
+
+global Round
+txn Sender
+byte "request_time"
+app_local_get
+txn Sender
+byte "wait_time"
+app_local_get
++
+>=                          // assert round after request_time+wait_time
+&&
+
+int pay
+gtxn 0 TypeEnum
+==                          // Assert pay txn
+&&
+
+gtxn 0 Amount
+txn Sender
+byte "amount"
+app_local_get
+==                          // Assert amount = loc amount
+&&
+
+gtxn 0 Sender
+byte "escrow"
+app_global_get              // Assert sender = escrow
+==
+&&
+
+bz not_finalize
+
+// ------
+
+txn Sender
+byte "requesting"
+int 0
+app_local_put
+
+b approve
+
+// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ NoOp cancel(address to_cancel) 
+
+not_finalize:
+
+int NoOp
+txn OnCompletion
+==                          // Assert noop
+
+int 1
+txn NumAppArgs
+==                          // Assert 2 arguments
+&&
+
+byte "finalize"
+txna ApplicationArgs 0
+==                          // Assert first argument = cancel
+&&
+
+bz not_cancel
+
+// ******
+
+int 1
+global GroupSize 
+==                          // Assert 1 transaction
+
+byte "recovery"
+app_global_get
+txn Sender
+==                          // Assert from recovery
+&&
+
+bz not_cancel 
+
+// ------
+
+txna ApplicationArgs 0
+byte "requesting"
+int 0
+app_local_put               // set loc requesting false
+
+b approve
+ 
+// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 
+
+not_cancel:
+
+reject:
+err
+
+approve:
+int 1
+return

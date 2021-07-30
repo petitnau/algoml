@@ -1,6 +1,6 @@
 open Types
 open General
-(* open Batteries *)
+open Amlprinter
 
 let rec eval_exp (s:state) (d:env) (ci:callinfo) (e:exp) : eval = 
   match e with
@@ -16,10 +16,17 @@ let rec eval_exp (s:state) (d:env) (ci:callinfo) (e:exp) : eval =
     let acalled = State.get_account_ex s ci.called in
     Account.get_globalv_ex acalled i
     
-  | Val(LocVar(i)) -> 
-    let acaller = State.get_account_ex s ci.caller in
-    Account.get_localv_ex acaller ci.called i
-
+  | Val(LocVar(i, e)) -> 
+    let laddr = (match e with 
+    | Some(e) -> 
+      let v = eval_exp s d ci e in
+      (match v with
+      | VAddress(x) -> x
+      | _ -> failwith "ERRDYNAMIC: Non address local variables")
+    | None -> ci.caller) in
+    let lacc = State.get_account_ex s laddr in
+    Account.get_localv_ex lacc ci.called i
+    
   | IBop(op, e1, e2) -> 
     let v1 = eval_exp s d ci e1 in
     let v2 = eval_exp s d ci e2 in
@@ -30,8 +37,7 @@ let rec eval_exp (s:state) (d:env) (ci:callinfo) (e:exp) : eval =
       | Diff -> VInt(v1 - v2)
       | Mul -> VInt(v1 * v2)
       | Div -> VInt(v1 / v2))
-    | _, _ -> failwith "Incorrect type check")
-      
+    | _, _ -> failwith "ERRDYNAMIC: Integer operators can only operate on integers")
 
   | LBop(op, e1, e2) -> 
     let v1 = eval_exp s d ci e1 in
@@ -41,7 +47,7 @@ let rec eval_exp (s:state) (d:env) (ci:callinfo) (e:exp) : eval =
       (match op with
       | And -> VBool(v1 && v2)
       | Or -> VBool(v1 || v2))
-    | _, _ -> failwith "Incorrect type check")
+    | _, _ -> failwith "ERRDYNAMIC: Logical operators can only operate on booleans")
 
   | CBop(op, e1, e2) -> 
     let v1 = eval_exp s d ci e1 in
@@ -55,24 +61,24 @@ let rec eval_exp (s:state) (d:env) (ci:callinfo) (e:exp) : eval =
       | Leq -> VBool(v1 <= v2)
       | Eq -> VBool(v1 = v2)
       | Neq -> VBool(v1 <> v2))
-    | _, _ -> failwith "Incorrect type check")
+    | _, _ -> failwith "ERRDYNAMIC: Compare operators can only operate on integers")
 
   | Not(e1) ->
     let v1 = eval_exp s d ci e1 in
     (match v1 with
     | VBool(v1) -> VBool(not(v1))
-    | _ -> failwith "Incorrect type check")
+    | _ -> failwith "ERRDYNAMIC: Not can only operate on booleans")
 
   | Global(i) ->
     let acalled = State.get_account_ex s ci.called in
     (match i with
     | Ide("creator") -> VAddress(Account.get_creator_ex acalled)
-    | _ -> failwith ((Ide.to_str i)^" is not a global field"))
+    | _ -> failwith ("TMPDYNAMIC: "^(Ide.to_str i)^" is not a global field")) (* TODO: STATIC CHECK*)
 
   | Call(i) ->
     (match i with
     | Ide("sender") -> VAddress(ci.caller)
-    | _ -> failwith ((Ide.to_str i)^" is not a call field"))
+    | _ -> failwith ("TMPDYNAMIC: "^(Ide.to_str i)^" is not a call field"))
 
   | Escrow -> VAddress(ci.called)
 
@@ -93,9 +99,16 @@ let rec run_cmds (s:state) (d:env) (ci:callinfo) (cl:cmd list) : state * env =
         let s' = State.bind s acalled' in
         (s', d)
 
-      | LocVar(i) -> 
-        let acaller = State.get_account_ex s ci.caller in
-        let acaller' = Account.set_localv_ex acaller ci.called i v in
+      | LocVar(i, e) -> 
+        let laddr = (match e with 
+        | Some(e) -> 
+          let v = eval_exp s d ci e in
+          (match v with
+          | VAddress(x) -> x
+          | _ -> failwith "ERRDYNAMIC: Non address local variables")
+        | None -> ci.caller) in
+        let lacc = State.get_account_ex s laddr in
+        let acaller' = Account.set_localv_ex lacc ci.called i v in
         let s' = State.bind s acaller' in
         (s', d))
         
@@ -109,7 +122,7 @@ let rec run_cmds (s:state) (d:env) (ci:callinfo) (cl:cmd list) : state * env =
         run_cmds s d ci cl1
       | VBool(false) -> 
         run_cmds s d ci cl2
-      | _ -> failwith "Incorrect type check")) in
+      | _ -> failwith "ERRDYNAMIC: If condition must be of type bool")) in
       
   match cl with
   | c::cltl -> 
@@ -127,19 +140,19 @@ let match_pattern ((s:state), (d:env), (ci:callinfo), (p:pattern), (v:eval)) : b
         (match va, v, vb with
         | VInt(va), VInt(v), VInt(vb) -> 
           va <= v && v <= vb
-        | _ -> failwith "Incorrect type check") 
+        | _ -> failwith "ERRDYNAMIC: Range max and min should be of type int") 
 
       | None, Some(b) -> 
         let vb = eval_exp s d ci b in
         (match v, vb with
         |  VInt(v), VInt(vb) -> v <= vb
-        | _ -> failwith "Incorrect type check")
+        | _ -> failwith "ERRDYNAMIC: Range max should be of type int")
 
       | Some(a), None -> 
         let va = eval_exp s d ci a in
         (match va, v with
         |  VInt(va), VInt(v) -> va <= v
-        | _ -> failwith "Incorrect type check")
+        | _ -> failwith "ERRDYNAMIC: Range min should be of type int")
 
       | None, None -> true) 
     in
@@ -224,54 +237,46 @@ let rec run_aclauses (s:state) (d:env) (aol:aclause list) (ci:callinfo) (txnl:tr
     | Some(s') -> Some(s')
     | None -> run_aclauses s d aotl ci txnl))
 
-let run_contract (s:state) (p:contract) (cinfo:callinfo) (txnl:transaction list) = 
+let run_contract (s:state) (p:contract) (cinfo:callinfo) (txnl:transaction list) : state = 
   let Contract(_, acl) = p in
-  run_aclauses s Env.empty acl cinfo txnl
+  let os' = run_aclauses s Env.empty acl cinfo txnl in
+  match os' with
+  | Some(s') -> s'
+  | None -> failwith ("Contract call failed: "^(string_of_ide cinfo.fn)^" not found.")
   
 let run_txns (s:state) (txnl:transaction list) : state =  
   let run_txn s txn = 
     (match txn with
     | PayTransaction(amt, tkn, xfr, xto) ->
-      let afr = State.get_account s xfr in
-      let ato = State.get_account s xto in
-      (match (afr, ato) with
-      | Some(afr), Some(ato) ->
-        let afr_amt = Account.apply_balance afr tkn in
-        let ato_amt = Account.apply_balance ato tkn in
-        (match afr_amt, ato_amt with 
-        | Some(afr_amt), Some(ato_amt) when afr_amt - amt >= 0 -> 
-          let afr' = Account.bind_balance afr tkn (afr_amt - amt) in
-          let ato' = Account.bind_balance ato tkn (ato_amt + amt) in
-          let s' = State.bind s afr' in
-          let s'' = State.bind s' ato' in
-          Some(s'')
-          | _, _ -> None)
-        | _, _ -> None)
+      let afr = State.get_account_ex s xfr in
+      let ato = State.get_account_ex s xto in
+      let afr_amt = Account.apply_balance_ex afr tkn in
+      let ato_amt = Account.apply_balance_ex ato tkn in
+      if afr_amt - amt < 0 then failwith "Not enough funds for pay transaction."
+      else (
+        let afr' = Account.bind_balance afr tkn (afr_amt - amt) in
+        let ato' = Account.bind_balance ato tkn (ato_amt + amt) in
+        let s' = State.bind s afr' in
+        State.bind s' ato')
 
     | CloseTransaction(tkn, xfr, xto) ->
-      let afr = State.get_account s xfr in
-      let ato = State.get_account s xto in
-      (match (afr, ato) with
-      | Some(afr), Some(ato) ->
-        let afr_amt = Account.apply_balance afr tkn in
-        let ato_amt = Account.apply_balance ato tkn in
-        (match afr_amt, ato_amt with 
-        | Some(afr_amt), Some(ato_amt) -> 
-          let afr' = Account.unbind_balance afr tkn in
-          let ato' = Account.bind_balance ato tkn (ato_amt + afr_amt) in
-          let s' = State.bind s afr' in
-          let s'' = State.bind s' ato' in
-          Some(s'')
-        | _, _ -> None)
-      | _, _ -> None)
+      let afr = State.get_account_ex s xfr in
+      let ato = State.get_account_ex s xto in
+      let afr_amt = Account.apply_balance_ex afr tkn in
+      let ato_amt = Account.apply_balance_ex ato tkn in
+      let afr' = Account.unbind_balance afr tkn in
+      let ato' = Account.bind_balance ato tkn (ato_amt + afr_amt) in
+      let s' = State.bind s afr' in
+      State.bind s' ato'
 
-    | CreateTransaction(afr, contr, params) -> 
-      let acontr = Account.empty_contract contr afr in
+    | CreateTransaction(xfr, contr, params) -> 
+      let afr = State.get_account_ex s xfr in
+      let acontr = Account.empty_contract contr xfr in
       let xcontr = Account.get_address acontr in
       let s' = State.bind s acontr in
-      let cinf = {caller=afr; called=xcontr; onc=Create; fn=Ide("create"); params=params} in
-      let os'' = run_contract s' contr cinf txnl in
-      os''
+      let s'' = State.bind s' (Account.opt_in afr acontr) in
+      let cinf = {caller=xfr; called=xcontr; onc=Create; fn=Ide("create"); params=params} in
+      run_contract s'' contr cinf txnl
 
     | CallTransaction(xfr, xto, onc, fn, params) -> 
       let acalled = State.get_account_ex s xto in
@@ -280,16 +285,15 @@ let run_txns (s:state) (txnl:transaction list) : state =
         else State.bind s (Account.opt_in acaller acalled) in
       let p = Account.get_contract_ex acalled in
       let cinf = {caller=xfr; called=xto; onc=onc; fn=fn; params=params} in
-      run_contract s' p cinf txnl) in
-
+      run_contract s' p cinf txnl) 
+  in
   let rec run_txns_aux s' toexectxnl =
-    (match toexectxnl with
+    match toexectxnl with
     | [] -> s'
     | hd::tl -> 
       let s'' = run_txn s' hd in
-      (match s'' with
-      | None -> s
-      | Some(s'') ->  run_txns_aux s'' tl)) in
+      run_txns_aux s'' tl
+  in
   run_txns_aux s txnl
 
 let run_op ((s:state), (op:stateop)) : state =

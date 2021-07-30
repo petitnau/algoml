@@ -57,3 +57,11 @@ let string_of_account : account -> string = function
 let string_of_state : state -> string = function
   | {accounts; _} -> 
     ""^(String.concat "\n" (accounts |> List.map snd |> List.map (string_of_account)))^""
+
+let string_of_key : key -> string = function 
+  | GlobVar(i) -> Printf.sprintf "GlobVar(%s)" (string_of_ide i)
+  | LocVar(i,None) -> Printf.sprintf "LocVar(%s)" (string_of_ide i)
+  | LocVar(i,Some(_)) -> Printf.sprintf "LocVar(%s, <exp>)" (string_of_ide i)
+  | NormVar(i) -> Printf.sprintf "NormVar(%s)" (string_of_ide i)
+  
+  

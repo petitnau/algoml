@@ -1,11 +1,28 @@
 open General
 open Types
+open Amlprinter
 
 exception TypeError
+type typeenv = (key * vartype) list
+
+let string_of_typeenv : typeenv -> string = fun td ->
+  let rec string_of_typeenv_elements tdl = match tdl with
+    | (k,t)::tl -> "["^(string_of_key k)^"/"^(string_of_vartype t)^"]"^(string_of_typeenv_elements tl)
+    | [] -> ""
+  in
+  "TypeEnv"^(string_of_typeenv_elements td)
+
+let string_of_typeenv_opt : typeenv option -> string = function
+  | Some(td) -> string_of_typeenv td
+  | None -> "None"
 
 let empty_typeenv : typeenv = []
 
-let rec apply_typeenv (td:typeenv) (k:key) : vartype option = match td with
+let rec apply_typeenv (td:typeenv) (k:key) : vartype option =
+  let k = (match k with
+  | LocVar(i,_) -> LocVar(i,None)
+  | k -> k) in
+  match td with
   | (k', t)::_ when k = k' -> Some(t)
   | _::tl -> apply_typeenv tl k
   | [] -> None
@@ -18,6 +35,9 @@ let rec eval_type (td:typeenv) (e:exp) : vartype option = match e with
   | EBool(_) -> Some TBool
   | EToken(_) -> Some TToken
   | EAddress(_) -> Some TAddress
+  | Val(LocVar(_,Some(e)) as k) -> 
+    if eval_type td e = Some TAddress
+    then apply_typeenv td k else None
   | Val(k) -> apply_typeenv td k
   | IBop(_,e1,e2) -> 
     if eval_type td e1 = Some TInt
@@ -70,12 +90,20 @@ let check_pattern td t p = match p with
       
 
 let rec check_cmdl td cl =
-  let check_cmd td cmd = match cmd with
+  let rec check_cmd td cmd = match cmd with
+    | Assign(LocVar(i,Some(e1)), e2) ->
+      if eval_type td e1 = Some TAddress
+      then check_cmd td (Assign(LocVar(i,None), e2)) else None
+
     | Assign(k, e) -> 
       let* t1 = apply_typeenv td k in
       let* t2 = eval_type td e in
       if t1 = t2 
       then Some td else None
+
+    | AssignOp(o, LocVar(i,Some(e1)), e2) ->
+      if eval_type td e1 = Some TAddress
+      then check_cmd td (AssignOp(o, LocVar(i,None), e2)) else None
 
     | AssignOp(_, k, e) ->
       let* t1 = apply_typeenv td k in
@@ -103,9 +131,9 @@ let rec bind_decls (td:typeenv) (dl:decl list) =
     | Declaration(_,_,t,_,None) -> 
     else  *)
     match d with
-    | Declaration(TNorm,_,t,i,_) -> Some(bind_typeenv td (NormVar i) t)
-    | Declaration(TGlob,_,t,i,_) -> Some(bind_typeenv td (GlobVar i) t)
-    | Declaration(TLoc,_,t,i,_) -> Some(bind_typeenv td (LocVar i) t)
+    | Declaration(TNorm,_,t,i) -> Some(bind_typeenv td (NormVar i) t)
+    | Declaration(TGlob,_,t,i) -> Some(bind_typeenv td (GlobVar i) t)
+    | Declaration(TLoc,_,t,i) -> Some(bind_typeenv td (LocVar(i,None)) t)
     (* | _ -> None *)
   in 
   match dl with
@@ -165,8 +193,8 @@ let rec check_aclause td ao =
 
   | [] -> Some td
 
-
 let check_program (Contract(dl,aol):contract) = 
   let* td = bind_decls empty_typeenv dl in
   let tds = List.map (check_aclause td) aol in
+  (* print_endline (String.concat "\n" (List.map (fun x -> string_of_typeenv_opt x) tds)); *)
   if List.mem None tds then None else Some tds

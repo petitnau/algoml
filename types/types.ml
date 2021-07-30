@@ -1,6 +1,6 @@
 type contract = Contract of decl list * aclause list
 and ide = Ide of string
-and decl = Declaration of statetype * muttype * vartype * ide * exp option
+and decl = Declaration of statetype * muttype * vartype * ide
 and parameter = Parameter of vartype * ide
 and aclause = clause list
 and clause =
@@ -36,7 +36,7 @@ and pattern =
 | AnyPattern of ide option
 and key = 
 | GlobVar of ide
-| LocVar of ide
+| LocVar of ide * exp option
 | NormVar of ide
 and vartype = TInt | TString | TBool | TToken | TAddress
 and statetype = TGlob | TLoc | TNorm
@@ -78,6 +78,3 @@ and eval =
 and dval = 
 | DBound of muttype * vartype * eval option
 | DUnbound
-
-type typeenv = (key * vartype) list
-

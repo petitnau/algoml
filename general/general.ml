@@ -1,6 +1,6 @@
 open Types
 include Monads
-(* open Amlprinter *)
+open Amlprinter
 
 module Ide = struct
   let to_str (Ide(s):ide) : string = s
@@ -27,7 +27,7 @@ module Env = struct
 
   let apply_ex (d:env) (i:ide) : eval = 
     match apply d i with
-    | DUnbound -> failwith ("Can't get "^(Ide.to_str i)^": ide not bound")
+    | DUnbound -> failwith ("ERRDYNAMIC: Can't get "^(Ide.to_str i)^": ide not bound")
     | DBound(_,_,None) -> failwith ("Can't get "^(Ide.to_str i)^": ide not initialized")
     | DBound(_,_,Some(v)) -> v
   
@@ -44,15 +44,17 @@ module Env = struct
 
   let update (d:env) (i:ide) (v:eval) : env = 
     match apply d i with
-    | DUnbound -> failwith ("Can't update "^(Ide.to_str i)^": ide not bound") (* TO CHANGE WITH STATIC CHECK*)
-    | DBound(m,t,_) when (Eval.get_type v) = t -> bind d i m t (Some v)
-    | DBound(_,_,_) ->failwith ("Can't update "^(Ide.to_str i)^": wrong type")
+    | DUnbound -> failwith ("ERRDYNAMIC: Can't update "^(Ide.to_str i)^": ide not bound") (* TO CHANGE WITH STATIC CHECK*)
+    | DBound(Mutable as m,t,_)
+    | DBound(Immutable as m,t,None) when (Eval.get_type v) = t -> bind d i m t (Some v)
+    | DBound(Immutable,_,Some(_)) -> failwith ("Can't update "^(Ide.to_str i)^": immutable variable")
+    | _ -> failwith ("Can't update "^(Ide.to_str i)^": wrong type")
 
   let rec init_state (d:env) (s:statetype) (dl:decl list) : env =
     match dl with
     | [] -> d
-    | Declaration(s', m, t, i, None)::tl when s = s' -> 
-      let d' = bind d i m t None in
+    | Declaration(s', m, t, i)::tl when s = s' -> 
+      let d' = decl d i m t in
       init_state d' s tl
     | _::tl -> init_state d s tl
   
@@ -183,6 +185,11 @@ module Account = struct
   let apply_balance (a:account) (t:tok) : int option = match a with
     | UserAccount(_,b,_) | ContractAccount(_,b,_,_,_,_) -> Balance.apply b t
     
+  let apply_balance_ex (a:account) (t:tok) : int = 
+    match apply_balance a t with
+    | Some(n) -> n
+    | None -> failwith ("Account doesn't have a balance on the token"^(string_of_token t)^".")
+
   let opt_in (a:account) (c:account) : account =
     let cx = get_address c in
     let dl = (match c with

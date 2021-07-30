@@ -34,6 +34,21 @@ let test_call_raises (name:string) (s:state) (afr:address) (ato:address) (fn:str
     | Some(ex) -> assert_raises ex f
     | None -> f())
 
+let test_calls_raises (name:string) (s:state) (afr:address) (ato:address) (calls:(oncomplete * string * eval list) list) (ex: exn option) : test = 
+  let rec do_calls s calls =
+    match calls with
+    | (onc,fn,pl)::tl ->
+      let s' = s >=> [CallTransaction(afr, ato, onc, Ide(fn), pl)] in
+      do_calls s' tl
+    | [] -> ()
+  in
+  name >:: (fun _ ->
+    let f = fun _ ->
+      let _ = do_calls s calls in ()
+    in match ex with
+    | Some(ex) -> assert_raises ex f
+    | None -> f())
+
 let test_static_error (name:string) (ex:exn option) (code:string) = 
   name >:: (fun _ ->
     let f = fun _ ->
@@ -46,10 +61,12 @@ let test_static_error (name:string) (ex:exn option) (code:string) =
  *
  * ? *)
 
-let s, xc, xl = setup 1 [] "
+let s, xc, xl = setup 3 [] "
 glob int x
 glob int y
+glob mut int m
 loc int y
+loc mut int m
 
 Create create() {}
 
@@ -60,32 +77,57 @@ NoOp op1(int x) { glob.x = x }
 NoOp op2() { glob.y = glob.x }
 
 NoOp op3() { loc.y = 5 }
+
+NoOp op4() { glob.m = 5 }
+
+NoOp op5() { loc.m = 5 }
 " 
-let xa = List.hd xl 
+let x0, x1, x2 = (match xl with [x0;x1;x2] -> x0, x1, x2 | _ -> failwith "3 Users required")
 let testsuite1 = "test suite 1" >::: [
   "op1 into op2" >:: (fun _ -> 
     let s = begin
-      s >=> [CallTransaction(xa, xc, NoOp, Ide("op1"), [VInt(5)])]
-        >=> [CallTransaction(xa, xc, OptIn, Ide("opt"), [])]
-        >=> [CallTransaction(xa, xc, NoOp, Ide("op3"), [])]
+      s >=> [CallTransaction(x0, xc, NoOp, Ide("op1"), [VInt(5)])]
+        >=> [CallTransaction(x0, xc, OptIn, Ide("opt"), [])]
+        >=> [CallTransaction(x0, xc, NoOp, Ide("op3"), [])]
     end in
-    let aa = State.get_account_ex s xa in
-    let v = Account.get_localv_ex aa xc (Ide "y") in
+    let a0 = State.get_account_ex s x0 in
+    let v = Account.get_localv_ex a0 xc (Ide "y") in
     assert_equal v (VInt(5)) ~printer:string_of_eval);
 
-  test_call_raises "wrong parameter type" s xa xc 
+  test_call_raises "Call to non-existent function" s x0 xc
+    "op0" [] (Some (Failure "Contract call failed: op0 not found."));
+  test_call_raises "Call to existent function but wrong parameters" s x0 xc
+    "op1" [] (Some (Failure "Contract call failed: op1 not found."));
+
+  test_call_raises "wrong parameter type" s x0 xc 
     "op1" [VString("ok")] (Some (Failure "Can't update x: wrong type"));
-  test_call_raises "get non initialized var" s xa xc 
+  test_call_raises "get non initialized var" s x0 xc 
     "op2" [] (Some (Failure "Can't get x: ide not initialized"));
-  test_call_raises "use local while not opted in" s xa xc 
-    "op3" [] (Some (Failure "User not opted in"));
+
+  test_call_raises "use local while creator" s x0 xc 
+    "op3" [] None;
+  test_calls_raises "use local while opted in" s x1 xc 
+    [(OptIn,"opt",[]);(NoOp,"op3",[])] None;
+  test_call_raises "use local while not opted in" s x2 xc 
+    "op3" [] (Some (Failure "User not opted in"));    
+
+  test_calls_raises "update immutable glob" s x0 xc
+    [(NoOp,"op1",[VInt(5)]);(NoOp,"op1",[VInt(5)])] (Some (Failure "Can't update x: immutable variable"));
+  test_calls_raises "update mutable glob" s x0 xc
+    [(NoOp,"op4",[]);(NoOp,"op4",[])] None;
+  test_calls_raises "update immutable loc while creator" s x0 xc
+    [(NoOp,"op3",[]);(NoOp,"op3",[])] (Some (Failure "Can't update y: immutable variable"));
+  test_calls_raises "update immutable loc while opted" s x1 xc
+    [(OptIn,"opt",[]);(NoOp,"op3",[]);(NoOp,"op3",[])] (Some (Failure "Can't update y: immutable variable"));
+  test_calls_raises "update mutable loc" s x0 xc
+    [(NoOp,"op5",[]);(NoOp,"op5",[])] None;
 ]
 
 (* TEST SUITE 2
  *
  * MODULES UNIT TESTS *)
 
-let s, _, xl = setup 2 [] "";;
+let s, _, xl = setup 2 [] "Create create() {}";;
 let xa, xb = (match xl with [xa;xb] -> xa, xb | _ -> failwith "2 Users required")
 let aa, ab = State.get_account_ex s xa, State.get_account_ex s xb
 let testsuite2 = "test suite 2" >::: [

@@ -1,0 +1,30 @@
+glob int wait_time
+glob address recovery
+
+loc mut bool requesting
+loc mut int request_time
+loc mut int amount
+
+Create create(int wait_time, address recovery) {
+    glob.wait_time = wait_time
+    glob.recovery = recovery
+}
+
+OptIn optin() {}
+
+@round $curr_round
+NoOp withdraw(int amount) {
+    loc.request_time = curr_round
+    loc.amount = amount
+    loc.requesting = true
+}
+
+@assert loc.requesting
+@round (loc.request_time + glob.wait_time,)
+@pay loc.amount : escrow -> *
+NoOp finalize() {}
+
+@from glob.recovery
+NoOp cancel(address to_cancel) {
+    to_cancel.requesting = false
+}   

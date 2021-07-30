@@ -4,6 +4,8 @@ open Amlparser
 open Amlprinter
 open Batteries
 
+let _ = parse_file "contracts/vault.aml";;
+
 let crowdfunding_script = parse_file "contracts/crowdfunding.aml";;
 
 let account_a = Account.bind_balance (Account.empty_user()) Algo 100
@@ -39,6 +41,7 @@ s >=> [CallTransaction(address_a, address_cf, OptIn, Ide("optin"), [])]
   >=> [CallTransaction(address_b, address_cf, OptIn, Ide("optin"), [])]
   >=> [CallTransaction(address_c, address_cf, OptIn, Ide("optin"), [])]
   >:> (1, start_date + 5)
+  (* >?> "Address(0).balance[algo] = 0" *)
   >=> [PayTransaction(90, Algo, address_a, address_cf);
        CallTransaction(address_a, address_cf, NoOp, Ide("donate"), []);]
   >=> [PayTransaction(80, Algo, address_b, address_cf);

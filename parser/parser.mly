@@ -105,8 +105,7 @@ contract:
 | eols?; dl = optterm_list(eols, declaration); cl = optterm_list(MEOL, aclause); eols?; EOF{ Contract(dl, cl) }
 
 declaration: 
-| s=statetype; m=muttype; t=vartype; i=ide; { Declaration(s,m,t,i,None) }
-| s=statetype; m=muttype; t=vartype; i=ide; EQUALS; e=exp; { Declaration(s,m,t,i,Some(e)) }
+| s=statetype; m=muttype; t=vartype; i=ide; { Declaration(s,m,t,i) }
 
 muttype:
 | MUT; { Mutable }
@@ -115,7 +114,7 @@ muttype:
 statetype:
 | GLOB; { TGlob }
 | LOC; { TLoc }
-| (* epsilon *) { TNorm }
+// | (* epsilon *) { TNorm }
 
 vartype:
 | TINT; { TInt }
@@ -219,4 +218,5 @@ exp:
 key:
 | i=ide; { NormVar(i) }
 | GLOB; DOT; i=ide; { GlobVar(i) }
-| LOC; DOT; i=ide; { LocVar(i) }
+| LOC; DOT; i=ide; { LocVar(i,None) }
+| e=exp; DOT; i=ide; { LocVar(i,Some(e)) }
