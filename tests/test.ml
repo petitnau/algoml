@@ -199,6 +199,15 @@ let testsuite3 = "test suite 3" >::: [
     "glob int x\n Create fn() { x = 7 }";
   test_static_error "norm existent" (None)
     "Create fn(int x) { x = 7 }";
+
+  test_static_error "no create fun" (Some (Failure "Create clause not present"))
+    "NoOp fn() { }";
+  test_static_error "no fun in aclause" (Some (Failure "Not all atomic clauses have a function clause"))
+    "@close * -> *\n\n Create create() {}";
+  test_static_error "" (Some (Failure "Duplicate glob ides or loc ides"))
+    "glob int x\n glob string x\n Create create() {}";
+  test_static_error "" (Some (Failure "Duplicate glob ides or loc ides"))
+    "loc int z\n loc int z\n Create creaate() {}";
 ]
 
 let _ = run_test_tt_main testsuite1
