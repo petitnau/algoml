@@ -52,6 +52,8 @@
 
 %token MUT
 
+%token GSTATE
+%token LSTATE
 %token PAY
 %token CLOSE
 %token FROM
@@ -73,8 +75,8 @@
 %token GLOB
 %token LOC
 
-%token GLOBAL
-%token CALL
+%token CREATOR
+%token CALLER
 %token ESCROW
 %token ALGO
 
@@ -130,6 +132,8 @@ clause:
 | o=partclause; { o }
 
 partclause:
+| AT; s=state; sf=option(ide); ARROW; st=option(ide) { StateClause(s, sf, st) }
+| AT; s=state; TIMES { StateClause(s, None, None) }
 | AT; PAY; amt_p=pattern; tkn_p=pattern; COLON; xfr_p=pattern; ARROW; xto_p=pattern; { PayClause(amt_p, tkn_p, xfr_p, xto_p) }
 | AT; PAY; amt_p=pattern; COLON; xfr_p=pattern; ARROW; xto_p=pattern; { PayClause(amt_p, FixedPattern(EToken(Algo), None), xfr_p, xto_p) }
 | AT; PAY; xfr_p=pattern; ARROW; xto_p=pattern; { PayClause(AnyPattern(None), FixedPattern(EToken(Algo), None), xfr_p, xto_p) }
@@ -141,11 +145,14 @@ partclause:
 | AT; ASSERT; e=exp; { AssertClause(e) }
 | fc=functionclause; { fc }
 
+state:
+| GSTATE; { TGlob }
+| LSTATE; { TLoc }
+
 pattern:
 | LPAREN; e1=option(exp); COMMA; e2=option(exp); RPAREN; i=bind { RangePattern(e1, e2, i) }
 | e=exp; i=bind { FixedPattern(e, i) }
 | TIMES; i=bind { AnyPattern(i) }
-| i=bind { AnyPattern(i) }
 
 bind:
 | (* epsilon *) { None }
@@ -180,10 +187,10 @@ cmd:
 | c=cmdpart { c }
 cmdpart:
 | k=key; EQUALS; e=exp; { Assign(k, e) }
-| k=key; PEQ; e=exp; { AssignOp(Sum, k, e) }
-| k=key; MEQ; e=exp; { AssignOp(Diff, k, e) }
-| k=key; TEQ; e=exp; { AssignOp(Mul, k, e) }
-| k=key; DEQ; e=exp; { AssignOp(Div, k, e) }
+| k=key; PEQ; e=exp; { Assign(k, IBop(Sum, Val(k), e)) }
+| k=key; MEQ; e=exp; { Assign(k, IBop(Diff, Val(k), e)) }
+| k=key; TEQ; e=exp; { Assign(k, IBop(Mul, Val(k), e)) }
+| k=key; DEQ; e=exp; { Assign(k, IBop(Div, Val(k), e)) }
 | IF; LPAREN; e=exp; RPAREN; cl1=block; ELSE; cl2=block; { Ifte(e, cl1, cl2) }
 | IF; LPAREN; e=exp; RPAREN; cl1=block; { Ifte(e, cl1, []) }
 
@@ -211,8 +218,8 @@ exp:
 | e1=exp; NEQ; e2=exp; { CBop(Neq, e1, e2) }
 | NOT; e=exp; { Not(e) }
 
-| GLOBAL; DOT; i=ide; { Global(i)}
-| CALL; DOT; i=ide; { Call(i)}
+| CREATOR; { Creator }
+| CALLER; { Caller }
 | ESCROW; { Escrow }
 
 key:

@@ -3,8 +3,8 @@
 }
 
 let white = [' ' '\t']+
-let meol = '\n' '\n'+
-let eol = '\n'
+let eol = (white* '\n' white* | white* "\r\n" white*)
+let meol = eol eol+
 let digits = ['0'-'9'] 
 let hexdigits = ['0'-'9' 'a'-'f' 'A'-'F']
 let int = '-'? digits+ | '-'? "0x" hexdigits+
@@ -54,6 +54,8 @@ rule read =
     | "token" { TTOKEN }
     | "address" { TADDRESS }
     | "assert" { ASSERT }
+    | "gstate" { GSTATE }
+    | "lstate" { LSTATE }
     | "pay" { PAY }
     | "close" { CLOSE }
     | "from" { FROM }
@@ -71,8 +73,8 @@ rule read =
     | "else" { ELSE }
 
     
-    | "global" { GLOBAL }
-    | "call" { CALL }
+    | "creator" { CREATOR }
+    | "caller" { CALLER }
     | "escrow" { ESCROW }
     | "ALGO" { ALGO }
 

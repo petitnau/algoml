@@ -3,8 +3,12 @@ open Int
 open Amlparser
 open Amlprinter
 open Batteries
+open Comp
 
-let crowdfunding_script = parse_file "contracts/crowdfunding.aml";;
+let script = parse_file "contracts/crowdfunding.aml";;
+
+let _ = test_comp script;;
+;;failwith "end";;
 
 let account_a = Account.bind_balance (Account.empty_user()) Algo 100
 let address_a = Account.get_address account_a
@@ -25,7 +29,7 @@ let goal = 100
 let receiver = address_c
 
 let s = 
-s >=> [CreateTransaction(address_a, crowdfunding_script, [
+s >=> [CreateTransaction(address_a, script, [
         VInt(start_date);
         VInt(end_date);
         VInt(fund_close_date);

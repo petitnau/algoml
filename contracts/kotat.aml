@@ -15,7 +15,7 @@ Create create(int start, int dethroneFee, int rate, int curseDuration) {
 @pay claimPrice ALGO : * -> monarch
 NoOp dethrone(string kingName) {
 	curseStart = call.Round
-	monarch = call.sender
+	monarch = caller
 	glob.kingName = kingName
 	claimPrice *= rate
 }
@@ -24,7 +24,7 @@ NoOp dethrone(string kingName) {
 @pay (start+dethroneFee) ALGO : * -> global.CreatorAddress
 NoOp dethrone(string kingName) {
 	curseStart = call.Round
-	monarch = call.sender
+	monarch = caller
 	glob.kingName = kingName
 	claimPrice = start*rate
 }

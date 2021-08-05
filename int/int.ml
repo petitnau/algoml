@@ -36,7 +36,11 @@ let rec eval_exp (s:state) (d:env) (ci:callinfo) (e:exp) : eval =
       | Sum -> VInt(v1 + v2)
       | Diff -> VInt(v1 - v2)
       | Mul -> VInt(v1 * v2)
-      | Div -> VInt(v1 / v2))
+      | Div -> VInt(v1 / v2)
+      | Mod -> VInt(v1 mod v2)
+      | Bor -> VInt(v1 lor v2)
+      | Band -> VInt(v1 land v2)
+      | Bxor -> VInt(v1 lxor v2))
     | _, _ -> raise (ErrDynamic "Integer operators can only operate on integers"))
 
   | LBop(op, e1, e2) -> 
@@ -69,22 +73,17 @@ let rec eval_exp (s:state) (d:env) (ci:callinfo) (e:exp) : eval =
     | VBool(v1) -> VBool(not(v1))
     | _ -> raise (ErrDynamic "Not can only operate on booleans"))
 
-  | Global(i) ->
+  | Creator ->
     let acalled = State.get_account_ex s ci.called in
-    (match i with
-    | Ide("creator") -> VAddress(Account.get_creator_ex acalled)
-    | _ -> raise (TmpDynamic ((Ide.to_str i)^" is not a global field"))) (* TODO: STATIC CHECK*)
+    VAddress(Account.get_creator_ex acalled)
 
-  | Call(i) ->
-    (match i with
-    | Ide("sender") -> VAddress(ci.caller)
-    | _ -> raise (TmpDynamic ((Ide.to_str i)^" is not a call field")))
+  | Caller -> VAddress(ci.caller)
 
   | Escrow -> VAddress(ci.called)
 
     
 let rec run_cmds (s:state) (d:env) (ci:callinfo) (cl:cmd list) : state * env =
-  let rec run_cmd (s:state) (d:env) (c:cmd) : state * env = 
+  let run_cmd (s:state) (d:env) (c:cmd) : state * env = 
     (match c with
     | Assign(k, e) -> 
       let v = eval_exp s d ci e in
@@ -112,9 +111,6 @@ let rec run_cmds (s:state) (d:env) (ci:callinfo) (cl:cmd list) : state * env =
         let s' = State.bind s acaller' in
         (s', d))
         
-    | AssignOp(op, k, e) ->
-      run_cmd s d (Assign(k, IBop(op, Val(k), e)))
-
     | Ifte(e, cl1, cl2) -> 
       let v = eval_exp s d ci e in
       (match v with 
@@ -187,12 +183,16 @@ let rec run_aclause (s:state) (d:env) (ao:aclause) (ci:callinfo) (txnl: transact
     if b1 && b2 && b3 && b4 then run_aclause s d4 aotl ci txntl
     else None
 
+  | PayClause(_,_,_,_)::_, _ -> None
+
   | CloseClause(tkn_p, afr_p, ato_p)::aotl, CloseTransaction(tkn, afr, ato)::txntl ->
     let b1, d1 = match_pattern(s, d, ci, tkn_p, VToken(tkn)) in
     let b2, d2 = match_pattern(s, d1, ci, afr_p, VAddress(afr)) in
     let b3, d3 = match_pattern(s, d2, ci, ato_p, VAddress(ato)) in
     if b1 && b2 && b3 then run_aclause s d3 aotl ci txntl
     else None
+
+  | CloseClause(_,_,_)::_, _ -> None
 
   | TimestampClause(timestamp_p)::aotl, _ ->
     let b1, d1 = match_pattern(s, d, ci, timestamp_p, VInt(s.timestamp)) in
@@ -226,11 +226,31 @@ let rec run_aclause (s:state) (d:env) (ao:aclause) (ci:callinfo) (txnl: transact
         run_aclause s' d'' aotl ci txnl
       | None -> None)
 
-  | [], _ ->
-    Some(s)
+  | StateClause(stype, fromstate, tostate)::aotl, _ -> 
+    let b = (match fromstate with
+    | Some(Ide(fromstate)) -> 
+      let fromstate' = 
+        (if stype = TGlob then State.get_globalv_ex s ci.called (Ide "gstate") 
+        else State.get_localv_ex s ci.caller ci.called (Ide "lstate")) in
+      (match fromstate' with
+      | VString(fromstate') when fromstate = fromstate' -> true
+      | VString(_) -> false
+      | _ -> raise TypeError)
+    | None -> true) in
+    if not(b) then None
+    else 
+      let s' = (match tostate with
+        | Some(Ide(tostate)) ->
+          if stype = TGlob then State.set_globalv_ex s ci.called (Ide "gstate") (VString tostate)
+          else State.set_localv_ex s ci.caller ci.called (Ide "lstate") (VString tostate)
+        | None -> s) in
+      run_aclause s' d aotl ci txnl
 
-  | _ -> None
-  
+      (* run_aclause s d aotl ci txnl *)
+      
+    | [], _ ->
+      Some(s)
+
 let rec run_aclauses (s:state) (d:env) (aol:aclause list) (ci:callinfo) (txnl:transaction list) : state option =
   (match aol with
   | [] -> None

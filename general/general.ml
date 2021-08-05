@@ -59,13 +59,16 @@ module Env = struct
     | [] -> d
     | Declaration(s', m, t, i)::tl when s = s' -> 
       let d' = decl d i m t in
-      init_state d' s tl
+      let d'' = 
+        (if s=TGlob then decl d' (Ide "gstate") Mutable TString
+        else decl d' (Ide "lstate") Mutable TString) in
+      init_state d'' s tl
     | _::tl -> init_state d s tl
   
   let rec init_params (d:env) (pl:parameter list) (apl:eval list) : env option =
       match pl, apl with
       | Parameter(t,i)::pltl, v::apltl -> 
-        let d' = init d i Mutable t v in
+        let d' = init d i Immutable t v in
         init_params d' pltl apltl
       | [], [] -> Some(d)
       | _ -> None
@@ -270,8 +273,25 @@ module State = struct
     let* a = get_account s x in
     Account.get_localv a cx i 
 
+  let get_localv_ex (s:state) (x:address) (cx:address) (i:ide) : eval = 
+    let a = get_account_ex s x in
+    Account.get_localv_ex a cx i
+    
+  let set_localv_ex (s:state) (x:address) (cx:address) (i:ide) (v:eval) : state = 
+    let a = get_account_ex s x in
+    let a' = Account.set_localv_ex a cx i v in
+    bind s a' 
+
   let get_globalv (s:state) (x:address) (i:ide) : eval option = 
     let* a = get_account s x in
     Account.get_globalv a i
-    
+
+  let get_globalv_ex (s:state) (x:address) (i:ide) : eval = 
+    let a = get_account_ex s x in
+    Account.get_globalv_ex a i   
+  
+  let set_globalv_ex (s:state) (x:address) (i:ide) (v:eval) : state = 
+    let a = get_account_ex s x in
+    let a' = Account.set_globalv_ex a i v in
+    bind s a'   
 end

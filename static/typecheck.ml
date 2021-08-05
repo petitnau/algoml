@@ -53,10 +53,9 @@ let rec eval_type (td:typeenv) (e:exp) : vartype option = match e with
   | Not(e) ->
     if eval_type td e = Some TBool
     then Some TBool else None
-  | Global(Ide("creator")) -> Some TAddress
-  | Call(Ide("sender")) -> Some TAddress
+  | Creator -> Some TAddress
+  | Caller -> Some TAddress
   | Escrow -> Some TAddress
-  | _ -> failwith "Global x Call x"
 
 let check_pattern td t p = match p with
   | RangePattern(e1, e2, x) ->
@@ -100,16 +99,6 @@ let rec check_cmdl td cl =
       if t1 = t2 
       then Some td else None
 
-    | AssignOp(o, LocVar(i,Some(e1)), e2) ->
-      if eval_type td e1 = Some TAddress
-      then check_cmd td (AssignOp(o, LocVar(i,None), e2)) else None
-
-    | AssignOp(_, k, e) ->
-      let* t1 = apply_typeenv td k in
-      let* t2 = eval_type td e in
-      if t1 = t2 && t2 = TInt 
-      then Some td else None
-
     | Ifte(e, cl1, cl2) ->
       if eval_type td e = Some TBool
         && check_cmdl td cl1 <> None 
@@ -130,7 +119,6 @@ let rec bind_decls (td:typeenv) (dl:decl list) =
     | Declaration(_,_,t,_,None) -> 
     else  *)
     match d with
-    | Declaration(TNorm,_,t,i) -> Some(bind_typeenv td (NormVar i) t)
     | Declaration(TGlob,_,t,i) -> Some(bind_typeenv td (GlobVar i) t)
     | Declaration(TLoc,_,t,i) -> Some(bind_typeenv td (LocVar(i,None)) t)
     (* | _ -> None *)
@@ -184,6 +172,8 @@ let rec check_aclause td ao =
     
     | FunctionClause(_, _, p, cl) ->
       check_function td p cl
+
+    | StateClause(_,_,_) -> Some td
 
   in match ao with
   | aohd::aotl -> 

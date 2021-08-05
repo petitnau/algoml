@@ -5,7 +5,14 @@ open Amlparser
 open Types
 open OUnit2
 
-let crowdfunding_script = parse_file "contracts/vault.aml";;
+open Comp
+
+
+
+let script = parse_file "contracts/vault.aml";;
+
+let _ = test_comp script;;
+;;failwith "end";;
 
 let account_a = Account.bind_balance (Account.empty_user()) Algo 100
 let address_a = Account.get_address account_a
@@ -20,7 +27,7 @@ let s = State.empty
   >$> account_a
   >$> account_r
   >$> account_m
-  >=> [CreateTransaction(address_a, crowdfunding_script, [VInt(wait_time); VAddress(address_r)])]
+  >=> [CreateTransaction(address_a, script, [VInt(wait_time); VAddress(address_r)])]
 
 let address_cf = Address.latest()
 

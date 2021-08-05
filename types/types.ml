@@ -21,7 +21,7 @@ and clause =
 | FromClause of pattern
 | AssertClause of exp
 | FunctionClause of oncomplete * ide * parameter list * cmd list 
-
+| StateClause of statetype * ide option * ide option
 and exp = 
 | EInt of int
 | EString of string
@@ -33,12 +33,11 @@ and exp =
 | LBop of lbop * exp * exp
 | CBop of cbop * exp * exp
 | Not of exp
-| Global of ide
-| Call of ide
+| Creator
+| Caller
 | Escrow
 and cmd = 
 | Assign of key * exp
-| AssignOp of ibop * key * exp
 | Ifte of exp * cmd list * cmd list
 and pattern = 
 | RangePattern of exp option * exp option * ide option
@@ -49,10 +48,10 @@ and key =
 | LocVar of ide * exp option
 | NormVar of ide
 and vartype = TInt | TString | TBool | TToken | TAddress
-and statetype = TGlob | TLoc | TNorm
+and statetype = TGlob | TLoc
 and muttype = Mutable | Immutable
 and oncomplete = Create | NoOp | Update | Delete | OptIn | OptOut | ClearState
-and ibop = Sum | Diff | Mul | Div 
+and ibop = Sum | Diff | Mul | Div | Mod | Bor | Band | Bxor
 and lbop = And | Or
 and cbop = Gt | Geq | Lt | Leq | Eq | Neq
 

@@ -200,14 +200,45 @@ let testsuite3 = "test suite 3" >::: [
   test_static_error "norm existent" (None)
     "Create fn(int x) { x = 7 }";
 
-  test_static_error "no create fun" (Some (Failure "Create clause not present"))
+  test_static_error "no create fun" (Some (Failure "Incorrect amount of create clauses"))
     "NoOp fn() { }";
   test_static_error "no fun in aclause" (Some (Failure "Not all atomic clauses have a function clause"))
     "@close * -> *\n\n Create create() {}";
-  test_static_error "" (Some (Failure "Duplicate glob ides or loc ides"))
+  test_static_error "duplicate glob ide" (Some (Failure "Duplicate glob ides or loc ides"))
     "glob int x\n glob string x\n Create create() {}";
-  test_static_error "" (Some (Failure "Duplicate glob ides or loc ides"))
-    "loc int z\n loc int z\n Create creaate() {}";
+  test_static_error "duplicate loc ide" (Some (Failure "Duplicate glob ides or loc ides"))
+    "loc int z\n loc int z\n Create create() {}";
+
+  test_static_error "reachable states" None
+    "@gstate -> a\nCreate create() {}\n\n@gstate a -> b\nNoOp noop() {}";
+  test_static_error "unreachable gstate" (Some (Failure "Not all states are reachable"))
+    "@gstate a -> b\nCreate create() {}";
+  test_static_error "unreachable lstate" (Some (Failure "Not all states are reachable"))
+    "@lstate a -> b\nCreate create() {}";
+  test_static_error "mixed gstate lstate unerachable" (Some (Failure "Not all states are reachable"))
+    "@gstate -> a\nCreate create() {}\n\n@lstate a -> b\nNoOp noop() {}";
+  test_static_error "mixed lstate gstate unerachable" (Some (Failure "Not all states are reachable"))
+    "@lstate -> a\nCreate create() {}\n\n@gstate a -> b\nNoOp noop() {}";
+
+  test_static_error "double immut static create2" (Some (Failure "doppione glob"))
+    "glob int x
+        
+    Create create() { if (true) {glob.x = 7} else {glob.x = 15} }
+
+    NoOp op2() { glob.x = 8 }";
+  test_static_error "double immut static create1" None
+    "glob int x
+    glob int y
+        
+    Create create() { if (true) {glob.y = 7} else {glob.x = 15} }
+
+    NoOp op2() { glob.x = 8 }";
+  test_static_error "double immut static create" (Some (Failure "doppione glob"))
+    "glob int x
+
+    Create create() { glob.x = 7 }
+
+    NoOp op2() { glob.x = 8 }";
 ]
 
 let _ = run_test_tt_main testsuite1

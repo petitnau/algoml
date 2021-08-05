@@ -17,8 +17,10 @@ let parse_buf (lexbuf:Lexing.lexbuf) =
     let types = check_program ast in
     if types = None then raise TypeError
     else if not(check_aclauses_funcclause ast) then failwith "Not all atomic clauses have a function clause"
-    else if not(check_create_in_contract ast) then failwith "Create clause not present"
+    else if not(check_create_in_contract ast) then failwith "Incorrect amount of create clauses"
     else if not(check_duplicates ast) then failwith "Duplicate glob ides or loc ides"
+    else if not(check_reachable_states ast) then failwith "Not all states are reachable"
+    else if not(check_double_immutable ast) then failwith "doppione glob"
     else ast
   with
     | Parser.Error as exn -> 
