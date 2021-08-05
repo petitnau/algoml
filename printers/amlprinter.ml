@@ -64,4 +64,3 @@ let string_of_key : key -> string = function
   | LocVar(i,Some(_)) -> Printf.sprintf "LocVar(%s, <exp>)" (string_of_ide i)
   | NormVar(i) -> Printf.sprintf "NormVar(%s)" (string_of_ide i)
   
-  

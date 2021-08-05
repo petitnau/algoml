@@ -439,6 +439,7 @@ let comp_aclause (ao:aclause) (acid:int) (sd:stateenv) =
       let nhead,nbody,nd' = (comp_clause hd txnid acid sd nd) in
       let head' = (match nhead with None -> head | Some(nhead) -> head@[nhead]) in
       let body' = (match nbody with None -> body | Some(nbody) -> body@[nbody]) in
+      let txnid = (match hd with PayClause(_,_,_,_) | CloseClause(_,_,_) | FunctionClause(_,_,_,_) -> txnid+1 | _ -> txnid) in
       comp_aclause_aux tl txnid head' body' nd'
     | [] -> head, body, nd
   in 
@@ -458,9 +459,10 @@ let precomp (p:contract) (sd:stateenv) : contract * stateenv =
     let sd' = StateEnv.bind sd (Ide("escrow"), TGlob) Immutable in
     let init_state = get_init_state p in
     let init_escrow_base = [
-        FromClause(FixedPattern(Creator, None));
-        FunctionClause(NoOp, Ide("init_escrow"), [Parameter(TAddress, Ide("escrow"))], 
-          [Assign(GlobVar(Ide("escrow")), Val(NormVar(Ide("escrow"))))])] in
+      FromClause(FixedPattern(Creator, None));
+      PayClause(FixedPattern(EInt(100000), None), FixedPattern(EToken(Algo), None), AnyPattern(None), AnyPattern(Some(Ide "escrow")));
+      FunctionClause(NoOp, Ide("init_escrow"), [], 
+        [Assign(GlobVar(Ide("escrow")), Val(NormVar(Ide("escrow"))))])] in
     let p' = (match init_state with
       | Some(init_state) ->
         let p = change_init_state p (Ide "init_escrow") in
@@ -476,7 +478,7 @@ let precomp (p:contract) (sd:stateenv) : contract * stateenv =
 let comp_contract (p:contract) : string = 
   let rec comp_aclause_list aol idx sd = (match aol with
     | ao::tl -> (comp_aclause ao idx sd)::(comp_aclause_list tl (idx+1) sd)
-    | [] -> [OPSeparate("\n\n",[OPLabel(Printf.sprintf "aclause_%d" idx); OPErr; OPLabel("approve"); OPInt(1)])]) in
+    | [] -> [OPSeparate("\n\n",[OPLabel(Printf.sprintf "aclause_%d" idx); OPLabel("fail"); OPErr; OPLabel("approve"); OPInt(1)])]) in
   let Contract(dl,cl), sd = precomp p StateEnv.empty in
   let sd = StateEnv.bind_decls sd dl in
   let ss = comp_aclause_list cl 0 sd in
