@@ -39,6 +39,7 @@ type tealop =
   | OPGlobalGetEx of tealop * tealop 
   | OPGlobalPut of tealop * tealop
 
+  | OPSnd of tealop
   | OPErr 
 
   | OPNoop
@@ -182,7 +183,6 @@ let change_init_state (Contract(dl,aol):contract) (i:ide) : contract =
 
 let is_escrow_used (p:contract) = any_contract_check p (Some(fun e -> e = Escrow)) None None None
 
-
 type normenv = (ide*tealop) list
 module NormEnv = struct
   let empty = []
@@ -199,7 +199,22 @@ module NormEnv = struct
   let rec apply (nd:normenv) (i:ide) = match nd with
     | (i',top)::_ when i=i' -> top
     | _::tl -> apply tl i
-    | [] -> failwith( "No var"^(match i with Ide(s) -> s))
+    | [] -> failwith( "No var: "^(match i with Ide(s) -> s))
+end
+
+type stateenv = (ide*statetype*muttype) list
+module StateEnv = struct
+  let empty = []
+  let bind (sd:stateenv) ((i:ide),(s:statetype)) (m:muttype) = (i,s,m)::sd
+  let rec bind_decls (sd:stateenv) (dl:decl list) = match dl with
+    | Declaration(s,m,_,i)::tl -> 
+      let sd' = bind sd (i,s) m in
+      bind_decls sd' tl
+    | [] -> sd
+  let rec apply (sd:stateenv) (i:ide) (s:statetype) : muttype = match sd with
+    | (i',s', m)::_ when i=i' && s=s' -> m
+    | _::tl -> apply tl i s
+    | [] -> failwith ( "No var: "^(match i with Ide(s) -> s))
 end
 
 let rec tealop_concat (tl:tealop list) (op:string) : string = 
@@ -282,6 +297,8 @@ and tealop_to_str (t:tealop) : string = match t with
   | OPGlobalGetEx(t1, t2) -> tealop_concat [t1;t2] "app_global_get_ex"
   | OPGlobalPut(t1, t2) -> tealop_concat [t1;t2] "app_global_put"
 
+  | OPSnd(t1) -> tealop_concat [t1] "swap\npop"
+
   | OPErr -> "err"
 
   | OPNoop -> ""
@@ -291,81 +308,96 @@ let rec apply_declarations (dl:decl list) ((s,i):statetype * ide) = match dl wit
   | _::tl -> apply_declarations tl (s,i)
   | [] -> failwith "Not found"
 
-let rec comp_exp (e:exp) (nd:normenv) : tealop = match e with
+let rec comp_exp ?exvars:(exvars=false) (e:exp) (sd:stateenv) (nd:normenv)  : tealop = match e with
   | EInt(n) -> OPInt(n)
   | EString(s) -> OPByte(s)
   | EBool(b) -> if b then OPInt(1) else OPInt(0)
   | EToken(_) -> failwith "todo"
   | EAddress(_) -> failwith "todo"
-  | Val(GlobVar(Ide(i))) -> OPGlobalGet(OPByte(i))
-  | Val(LocVar(Ide(i), None)) -> OPLocalGet(OPTxn(TFSender), OPByte(i))
-  | Val(LocVar(Ide(i), Some(e))) -> OPLocalGet(comp_exp e nd, OPByte(i))
+  | Val(GlobVar(Ide(i))) -> if not exvars then OPGlobalGet(OPByte(i)) else OPGlobalGetEx(OPInt(0), OPByte(i))
+  | Val(LocVar(Ide(i), None)) -> if not exvars then OPLocalGet(OPTxn(TFSender), OPByte(i)) else OPLocalGetEx(OPTxn(TFSender), OPInt(0), OPByte(i))
+  | Val(LocVar(Ide(i), Some(e))) -> if not exvars then OPLocalGet(comp_exp e sd nd ~exvars, OPByte(i)) else OPLocalGetEx(comp_exp e sd nd ~exvars, OPInt(0), OPByte(i))
   | Val(NormVar(i)) -> NormEnv.apply nd i
-  | IBop(op,e1,e2) -> OPIbop(op, comp_exp e1 nd, comp_exp e2 nd)
-  | LBop(op,e1,e2) -> OPLbop(op, comp_exp e1 nd, comp_exp e2 nd)
-  | CBop(op,e1,e2) -> OPCbop(op, comp_exp e1 nd, comp_exp e2 nd)
-  | Not(e) -> OPLNot(comp_exp e nd)
+  | IBop(op,e1,e2) -> OPIbop(op, comp_exp e1 sd nd ~exvars, comp_exp e2 sd nd ~exvars)
+  | LBop(op,e1,e2) -> OPLbop(op, comp_exp e1 sd nd ~exvars, comp_exp e2 sd nd ~exvars)
+  | CBop(op,e1,e2) -> OPCbop(op, comp_exp e1 sd nd ~exvars, comp_exp e2 sd nd ~exvars)
+  | Not(e) -> OPLNot(comp_exp e sd nd ~exvars)
   | Creator -> OPGlobal(GFCreatorAddress)
   | Caller -> OPTxn(TFSender)
-  | Escrow -> OPGlobalGet(OPByte("escrow"))
+  | Escrow -> if not exvars then OPGlobalGet(OPByte("escrow")) else OPGlobalGetEx(OPInt(0), OPByte("escrow"))
 
-let comp_pattern (p:pattern) (objs:tealop) (nd:normenv) : tealop * normenv =
+let comp_pattern (p:pattern) (objs:tealop) (sd:stateenv) (nd:normenv) : tealop * normenv =
   let i = (match p with AnyPattern(i) | FixedPattern(_,i) | RangePattern(_,_,i) -> i) in 
   let nd' = NormEnv.try_bind nd i objs in
   let cp = (match p with
-  | AnyPattern(_) -> OPNoop
-  | FixedPattern(e, _) -> OPCbop(Eq, objs, comp_exp e nd)
-  | RangePattern(Some e1, Some e2, _) ->  OPLbop(And, OPCbop(Geq, objs, comp_exp e1 nd), OPCbop(Leq, objs, comp_exp e2 nd))
-  | RangePattern(Some e1, None, _) -> OPCbop(Geq, objs, comp_exp e1 nd)
-  | RangePattern(None, Some e2, _) -> OPCbop(Leq, objs, comp_exp e2 nd)
-  | RangePattern(None, None, _) -> OPNoop) in
+    | AnyPattern(_) -> OPNoop
+    | FixedPattern(e, _) -> OPCbop(Eq, objs, comp_exp e sd nd ~exvars:true)
+    | RangePattern(Some e1, Some e2, _) ->  OPLbop(And, OPCbop(Geq, objs, comp_exp e1 sd nd ~exvars:true), OPCbop(Leq, objs, comp_exp e2 sd nd ~exvars:true))
+    | RangePattern(Some e1, None, _) -> OPCbop(Geq, objs, comp_exp e1 sd nd ~exvars:true)
+    | RangePattern(None, Some e2, _) -> OPCbop(Leq, objs, comp_exp e2 sd nd ~exvars:true)
+    | RangePattern(None, None, _) -> OPNoop) in
   cp, nd'
 
-let rec comp_cmdlist (cl:cmd list) (nd:normenv) : tealop = 
+let rec comp_cmdlist (cl:cmd list) (sd:stateenv) (nd:normenv) : tealop = 
   let comp_cmd c = match c with
-    | Assign(GlobVar(Ide(i)), e) -> OPGlobalPut(OPByte(i), comp_exp e nd)
-    | Assign(LocVar(Ide(i), None), e) -> OPLocalPut(OPTxn(TFSender), OPByte(i), comp_exp e nd)
-    | Assign(LocVar(Ide(i), Some(a)), e) -> OPLocalPut(comp_exp a nd, OPByte(i), comp_exp e nd)
+    | Assign(GlobVar(Ide(i)), e) -> 
+      let cassign = OPGlobalPut(OPByte(i), comp_exp e sd nd) in
+      let cchecknotin = OPBnz(OPSnd(OPGlobalGetEx(OPInt(0), OPByte(i))), "fail") in
+      let mt = StateEnv.apply sd (Ide i) TGlob in
+      if mt = Mutable then cassign
+      else OPSeparate("\n", [cchecknotin; cassign])
+    | Assign(LocVar(Ide(i), None), e) -> 
+      let cassign = OPLocalPut(OPTxn(TFSender), OPByte(i), comp_exp e sd nd) in
+      let cchecknotin = OPBnz(OPSnd(OPLocalGetEx(OPTxn(TFSender), OPInt(0), OPByte(i))), "fail") in
+      let mt = StateEnv.apply sd (Ide i) TLoc in
+      if mt = Mutable then cassign
+      else OPSeparate("\n", [cchecknotin; cassign])
+    | Assign(LocVar(Ide(i), Some(a)), e) -> 
+      let cassign = OPLocalPut(comp_exp a sd nd, OPByte(i), comp_exp e sd nd) in
+      let cchecknotin = OPBnz(OPSnd(OPLocalGetEx(comp_exp a sd nd, OPInt(0), OPByte(i))), "fail") in
+      let mt = StateEnv.apply sd (Ide i) TGlob in
+      if mt = Mutable then cassign
+      else OPSeparate("\n", [cchecknotin; cassign]) (* todo refactor code repetition *)
     | Assign(NormVar(Ide(_)), _) -> failwith "can't assign normvars"
     | Ifte(e, cl1, cl2) -> 
       let lblelse = new_label() in
       let lblend = new_label() in
-      let cond = comp_exp e nd in
-      OPSeparate("\n", [OPBz(cond, lblelse); comp_cmdlist cl1 nd; OPB(lblend); OPLabel(lblelse); comp_cmdlist cl2 nd; OPLabel(lblend)])
+      let cond = comp_exp e sd nd in
+      OPSeparate("\n", [OPBz(cond, lblelse); comp_cmdlist cl1 sd nd; OPB(lblend); OPLabel(lblelse); comp_cmdlist cl2 sd nd; OPLabel(lblend)])
   in 
   OPSeparate("\n\n", List.map comp_cmd cl)
 
-let comp_clause (o:clause) (txnid:int) (acid:int) (nd:normenv) : tealop option * tealop option * normenv = 
+let comp_clause (o:clause) (txnid:int) (acid:int) (sd:stateenv) (nd:normenv) : tealop option * tealop option * normenv = 
   let comp_clause_aux o = match o with
     | PayClause(amt,_,xfr,xto) ->
       let check_txntype =  OPCbop(Eq, OPGtxn(txnid, TFTypeEnum), OPTypeEnum(TEPay)) in
-      let check_amount, nd = comp_pattern amt (OPGtxn(txnid, TFAmount)) nd in
-      let check_sender, nd = comp_pattern xfr (OPGtxn(txnid, TFSender)) nd in
-      let check_receiver, nd = comp_pattern xto (OPGtxn(txnid, TFReceiver)) nd in
+      let check_amount, nd = comp_pattern amt (OPGtxn(txnid, TFAmount)) sd nd in
+      let check_sender, nd = comp_pattern xfr (OPGtxn(txnid, TFSender)) sd nd in
+      let check_receiver, nd = comp_pattern xto (OPGtxn(txnid, TFReceiver)) sd nd in
       let check_remainder = OPCbop(Eq, OPGtxn(txnid, TFCloseRemainderTo), OPGlobal(GFZeroAddress)) in
       [check_txntype; check_amount; check_sender; check_receiver; check_remainder], [], nd
 
     | CloseClause(_,xfr,xto) ->
       let check_txntype =  OPCbop(Eq, OPGtxn(txnid, TFTypeEnum), OPTypeEnum(TEPay)) in
       let check_amount = OPCbop(Eq, OPGtxn(txnid, TFAmount), OPInt(0)) in
-      let check_sender, nd = comp_pattern xfr (OPGtxn(txnid, TFSender)) nd in
-      let check_remainder, nd = comp_pattern xto (OPGtxn(txnid, TFCloseRemainderTo)) nd in
+      let check_sender, nd = comp_pattern xfr (OPGtxn(txnid, TFSender)) sd nd in
+      let check_remainder, nd = comp_pattern xto (OPGtxn(txnid, TFCloseRemainderTo)) sd nd in
       [check_txntype; check_amount; check_sender; check_remainder], [], nd
 
     | TimestampClause(t) -> 
-      let check_timestamp, nd = comp_pattern t (OPGlobal(GFLatestTimestamp)) nd in
+      let check_timestamp, nd = comp_pattern t (OPGlobal(GFLatestTimestamp)) sd nd in
       [check_timestamp], [], nd
 
     | RoundClause(r) -> 
-      let check_round, nd = comp_pattern r (OPGlobal(GFRound)) nd in
+      let check_round, nd = comp_pattern r (OPGlobal(GFRound)) sd nd in
       [check_round], [], nd
 
     | FromClause(f) ->
-      let check_from, nd = comp_pattern f (OPTxn(TFSender)) nd in
+      let check_from, nd = comp_pattern f (OPTxn(TFSender)) sd nd in
       [check_from], [], nd
 
     | AssertClause(e) ->
-      [comp_exp e nd], [], nd
+      [comp_exp e sd nd ~exvars:true], [], nd
 
     | StateClause(stype,sfr,sto) -> 
       let check_state = (match sfr with
@@ -387,7 +419,7 @@ let comp_clause (o:clause) (txnid:int) (acid:int) (nd:normenv) : tealop option *
         let check_argcount = OPCbop(Eq, OPTxn(TFNumAppArgs), OPInt((List.length pl) + 1)) in
         let check_fn = OPCbop(Eq, OPTxna(TFApplicationArgs, 0), OPByte(fn)) in
       let nd = NormEnv.bind_params nd pl in
-      let body = comp_cmdlist cl nd in
+      let body = comp_cmdlist cl sd nd in
       [check_oncomplete; check_argcount; check_fn], [body], nd
   in 
   let not_label = Printf.sprintf "aclause_%d" (acid+1) in
@@ -401,10 +433,10 @@ let rec top_to_str top = match top with
   | OPSeparate(sep, topl) -> Printf.sprintf "OPSeparate(%s, %s)" (String.escaped sep) (String.concat ", " (List.map top_to_str topl))
   | _ -> (Batteries.dump top)
 
-let comp_aclause (ao:aclause) (acid:int)= 
+let comp_aclause (ao:aclause) (acid:int) (sd:stateenv) = 
   let rec comp_aclause_aux ao txnid head body nd = match ao with 
     | hd::tl -> 
-      let nhead,nbody,nd' = (comp_clause hd txnid acid nd) in
+      let nhead,nbody,nd' = (comp_clause hd txnid acid sd nd) in
       let head' = (match nhead with None -> head | Some(nhead) -> head@[nhead]) in
       let body' = (match nbody with None -> body | Some(nbody) -> body@[nbody]) in
       comp_aclause_aux tl txnid head' body' nd'
@@ -420,31 +452,34 @@ let comp_aclause (ao:aclause) (acid:int)=
   let body = body@[OPB("approve")] in
   OPSeparate("\n\n//****************\n\n", [OPSeparate("\n\n", head); OPSeparate("\n\n", body)])
 
-let precomp (p:contract) : contract = 
-  if is_escrow_used p then
+let precomp (p:contract) (sd:stateenv) : contract * stateenv = 
+  if not(is_escrow_used p) then p, sd
+  else
+    let sd' = StateEnv.bind sd (Ide("escrow"), TGlob) Immutable in
     let init_state = get_init_state p in
     let init_escrow_base = [
         FromClause(FixedPattern(Creator, None));
         FunctionClause(NoOp, Ide("init_escrow"), [Parameter(TAddress, Ide("escrow"))], 
           [Assign(GlobVar(Ide("escrow")), Val(NormVar(Ide("escrow"))))])] in
-    match init_state with
-    | Some(init_state) ->
-      let p = change_init_state p (Ide "init_escrow") in
-      let Contract(dl,aol) = p in
-      Contract(dl, aol@[
-        (StateClause(TGlob, Some(Ide "init_escrow"), Some(init_state)))::init_escrow_base])
-    | None ->
-      let Contract(dl,aol) = p in
-      Contract(dl, aol@[init_escrow_base])
-  else p
+    let p' = (match init_state with
+      | Some(init_state) ->
+        let p = change_init_state p (Ide "init_escrow") in
+        let Contract(dl,aol) = p in
+        Contract(dl, aol@[
+          (StateClause(TGlob, Some(Ide "init_escrow"), Some(init_state)))::init_escrow_base])
+      | None ->
+        let Contract(dl,aol) = p in
+        Contract(dl, aol@[init_escrow_base])) in
+    p', sd'
     
 
 let comp_contract (p:contract) : string = 
-  let rec comp_aclause_list aol idx = (match aol with
-    | ao::tl -> (comp_aclause ao idx)::(comp_aclause_list tl (idx+1))
+  let rec comp_aclause_list aol idx sd = (match aol with
+    | ao::tl -> (comp_aclause ao idx sd)::(comp_aclause_list tl (idx+1) sd)
     | [] -> [OPSeparate("\n\n",[OPLabel(Printf.sprintf "aclause_%d" idx); OPErr; OPLabel("approve"); OPInt(1)])]) in
-  let Contract(_,cl) = precomp p in
-  let ss = comp_aclause_list cl 0 in
+  let Contract(dl,cl), sd = precomp p StateEnv.empty in
+  let sd = StateEnv.bind_decls sd dl in
+  let ss = comp_aclause_list cl 0 sd in
   let ss' = OPSeparate("\n\n//////////////////\n\n", ss) in
   tealop_to_str ss'
 
