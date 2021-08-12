@@ -86,6 +86,7 @@ let check_reachable_states (p:contract) : bool =
   in
   check_reachable_statetype TGlob && check_reachable_statetype TLoc
 
+(* 
 let get_create_block (Contract(_,cl):contract) : cmd list = 
   List.flatten (List.flatten (clause_filter_map (function FunctionClause(Create,_,_,cl) -> Some cl | _ -> None ) cl))
 
@@ -109,4 +110,4 @@ let check_double_immutable (p:contract) =
   let create_block = get_create_block p in 
   let non_create_cmd_list = 
     List.flatten (List.flatten (clause_filter_map (function FunctionClause(onc,_,_,cl) when onc <> Create -> Some cl | _ -> None) cl)) in
-  true || check_duplicates (get_sure_assignments create_block) (get_all_assignments non_create_cmd_list)
+  true || check_duplicates (get_sure_assignments create_block) (get_all_assignments non_create_cmd_list) *)

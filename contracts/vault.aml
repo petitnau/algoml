@@ -10,7 +10,7 @@ Create create(address recovery, int wait_time) {
     glob.recovery = recovery
     glob.wait_time = wait_time
 }
-    
+
 @gstate waiting->requesting
 @round *$curr_round
 @from creator
@@ -29,10 +29,3 @@ NoOp finalize() { }
 @gstate requesting->waiting
 @from glob.recovery
 NoOp cancel() { }
-
-
-
-
-
-
-

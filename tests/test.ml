@@ -155,6 +155,83 @@ let testsuite2 = "test suite 2" >::: [
       Account.bind_globalenv_ex aa Env.empty));
 ]
 
+let s, xc, xl = setup 3 [] "
+glob mut int x
+loc mut int x
+
+Create create() {}
+
+OptIn optin() { loc.x = 7 }
+
+OptOut optout() {}
+
+ClearState clear() {}
+
+NoOp noop() {}
+
+Delete delete() {}
+
+Update update() {}
+
+NoOp useloc() { glob.x = loc.x } 
+" 
+let x0, x1, x2 = (match xl with [x0;x1;x2] -> x0, x1, x2 | _ -> failwith "3 Users required")
+let testsuite4 = "test suite 1" >::: [
+  "noop" >:: (fun _ -> 
+    let f = fun _ ->
+      let _ = begin
+        s >=>! [CallTransaction(x0, xc, NoOp, Ide("noop"), [])]
+      end in ()
+    in f());
+  "update" >:: (fun _ -> 
+    let f = fun _ ->
+      let _ = begin
+        s >=>! [CallTransaction(x0, xc, Update, Ide("update"), [])]
+      end in ()
+    in f());
+  "optin" >:: (fun _ -> 
+    let f = fun _ ->
+      let _ = begin
+        s >=>! [CallTransaction(x0, xc, OptIn, Ide("optin"), [])]
+          >=>! [CallTransaction(x0, xc, NoOp, Ide("useloc"), [])]
+      end in ()
+    in f());
+  "optout" >:: (fun _ -> 
+    let f = fun _ ->
+      let _ = begin
+        s >=>! [CallTransaction(x0, xc, OptIn, Ide("optin"), [])]
+          >=>! [CallTransaction(x0, xc, NoOp, Ide("useloc"), [])]
+          >=>! [CallTransaction(x0, xc, OptOut, Ide("optout"), [])]
+          >=>! [CallTransaction(x0, xc, NoOp, Ide("useloc"), [])]
+      end in ()
+    in assert_raises (NonOptedError) f);
+  "clearstate approved" >:: (fun _ -> 
+    let f = fun _ ->
+      let _ = begin
+        s >=>! [CallTransaction(x0, xc, OptIn, Ide("optin"), [])]
+          >=>! [CallTransaction(x0, xc, NoOp, Ide("useloc"), [])]
+          >=>! [CallTransaction(x0, xc, ClearState, Ide("clear"), [])]
+          >=>! [CallTransaction(x0, xc, NoOp, Ide("useloc"), [])]
+      end in ()
+    in assert_raises (NonOptedError) f);
+  "clearstate rejected" >:: (fun _ -> 
+    let f = fun _ ->
+      let _ = begin
+        s >=>! [CallTransaction(x0, xc, OptIn, Ide("optin"), [])]
+          >=>! [CallTransaction(x0, xc, NoOp, Ide("useloc"), [])]
+          >=>! [CallTransaction(x0, xc, ClearState, Ide("nonexistent"), [])]
+          >=>! [CallTransaction(x0, xc, NoOp, Ide("useloc"), [])]
+      end in ()
+    in assert_raises (NonOptedError) f);
+  "delete" >:: (fun _ -> 
+    let f = fun _ ->
+      let _ = begin
+        s >=>! [CallTransaction(x0, xc, Delete, Ide("delete"), [])]
+          >=>! [CallTransaction(x0, xc, NoOp, Ide("noop"), [])]
+      end in ()
+    in assert_raises (Failure "Account does not exist") f);
+]
+
 (* TEST SUITE 3
  *
  * TYPE CHECKS *)
@@ -220,7 +297,8 @@ let testsuite3 = "test suite 3" >::: [
   test_static_error "mixed lstate gstate unerachable" (Some (Failure "Not all states are reachable"))
     "@lstate -> a\nCreate create() {}\n\n@gstate a -> b\nNoOp noop() {}";
 
-  test_static_error "double immut static create2" (Some (Failure "doppione glob"))
+
+  (* test_static_error "double immut static create2" (Some (Failure "doppione glob"))
     "glob int x
         
     Create create() { if (true) {glob.x = 7} else {glob.x = 15} }
@@ -238,9 +316,10 @@ let testsuite3 = "test suite 3" >::: [
 
     Create create() { glob.x = 7 }
 
-    NoOp op2() { glob.x = 8 }";
+    NoOp op2() { glob.x = 8 }"; *)
 ]
 
 let _ = run_test_tt_main testsuite1
 let _ = run_test_tt_main testsuite2
 let _ = run_test_tt_main testsuite3
+let _ = run_test_tt_main testsuite4

@@ -2,6 +2,7 @@ open Types
 
 type tealop =
   | OPSeparate of string * tealop list
+  | OPCommand of string
   | OPComment of string
   | OPLabel of string
 
@@ -40,7 +41,8 @@ type tealop =
   | OPGlobalPut of tealop * tealop
 
   | OPSnd of tealop
-  | OPErr 
+  | OPErr
+  | OPAssert of tealop
 
   | OPNoop
 
@@ -183,6 +185,10 @@ let change_init_state (Contract(dl,aol):contract) (i:ide) : contract =
 
 let is_escrow_used (p:contract) = any_contract_check p (Some(fun e -> e = Escrow)) None None None
 
+let longest_aclause (Contract(_,aol):contract) : int = 
+  let get_txn_clauses = List.filter (function PayClause(_,_,_,_) | CloseClause(_,_,_) | FunctionClause(_,_,_,_) -> true | _ -> false) in
+  List.fold_left (fun a b -> max a b) 0 (List.map (fun x -> List.length (get_txn_clauses x)) aol)
+
 type normenv = (ide*tealop) list
 module NormEnv = struct
   let empty = []
@@ -298,8 +304,9 @@ and tealop_to_str (t:tealop) : string = match t with
   | OPGlobalPut(t1, t2) -> tealop_concat [t1;t2] "app_global_put"
 
   | OPSnd(t1) -> tealop_concat [t1] "swap\npop"
-
+  | OPAssert(t1) -> tealop_concat [t1] "assert"
   | OPErr -> "err"
+  | OPCommand(s) -> s
 
   | OPNoop -> ""
 
@@ -338,32 +345,32 @@ let comp_pattern (p:pattern) (objs:tealop) (sd:stateenv) (nd:normenv) : tealop *
     | RangePattern(None, None, _) -> OPNoop) in
   cp, nd'
 
-let rec comp_cmdlist (cl:cmd list) (sd:stateenv) (nd:normenv) : tealop = 
+let rec comp_cmdlist ?mutchecks:((gcheckmut,lcheckmut)=(true,true)) (cl:cmd list) (sd:stateenv) (nd:normenv) : tealop = 
   let comp_cmd c = match c with
     | Assign(GlobVar(Ide(i)), e) -> 
       let cassign = OPGlobalPut(OPByte(i), comp_exp e sd nd) in
       let cchecknotin = OPBnz(OPSnd(OPGlobalGetEx(OPInt(0), OPByte(i))), "fail") in
       let mt = StateEnv.apply sd (Ide i) TGlob in
-      if mt = Mutable then cassign
+      if mt = Mutable || not(gcheckmut) then cassign
       else OPSeparate("\n", [cchecknotin; cassign])
     | Assign(LocVar(Ide(i), None), e) -> 
       let cassign = OPLocalPut(OPTxn(TFSender), OPByte(i), comp_exp e sd nd) in
       let cchecknotin = OPBnz(OPSnd(OPLocalGetEx(OPTxn(TFSender), OPInt(0), OPByte(i))), "fail") in
       let mt = StateEnv.apply sd (Ide i) TLoc in
-      if mt = Mutable then cassign
+      if mt = Mutable || not(lcheckmut) then cassign
       else OPSeparate("\n", [cchecknotin; cassign])
     | Assign(LocVar(Ide(i), Some(a)), e) -> 
       let cassign = OPLocalPut(comp_exp a sd nd, OPByte(i), comp_exp e sd nd) in
       let cchecknotin = OPBnz(OPSnd(OPLocalGetEx(comp_exp a sd nd, OPInt(0), OPByte(i))), "fail") in
       let mt = StateEnv.apply sd (Ide i) TGlob in
-      if mt = Mutable then cassign
-      else OPSeparate("\n", [cchecknotin; cassign]) (* todo refactor code repetition *)
+      if mt = Mutable || not(lcheckmut) then cassign
+      else OPSeparate("\n", [cchecknotin; cassign]) (* todo refactor code  repetition *)
     | Assign(NormVar(Ide(_)), _) -> failwith "can't assign normvars"
     | Ifte(e, cl1, cl2) -> 
       let lblelse = new_label() in
       let lblend = new_label() in
       let cond = comp_exp e sd nd in
-      OPSeparate("\n", [OPBz(cond, lblelse); comp_cmdlist cl1 sd nd; OPB(lblend); OPLabel(lblelse); comp_cmdlist cl2 sd nd; OPLabel(lblend)])
+      OPSeparate("\n", [OPBz(cond, lblelse); comp_cmdlist cl1 sd nd ~mutchecks:(gcheckmut,lcheckmut); OPB(lblend); OPLabel(lblelse); comp_cmdlist cl2 sd nd ~mutchecks:(gcheckmut,lcheckmut); OPLabel(lblend)])
   in 
   OPSeparate("\n\n", List.map comp_cmd cl)
 
@@ -419,7 +426,8 @@ let comp_clause (o:clause) (txnid:int) (acid:int) (sd:stateenv) (nd:normenv) : t
         let check_argcount = OPCbop(Eq, OPTxn(TFNumAppArgs), OPInt((List.length pl) + 1)) in
         let check_fn = OPCbop(Eq, OPTxna(TFApplicationArgs, 0), OPByte(fn)) in
       let nd = NormEnv.bind_params nd pl in
-      let body = comp_cmdlist cl sd nd in
+      let mutchecks = if onc=Create then (false,false) else if onc=OptIn then (true,false) else (false,false) in
+      let body = comp_cmdlist cl sd nd ~mutchecks:mutchecks in
       [check_oncomplete; check_argcount; check_fn], [body], nd
   in 
   let not_label = Printf.sprintf "aclause_%d" (acid+1) in
@@ -432,6 +440,17 @@ let comp_clause (o:clause) (txnid:int) (acid:int) (sd:stateenv) (nd:normenv) : t
 let rec top_to_str top = match top with
   | OPSeparate(sep, topl) -> Printf.sprintf "OPSeparate(%s, %s)" (String.escaped sep) (String.concat ", " (List.map top_to_str topl))
   | _ -> (Batteries.dump top)
+
+let is_aclause_clearstate (ao:aclause) : bool =
+  let onc = List.hd (List.filter_map (function FunctionClause(onc,_,_,_) -> Some onc | _ -> None) ao) in
+  onc = ClearState
+
+let comp_escrow (len:int) : tealop = 
+  let app_called = List.map (fun i -> OPBnz(OPLbop(And, OPCbop(Eq, OPGtxn(i, TFTypeEnum), OPTypeEnum(TEPay)), OPCbop(Eq, OPGtxn(i, TFApplicationID), OPCommand("int <APP-ID>"))), "app_called")) (List.init len Fun.id) in
+  let check_rekey = OPAssert(OPCbop(Eq, OPTxn(TFRekeyTo), OPGlobal(GFZeroAddress))) in
+  let check_fee = OPAssert(OPCbop(Eq, OPTxn(TFFee), OPInt(0))) in
+  let approve = OPInt(1) in
+  OPSeparate("\n\n", app_called@[OPErr; OPLabel("app_called"); check_rekey; check_fee; approve])
 
 let comp_aclause (ao:aclause) (acid:int) (sd:stateenv) = 
   let rec comp_aclause_aux ao txnid head body nd = match ao with 
@@ -473,19 +492,36 @@ let precomp (p:contract) (sd:stateenv) : contract * stateenv =
         let Contract(dl,aol) = p in
         Contract(dl, aol@[init_escrow_base])) in
     p', sd'
-    
 
-let comp_contract (p:contract) : string = 
-  let rec comp_aclause_list aol idx sd = (match aol with
-    | ao::tl -> (comp_aclause ao idx sd)::(comp_aclause_list tl (idx+1) sd)
-    | [] -> [OPSeparate("\n\n",[OPLabel(Printf.sprintf "aclause_%d" idx); OPLabel("fail"); OPErr; OPLabel("approve"); OPInt(1)])]) in
+let finalize_aclause_list (tl:tealop list) (idx:int) : tealop = 
+  OPSeparate("\n\n//////////////////\n\n", tl@[OPSeparate("\n\n",[OPLabel(Printf.sprintf "aclause_%d" idx); OPLabel("fail"); OPErr; OPLabel("approve"); OPInt(1)])])
+
+let comp_contract (p:contract) : string * string * string option = 
+  let rec comp_aclause_list aol sd appr_idx appr_prog clear_idx clear_prog = 
+    match aol with
+    | ao::tl -> 
+      if is_aclause_clearstate ao then 
+        (comp_aclause_list tl sd appr_idx appr_prog (clear_idx+1) ((comp_aclause ao clear_idx sd)::clear_prog))
+      else (comp_aclause_list tl sd (appr_idx+1) ((comp_aclause ao appr_idx sd)::appr_prog) clear_idx clear_prog)
+    | [] ->
+      (finalize_aclause_list appr_prog appr_idx), (finalize_aclause_list clear_prog clear_idx)
+  in      
   let Contract(dl,cl), sd = precomp p StateEnv.empty in
   let sd = StateEnv.bind_decls sd dl in
-  let ss = comp_aclause_list cl 0 sd in
-  let ss' = OPSeparate("\n\n//////////////////\n\n", ss) in
-  tealop_to_str ss'
+  let appr_prog, clear_prog = comp_aclause_list cl sd 0 [] 0 [] in
+
+  let escrow_prog_str = 
+    if not(is_escrow_used p) then None 
+    else Some(tealop_to_str (comp_escrow (longest_aclause p))) in
+  (tealop_to_str appr_prog), (tealop_to_str clear_prog), escrow_prog_str
 
 let test_comp ast = 
-  let s = comp_contract ast in
+  let appr_prog, clear_prog, escrow_prog = comp_contract ast in
   (* let s = comp_aclause ([PayClause(RangePattern(Some(EInt(3)), Some(EInt(5)), None), FixedPattern(EToken(Algo), None), FixedPattern(Val(GlobVar(Ide("receiver"))),None), AnyPattern(None))]) in *)
-  print_endline s;
+  print_endline appr_prog;
+  print_endline "\n\n/-/-/-/-/-/-/-/-/-/-/-/-/-/-/\n\n";
+  print_endline clear_prog;
+  print_endline "\n\n/-/-/-/-/-/-/-/-/-/-/-/-/-/-/\n\n";
+  match escrow_prog with
+  | Some(escrow_prog) -> print_endline escrow_prog
+  | None -> ()

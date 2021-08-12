@@ -308,7 +308,15 @@ let run_txns (s:state) (txnl:transaction list) : state =
         else State.bind s (Account.opt_in acaller acalled) in
       let p = Account.get_contract_ex acalled in
       let cinf = {caller=xfr; called=xto; onc=onc; fn=fn; params=params} in
-      run_contract s' p cinf txnl) 
+      try (
+        let s'' = run_contract s' p cinf txnl in
+        if onc = Delete then State.unbind s'' xto
+        else if onc = OptOut || onc = ClearState then State.bind s (Account.opt_out acaller xto) 
+        else s'')
+      with CallFail(_) as ex ->
+        if onc = ClearState then State.bind s (Account.opt_out acaller xto)
+        else raise ex
+      )  
   in
   let rec run_txns_aux s' toexectxnl =
     match toexectxnl with

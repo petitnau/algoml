@@ -175,7 +175,14 @@ module Account = struct
       UserAccount(x, Balance.unbind b t, lds) 
     | ContractAccount(x, b, lds, c, p, gd) ->
       ContractAccount(x, Balance.unbind b t, lds, c, p, gd) 
-        
+      
+  let unbind_localenv (a:account) (cx:address) : account = 
+    match a with
+    | UserAccount(x, b, lds) ->  
+      UserAccount(x, b, LocalEnvs.unbind lds cx ) 
+    | ContractAccount(x, b, lds, c, p, gd) ->
+      ContractAccount(x, b, LocalEnvs.unbind lds cx, c, p, gd) 
+
   let bind_localenv (a:account) (cx:address) (ld:env) : account = 
     match a with
     | UserAccount(x, b, lds) ->  
@@ -204,6 +211,9 @@ module Account = struct
       | ContractAccount(_, _, _, _, Contract(dl,_), _) -> dl) in 
     let ld = Env.init_state Env.empty TLoc dl in
     bind_localenv a cx ld
+
+  let opt_out (a:account) (cx:address) : account = 
+    unbind_localenv a cx    
 
   let get_localv (a:account) (cx:address) (i:ide) : eval option =
     let lds = get_localenvs a in

@@ -3,12 +3,12 @@ open Int
 open Amlparser
 open Amlprinter
 open Batteries
-open Comp
+open! Comp
 
 let script = parse_file "contracts/crowdfunding.aml";;
 
 let _ = test_comp script;;
-;;failwith "end";;
+(* ;;failwith "end";; *)
 
 let account_a = Account.bind_balance (Account.empty_user()) Algo 100
 let address_a = Account.get_address account_a
