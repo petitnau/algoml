@@ -4,7 +4,7 @@ AlgoML (after *Algorand Modelling Language*) is a DSL for specifying Algorand sm
 
 ## Documentation
 
-https://petitnau.notion.site/petitnau/AlgoML
+https://petitnau.notion.site/AlgoML-b6a7abd7f06a43679cd88a1e8a49b4f5
 
 ## Credits
 
