@@ -2,6 +2,7 @@ open Types
 open Tealtypes
 open Utils
 open Compenvs
+open General
 open Postcomp
 open Pseudotealify
   
@@ -191,11 +192,8 @@ let precomp (p:contract) (sd:stateenv) : contract * stateenv =
     p', sd'
 
 let comp_escrow (len:int) : tealcmd = 
-  let rec comp_app_checks i = 
-    if i > 0 then OPIfte(OPCbop(Eq, OPGtxn(i, TFTypeEnum), OPTypeEnum(TEAppl)), [OPB("app_called")], [comp_app_checks (i-1)])
-    else OPErr
-  in
-  let app_called = comp_app_checks len in
+  let check_txnappl i = OPSeq([OPLabel(Printf.sprintf "call_%d" i); OPBz(OPCbop(Eq, OPGtxn(i, TFTypeEnum), OPTypeEnum(TEAppl)), Printf.sprintf "call_%d" (i+1)); OPBnz(OPCbop(Eq, OPGtxn(i, TFApplicationID), OPELiteral("int <APP-ID>")), "app_called")]) in
+  let app_called = OPSeq((List.map check_txnappl (0--len))@[OPLabel(Printf.sprintf "call_%d" len); OPErr]) in
   let check_rekey = OPAssert(OPCbop(Eq, OPTxn(TFRekeyTo), OPGlobal(GFZeroAddress))) in
   let check_call = OPBz(OPCbop(Eq, OPTxn(TFTypeEnum), OPTypeEnum(TEPay)), "not_call") in
   let check_callself = OPAssert(OPCbop(Neq, OPTxn(TFApplicationID), OPELiteral("int <APP-ID>"))) in
