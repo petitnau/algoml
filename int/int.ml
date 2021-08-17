@@ -127,129 +127,165 @@ let rec run_cmds (s:state) (d:env) (ci:callinfo) (cl:cmd list) : state * env =
   | [] -> 
     s, d
 
-let match_pattern ((s:state), (d:env), (ci:callinfo), (p:pattern), (v:eval)) : bool * env = 
+let check_pattern ((s:state), (d:env), (ci:callinfo), (p:pattern), (v:eval)) : bool = 
   try (match p with
-    | RangePattern(a, b, x) -> 
-      let b = (match a, b with
-        | Some(a), Some(b) -> 
-          let va = eval_exp s d ci a in
-          let vb = eval_exp s d ci b in
-          (match va, v, vb with
-          | VInt(va), VInt(v), VInt(vb) -> 
-            va <= v && v <= vb
-          | _ -> raise (ErrDynamic "Range max and min should be of type int"))
+    | RangePattern(Some(a), Some(b), _) -> 
+      let va = eval_exp s d ci a in
+      let vb = eval_exp s d ci b in
+      (match va, v, vb with
+      | VInt(va), VInt(v), VInt(vb) -> 
+        va <= v && v <= vb
+      | _ -> raise (ErrDynamic "Range max and min should be of type int"))
 
-        | None, Some(b) -> 
-          let vb = eval_exp s d ci b in
-          (match v, vb with
-          |  VInt(v), VInt(vb) -> v <= vb
-          | _ -> raise (ErrDynamic "Range max should be of type int"))
+    | RangePattern(None, Some(b), _) -> 
+      let vb = eval_exp s d ci b in
+      (match v, vb with
+      |  VInt(v), VInt(vb) -> v <= vb
+      | _ -> raise (ErrDynamic "Range max should be of type int"))
 
-        | Some(a), None -> 
-          let va = eval_exp s d ci a in
-          (match va, v with
-          |  VInt(va), VInt(v) -> va <= v
-          | _ -> raise (ErrDynamic "Range min should be of type int"))
+    | RangePattern(Some(a), None, _) -> 
+      let va = eval_exp s d ci a in
+      (match va, v with
+      |  VInt(va), VInt(v) -> va <= v
+      | _ -> raise (ErrDynamic "Range min should be of type int"))
 
-        | None, None -> true) 
-      in
-      let d' = (match x with
-        | Some(x) -> Env.init d x Mutable (Eval.get_type v) v 
-        | None -> d) in
-      b, d'
+    | RangePattern(None, None, _) -> true
 
-    | FixedPattern(a, x) -> 
+    | FixedPattern(a, _) -> 
       let a = eval_exp s d ci a in
-      let b = (a = v) in
-      let d' = (match x with
-        | Some(x) -> Env.init d x Mutable (Eval.get_type v) v 
-        | None -> d) in
-      b, d'
+      a = v
 
-    | AnyPattern(x) ->
-      let d' = (match x with
-        | Some(x) -> Env.init d x Mutable (Eval.get_type v) v 
-        | None -> d) in
-      (true, d'))
-  with InitError(_) | NonOptedError -> false, d
+    | AnyPattern(_) -> true)
+  with InitError(_) | NonOptedError -> false
 
-let rec run_aclause (s:state) (d:env) (ao:aclause) (ci:callinfo) (txnl: transaction list) : state option = 
+let bind_pattern ((d:env), (p:pattern), (v:eval)) : env = 
+  match p with
+  | RangePattern(_,_, Some x) | FixedPattern(_, Some x) | AnyPattern(Some x) -> Env.init d x Immutable (Eval.get_type v) v
+  | RangePattern(_,_, None) | FixedPattern(_, None) | AnyPattern(None) -> d
+
+let rec bind_aclause (s:state) (d:env) (ao:aclause) (ci:callinfo) (txnl:transaction list) : env option = 
   match ao, txnl with
   | PayClause(amt_p, tkn_p, afr_p, ato_p)::aotl, PayTransaction(amt, tkn, afr, ato)::txntl ->  
-    let b1, d1 = match_pattern(s, d, ci, amt_p, VInt(amt)) in
-    let b2, d2 = match_pattern(s, d1, ci, tkn_p, VToken(tkn)) in
-    let b3, d3 = match_pattern(s, d2, ci, afr_p, VAddress(afr)) in
-    let b4, d4 = match_pattern(s, d3, ci, ato_p, VAddress(ato)) in
-    if b1 && b2 && b3 && b4 then run_aclause s d4 aotl ci txntl
-    else None
+    let d = bind_pattern(d, amt_p, VInt(amt)) in
+    let d = bind_pattern(d, tkn_p, VToken(tkn)) in
+    let d = bind_pattern(d, afr_p, VAddress(afr)) in
+    let d = bind_pattern(d, ato_p, VAddress(ato)) in
+    bind_aclause s d aotl ci txntl
 
   | PayClause(_,_,_,_)::_, _ -> None
 
   | CloseClause(tkn_p, afr_p, ato_p)::aotl, CloseTransaction(tkn, afr, ato)::txntl ->
-    let b1, d1 = match_pattern(s, d, ci, tkn_p, VToken(tkn)) in
-    let b2, d2 = match_pattern(s, d1, ci, afr_p, VAddress(afr)) in
-    let b3, d3 = match_pattern(s, d2, ci, ato_p, VAddress(ato)) in
-    if b1 && b2 && b3 then run_aclause s d3 aotl ci txntl
-    else None
+    let d = bind_pattern(d, tkn_p, VToken(tkn)) in 
+    let d = bind_pattern(d, afr_p, VAddress(afr)) in
+    let d = bind_pattern(d, ato_p, VAddress(ato)) in
+    bind_aclause s d aotl ci txntl
 
   | CloseClause(_,_,_)::_, _ -> None
 
   | TimestampClause(timestamp_p)::aotl, _ ->
-    let b1, d1 = match_pattern(s, d, ci, timestamp_p, VInt(s.timestamp)) in
-    if b1 then run_aclause s d1 aotl ci txnl
-    else None
+    let d = bind_pattern(d, timestamp_p, VInt(s.timestamp)) in
+    bind_aclause s d aotl ci txnl
 
   | RoundClause(round_p)::aotl, _ ->
-    let b1, d1 = match_pattern(s, d, ci, round_p, VInt(s.round)) in
-    if b1 then run_aclause s d1 aotl ci txnl
-    else None
+    let d = bind_pattern(d, round_p, VInt(s.round)) in
+    bind_aclause s d aotl ci txnl
 
   | FromClause(caller_p)::aotl, _ ->
-    let b1, d1 = match_pattern(s, d, ci, caller_p, VAddress(ci.caller)) in
-    if b1 then run_aclause s d1 aotl ci txnl
-    else None
+    let d = bind_pattern(d, caller_p, VAddress(ci.caller)) in
+    bind_aclause s d aotl ci txnl
   
-  | AssertClause(e)::aotl, _ ->
-    (try 
-      let b1 = eval_exp s d ci e in
-      if b1 = VBool(true) then run_aclause s d aotl ci txnl
-      else None
-    with InitError(_) | NonOptedError -> None)
+  | FunctionClause(_, _, pl, _)::aotl, CallTransaction(_,_,_,_,vl)::txntl 
+  | FunctionClause(_, _, pl, _)::aotl, CreateTransaction(_,_,_,vl)::txntl ->
+    let* d = Env.init_params d pl vl in
+    bind_aclause s d aotl ci txntl
 
-  | FunctionClause(onc, fn, pl, cl)::aotl, _ ->
-    if onc <> ci.onc || fn <> ci.fn then None
-    else 
-      let d' = Env.init_params d pl ci.params in
-      (match d' with 
-      | Some(d') ->
-        let s', d'' = run_cmds s d' ci cl in
-        run_aclause s' d'' aotl ci txnl
-      | None -> None)
+  | FunctionClause(_, _, _, _)::_, _ -> None
 
-  | StateClause(stype, fromstate, tostate)::aotl, _ -> 
-    let b = (match fromstate with
-    | Some(Ide(fromstate)) -> 
-      let fromstate' = 
-        (if stype = TGlob then State.get_globalv_ex s ci.called (Ide "gstate") 
-        else State.get_localv_ex s ci.caller ci.called (Ide "lstate")) in
-      (match fromstate' with
-      | VString(fromstate') when fromstate = fromstate' -> true
-      | VString(_) -> false
-      | _ -> raise TypeError)
-    | None -> true) in
-    if not(b) then None
-    else 
-      let s' = (match tostate with
-        | Some(Ide(tostate)) ->
-          if stype = TGlob then State.set_globalv_ex s ci.called (Ide "gstate") (VString tostate)
-          else State.set_localv_ex s ci.caller ci.called (Ide "lstate") (VString tostate)
-        | None -> s) in
-      run_aclause s' d aotl ci txnl
-
-      (* run_aclause s d aotl ci txnl *)
+  | AssertClause(_)::aotl, _  | StateClause(_,_,_)::aotl, _->  bind_aclause s d aotl ci txnl
       
-    | [], _ ->
-      Some(s)
+  | [], [] -> Some(d)
+  | [], _ -> None
+
+let run_aclause (s:state) (d:env) (ao:aclause) (ci:callinfo) (txnl:transaction list) : state option = 
+  let rec run_aclause_aux s d ao ci txnl = 
+    match ao, txnl with
+    | PayClause(amt_p, tkn_p, afr_p, ato_p)::aotl, PayTransaction(amt, tkn, afr, ato)::txntl ->  
+      if check_pattern(s, d, ci, amt_p, VInt(amt))
+        && check_pattern(s, d, ci, tkn_p, VToken(tkn))
+        && check_pattern(s, d, ci, afr_p, VAddress(afr))
+        && check_pattern(s, d, ci, ato_p, VAddress(ato))
+      then run_aclause_aux s d aotl ci txntl
+      else None
+
+    | PayClause(_,_,_,_)::_, _ -> None
+
+    | CloseClause(tkn_p, afr_p, ato_p)::aotl, CloseTransaction(tkn, afr, ato)::txntl ->
+      if check_pattern(s, d, ci, tkn_p, VToken(tkn))
+        && check_pattern(s, d, ci, afr_p, VAddress(afr))
+        && check_pattern(s, d, ci, ato_p, VAddress(ato))
+      then run_aclause_aux s d aotl ci txntl
+      else None
+
+    | CloseClause(_,_,_)::_, _ -> None
+
+    | TimestampClause(timestamp_p)::aotl, _ ->
+      if check_pattern(s, d, ci, timestamp_p, VInt(s.timestamp))
+      then run_aclause_aux s d aotl ci txnl
+      else None
+
+    | RoundClause(round_p)::aotl, _ ->
+      if check_pattern(s, d, ci, round_p, VInt(s.round))
+      then run_aclause_aux s d aotl ci txnl
+      else None
+
+    | FromClause(caller_p)::aotl, _ ->
+      if check_pattern(s, d, ci, caller_p, VAddress(ci.caller))
+      then run_aclause_aux s d aotl ci txnl
+      else None
+    
+    | AssertClause(e)::aotl, _ ->
+      (try 
+        let b1 = eval_exp s d ci e in
+        if b1 = VBool(true) 
+        then run_aclause_aux s d aotl ci txnl
+        else None
+      with InitError(_) | NonOptedError -> None)
+
+    | FunctionClause(onc, fn, _, cl)::aotl, CallTransaction(_,_,onc',fn',_)::txntl when onc = onc' && fn = fn' ->
+      let s', d' = run_cmds s d ci cl in
+      run_aclause_aux s' d' aotl ci txntl
+
+    | FunctionClause(onc, fn, _, cl)::aotl, CreateTransaction(_,_,fn',_)::txntl when onc = Create && fn = fn' ->
+      let s', d' = run_cmds s d ci cl in
+      run_aclause_aux s' d' aotl ci txntl
+
+    | FunctionClause(_, _, _, _)::_, _ -> None
+
+    | StateClause(stype, fromstate, tostate)::aotl, _ -> 
+      let b = (match fromstate with
+      | Some(Ide(fromstate)) -> 
+        let fromstate' = 
+          (if stype = TGlob then State.get_globalv_ex s ci.called (Ide "gstate") 
+          else State.get_localv_ex s ci.caller ci.called (Ide "lstate")) in
+        (match fromstate' with
+        | VString(fromstate') when fromstate = fromstate' -> true
+        | VString(_) -> false
+        | _ -> raise(ErrDynamic("state should contain strings")))
+      | None -> true) in
+      if not(b) then None
+      else 
+        let s' = (match tostate with
+          | Some(Ide(tostate)) ->
+            if stype = TGlob then State.set_globalv_ex s ci.called (Ide "gstate") (VString tostate)
+            else State.set_localv_ex s ci.caller ci.called (Ide "lstate") (VString tostate)
+          | None -> s) in
+          run_aclause_aux s' d aotl ci txnl
+        
+    | [], [] -> Some(s)
+    | [], _ -> failwith "Err"
+  in
+  let* d = bind_aclause s d ao ci txnl in
+  run_aclause_aux s d ao ci txnl
 
 let rec run_aclauses (s:state) (d:env) (aol:aclause list) (ci:callinfo) (txnl:transaction list) : state option =
   (match aol with
@@ -292,13 +328,13 @@ let run_txns (s:state) (txnl:transaction list) : state =
       let s' = State.bind s afr' in
       State.bind s' ato'
 
-    | CreateTransaction(xfr, contr, params) -> 
+    | CreateTransaction(xfr, contr, fn, params) -> 
       let afr = State.get_account_ex s xfr in
       let acontr = Account.empty_contract contr xfr in
       let xcontr = Account.get_address acontr in
       let s' = State.bind s acontr in
       let s'' = State.bind s' (Account.opt_in afr acontr) in
-      let cinf = {caller=xfr; called=xcontr; onc=Create; fn=Ide("create"); params=params} in
+      let cinf = {caller=xfr; called=xcontr; onc=Create; fn=fn; params=params} in
       run_contract s'' contr cinf txnl
 
     | CallTransaction(xfr, xto, onc, fn, params) -> 

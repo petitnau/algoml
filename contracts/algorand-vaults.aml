@@ -1,20 +1,28 @@
 glob int wait_time
 glob address recovery
+glob address vault
 
 glob mut int request_time
 glob mut int amount
 glob mut address receiver
 
-@gstate ->waiting
-Create vault(address recovery, int wait_time) {
+@gstate ->init_escrow
+Create create(address recovery, int wait_time) {
     glob.recovery = recovery
     glob.wait_time = wait_time
 }
 
-@gstate waiting->requesting
-@round $curr_round
+@gstate init_escrow->waiting
 @from creator
-NoOp withdraw(int amount, address receiver) {
+@pay 100000 : * -> vault
+set_escrow(address vault) {
+    glob.vault = vault
+}
+    
+@gstate waiting->requesting
+@round *$curr_round
+@from creator
+withdraw(int amount, address receiver) {
     glob.amount = amount
     glob.receiver = receiver
     glob.request_time = curr_round
@@ -24,8 +32,8 @@ NoOp withdraw(int amount, address receiver) {
 @round (glob.request_time + glob.wait_time,)
 @from creator
 @pay glob.amount : escrow -> glob.receiver
-NoOp finalize() { }
+finalize() { }
 
 @gstate requesting->waiting
 @from glob.recovery
-NoOp cancel() { }
+cancel() { }

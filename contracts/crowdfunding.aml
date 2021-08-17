@@ -2,44 +2,48 @@ glob int startDate
 glob int endDate
 glob int fundCloseDate
 glob int goal
-glob address receiver 
-glob mut int donated_total
-loc mut int escrow_local
+glob address receiver
 
-Create create(int startDate, int endDate, int fundCloseDate, int goal, address receiver) {
+glob mut int donated_total
+loc mut int donated_local
+
+Create crowdfund(int startDate, int endDate, int fundCloseDate, int goal, address receiver) {
 	glob.startDate = startDate
 	glob.endDate = endDate
 	glob.fundCloseDate = fundCloseDate
 	glob.goal = goal
 	glob.receiver = receiver
 	glob.donated_total = 0
+	loc.donated_local = 0
 }
 
 OptIn optin() {
-	loc.escrow_local = 0
+	loc.donated_local = 0
 }
 
 @timestamp (glob.startDate, glob.endDate)
-@pay *$amount : caller -> escrow
-NoOp donate() {
-	glob.donated_total += amount
-	loc.escrow_local += amount
+@pay $donated ALGO : caller -> escrow
+donate() {
+	glob.donated_total += donated
+	loc.donated_local += donated
 }
 
 @assert glob.donated_total < glob.goal
 @timestamp (glob.endDate, )
-@pay (, loc.escrow_local)$amount ALGO : escrow -> caller	
-NoOp reclaim() {
-	loc.escrow_local -= amount
+@pay (, loc.donated_local)$reclaimed ALGO : escrow -> caller
+reclaim() {
+	loc.donated_local -= reclaimed
 }
-
-@assert glob.donated_total >= glob.goal 
-@timestamp (glob.endDate, ) 
+		
+@assert glob.donated_total >= glob.goal
+@timestamp (glob.endDate, )
 @pay glob.donated_total : escrow -> glob.receiver
-NoOp claim() {} 
+claim() {
+	glob.donated_total = 0
+}
 
 @assert glob.donated_total == 0
 @timestamp (glob.fundCloseDate, )
-@close escrow -> creator
+@close : escrow -> creator
 @from creator
 Delete delete() {}

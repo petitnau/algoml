@@ -1,0 +1,293 @@
+#pragma version 4
+
+aclause_0:
+
+global GroupSize
+int 1
+==
+bz aclause_1
+
+txn ApplicationID
+int 0
+==
+
+txn NumAppArgs
+int 3
+==
+
+//****************
+
+txna ApplicationArgs 0
+byte "create"
+==
+
+//****************
+
+byte "gstate"
+byte "init_escrow"
+app_global_put
+
+byte "recovery"
+txna ApplicationArgs 1
+app_global_put
+
+byte "wait_time"
+txna ApplicationArgs 2
+btoi
+app_global_put
+
+b approve
+
+//////////////////
+
+aclause_1:
+
+global GroupSize
+int 1
+==
+bz aclause_2
+
+txn OnCompletion
+int NoOp
+==
+
+txn NumAppArgs
+int 3
+==
+
+//****************
+
+byte "gstate"
+app_global_get
+byte "waiting"
+==
+
+txn Sender
+global CreatorAddress
+==
+bz aclause_2
+
+txna ApplicationArgs 0
+byte "withdraw"
+==
+
+//****************
+
+byte "gstate"
+byte "requesting"
+app_global_put
+
+byte "amount"
+txna ApplicationArgs 1
+btoi
+app_global_put
+
+byte "receiver"
+txna ApplicationArgs 2
+app_global_put
+
+byte "request_time"
+global Round
+app_global_put
+
+b approve
+
+//////////////////
+
+aclause_2:
+
+global GroupSize
+int 2
+==
+bz aclause_3
+
+gtxn 0 TypeEnum
+int pay
+==
+
+txn OnCompletion
+int NoOp
+==
+
+txn NumAppArgs
+int 1
+==
+
+//****************
+
+byte "gstate"
+app_global_get
+byte "requesting"
+==
+
+global Round
+int 0
+byte "request_time"
+app_global_get_ex
+bnz aclause_3
+int 0
+byte "wait_time"
+app_global_get_ex
+bnz aclause_3
++
+>=
+bz aclause_3
+
+txn Sender
+global CreatorAddress
+==
+bz aclause_3
+
+gtxn 0 Amount
+int 0
+byte "amount"
+app_global_get_ex
+bnz aclause_3
+==
+bz aclause_3
+
+gtxn 0 Sender
+int 0
+byte "escrow"
+app_global_get_ex
+bnz aclause_3
+==
+bz aclause_3
+
+gtxn 0 Receiver
+int 0
+byte "receiver"
+app_global_get_ex
+bnz aclause_3
+==
+bz aclause_3
+
+gtxn 0 CloseRemainderTo
+global ZeroAddress
+==
+
+txna ApplicationArgs 0
+byte "finalize"
+==
+
+//****************
+
+byte "gstate"
+byte "waiting"
+app_global_put
+
+b approve
+
+//////////////////
+
+aclause_3:
+
+global GroupSize
+int 1
+==
+bz aclause_4
+
+txn OnCompletion
+int NoOp
+==
+
+txn NumAppArgs
+int 1
+==
+
+//****************
+
+byte "gstate"
+app_global_get
+byte "requesting"
+==
+
+txn Sender
+int 0
+byte "recovery"
+app_global_get_ex
+bnz aclause_4
+==
+bz aclause_4
+
+txna ApplicationArgs 0
+byte "cancel"
+==
+
+//****************
+
+byte "gstate"
+byte "waiting"
+app_global_put
+
+b approve
+
+//////////////////
+
+aclause_4:
+
+global GroupSize
+int 2
+==
+bz aclause_5
+
+gtxn 0 TypeEnum
+int pay
+==
+
+txn OnCompletion
+int NoOp
+==
+
+txn NumAppArgs
+int 1
+==
+
+//****************
+
+byte "gstate"
+app_global_get
+byte "init_escrow"
+==
+
+txn Sender
+global CreatorAddress
+==
+bz aclause_5
+
+gtxn 0 Amount
+int 100000
+==
+bz aclause_5
+
+gtxn 0 CloseRemainderTo
+global ZeroAddress
+==
+
+txna ApplicationArgs 0
+byte "init_escrow"
+==
+
+//****************
+
+byte "gstate"
+byte "waiting"
+app_global_put
+
+byte "escrow"
+gtxn 0 Receiver
+app_global_put
+
+b approve
+
+//////////////////
+
+aclause_5:
+
+fail:
+
+err
+
+approve:
+
+int 1

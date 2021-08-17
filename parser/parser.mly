@@ -84,10 +84,13 @@
 %token <string> IDE
 %token <string> STR
 
-%left PLUS
-%left MINUS
-%left TIMES
-%left DIV
+%left OR
+%left AND
+%left GEQ GT LEQ LT EQ NEQ
+%left PLUS MINUS 
+%left TIMES DIV
+%right NOT
+
 
 %start <Types.contract> contract
 
@@ -135,9 +138,11 @@ partclause:
 | AT; s=state; sf=option(ide); ARROW; st=option(ide) { StateClause(s, sf, st) }
 | AT; s=state; TIMES { StateClause(s, None, None) }
 | AT; PAY; amt_p=pattern; tkn_p=pattern; COLON; xfr_p=pattern; ARROW; xto_p=pattern; { PayClause(amt_p, tkn_p, xfr_p, xto_p) }
+| AT; PAY; amt_p=pattern; ALGO; COLON; xfr_p=pattern; ARROW; xto_p=pattern; { PayClause(amt_p, FixedPattern(EToken(Algo), None), xfr_p, xto_p) }
 | AT; PAY; amt_p=pattern; COLON; xfr_p=pattern; ARROW; xto_p=pattern; { PayClause(amt_p, FixedPattern(EToken(Algo), None), xfr_p, xto_p) }
 | AT; PAY; xfr_p=pattern; ARROW; xto_p=pattern; { PayClause(AnyPattern(None), FixedPattern(EToken(Algo), None), xfr_p, xto_p) }
 | AT; CLOSE; tkn_p=pattern; COLON; xfr_p=pattern; ARROW; xto_p=pattern; { CloseClause(tkn_p, xfr_p, xto_p) }
+| AT; CLOSE; ALGO; COLON; xfr_p=pattern; ARROW; xto_p=pattern; { CloseClause(FixedPattern(EToken(Algo), None), xfr_p, xto_p) }
 | AT; CLOSE; xfr_p=pattern; ARROW; xto_p=pattern; { CloseClause(FixedPattern(EToken(Algo), None), xfr_p, xto_p) }
 | AT; TIMESTAMP; p=pattern; { TimestampClause(p) }
 | AT; ROUND; p=pattern; { RoundClause(p) }
@@ -153,6 +158,7 @@ pattern:
 | LPAREN; e1=option(exp); COMMA; e2=option(exp); RPAREN; i=bind { RangePattern(e1, e2, i) }
 | e=exp; i=bind { FixedPattern(e, i) }
 | TIMES; i=bind { AnyPattern(i) }
+| (* epsilon; *) i=bind { AnyPattern(i) }
 
 bind:
 | (* epsilon *) { None }
@@ -169,6 +175,7 @@ oncomplete:
 | UPDATE { Update }
 | DELETE { Delete }
 | NOOP { NoOp }
+| (* epsilon *) { NoOp }
 
 ide: 
 | i=IDE; { Ide(i) }
@@ -200,7 +207,6 @@ exp:
 | s=STR; { EString(s) }
 | TRUE; { EBool(true) }
 | FALSE; { EBool(false) }
-| ALGO; { EToken(Algo) }
 (*| token *)
 (*| address *)
 | k=key; { Val(k) }

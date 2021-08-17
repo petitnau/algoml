@@ -25,12 +25,12 @@ let s = State.empty
   >$> account_a
   >$> account_r
   >$> account_m
-  >=> [CreateTransaction(address_a, script, [VAddress(address_r); VInt(wait_time)])]
+  >=>! [CreateTransaction(address_a, script, Ide("create"), [VAddress(address_r); VInt(wait_time)])]
 
 let address_cf = Address.latest()
 
 let s = s
-  >=> [PayTransaction(100, Algo, address_a, address_cf)]
+  >=>! [PayTransaction(100, Algo, address_a, address_cf)]
 
 let testsuite = "test suite 3" >::: [
   "correct withdraw" >:: (fun _ -> 

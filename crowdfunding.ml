@@ -29,28 +29,28 @@ let goal = 100
 let receiver = address_c
 
 let s = 
-s >=> [CreateTransaction(address_a, script, [
-        VInt(start_date);
-        VInt(end_date);
-        VInt(fund_close_date);
-        VInt(goal);
-        VAddress(receiver)])]
+s >=>! [CreateTransaction(address_a, script, Ide("crowdfund"), [
+         VInt(start_date);
+         VInt(end_date);
+         VInt(fund_close_date);
+         VInt(goal);
+         VAddress(receiver)])]
 
 let address_cf = Address.latest()
 
 let s = 
-s >=> [CallTransaction(address_a, address_cf, OptIn, Ide("optin"), [])]
-  >=> [CallTransaction(address_b, address_cf, OptIn, Ide("optin"), [])]
-  >=> [CallTransaction(address_c, address_cf, OptIn, Ide("optin"), [])]
+s >=>! [CallTransaction(address_a, address_cf, OptIn, Ide("optin"), [])]
+  >=>! [CallTransaction(address_b, address_cf, OptIn, Ide("optin"), [])]
+  >=>! [CallTransaction(address_c, address_cf, OptIn, Ide("optin"), [])]
   >:> (1, start_date + 5)
   (* >?> "Address(0).balance[algo] = 0" *)
-  >=> [PayTransaction(90, Algo, address_a, address_cf);
-       CallTransaction(address_a, address_cf, NoOp, Ide("donate"), []);]
-  >=> [PayTransaction(80, Algo, address_b, address_cf);
-       CallTransaction(address_b, address_cf, NoOp, Ide("donate"), []);]
+  >=>! [PayTransaction(90, Algo, address_a, address_cf);
+        CallTransaction(address_a, address_cf, NoOp, Ide("donate"), []);]
+  >=>! [PayTransaction(80, Algo, address_b, address_cf);
+        CallTransaction(address_b, address_cf, NoOp, Ide("donate"), []);]
   >:> (2, end_date + 5)
-  >=> [PayTransaction(170, Algo, address_cf, address_c);
-       CallTransaction(address_c, address_cf, NoOp, Ide("claim"), []);]
+  >=>! [PayTransaction(170, Algo, address_cf, address_c);
+        CallTransaction(address_c, address_cf, NoOp, Ide("claim"), []);]
   >:> (3, fund_close_date + 5)
 ;;
 

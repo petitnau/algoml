@@ -1,8 +1,9 @@
-exception TypeError
+exception TypeError of string
 exception ErrDynamic of string
 exception TmpDynamic of string
 exception InitError of string
 exception MutError of string
+exception ParameterTypeError
 exception NonOptedError
 exception NonOptedTokenError of string
 exception CallFail of string
@@ -72,7 +73,7 @@ and transaction =
 | PayTransaction of int * tok * address * address
 | CloseTransaction of tok * address * address
 | CallTransaction of address * address * oncomplete * ide * eval list
-| CreateTransaction of address * contract * eval list
+| CreateTransaction of address * contract * ide * eval list
 and opres =
 | ContractAddr of address
 | OpFailed

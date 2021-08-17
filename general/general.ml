@@ -52,7 +52,7 @@ module Env = struct
     | DBound(Mutable as m,t,_)
     | DBound(Immutable as m,t,None) when (Eval.get_type v) = t -> bind d i m t (Some v)
     | DBound(Immutable,_,Some(_)) -> raise (MutError ("Can't update "^(Ide.to_str i)^": immutable variable"))
-    | _ -> raise TypeError
+    | _ -> raise(ParameterTypeError)
 
   let rec init_state (d:env) (s:statetype) (dl:decl list) : env =
     match dl with
@@ -262,7 +262,7 @@ module State = struct
 
   let get_account_ex (s:state) (x:address) : account = 
     match get_account s x with
-    | None -> failwith "Account does not exist"
+    | None -> failwith (Printf.sprintf "Account %s does not exist" (string_of_address x))
     | Some(a) -> a
 
   let unbind (s:state) (x:address) : state = 
