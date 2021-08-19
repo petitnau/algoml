@@ -1,0 +1,27 @@
+#pragma version 3
+
+// assert that the stateful contracts participates in the transaction group
+gtxn 1 TypeEnum
+int appl
+==
+assert
+
+gtxn 1 ApplicationID
+int <APP-ID>
+==
+assert
+
+// assert that this transaction is "non-rekeying"
+txn RekeyTo
+global ZeroAddress
+==
+assert
+
+// assert that no fee is paid by this contract (all fees must be paid by the caller)
+txn Fee
+int 0
+==
+assert
+
+// approve
+int 1

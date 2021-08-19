@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/git-commands/git-subrepo#readme
+;
+[subrepo]
+	remote = https://github.com/petitnau/algorand-vaults
+	branch = main
+	commit = ff42dc003359f17a55784ea671d3b98e6255ac23
+	parent = 7d8a70e736337834eab4a46a2add989988f2a757
+	method = merge
+	cmdver = 0.4.3
