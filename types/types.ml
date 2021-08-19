@@ -8,6 +8,7 @@ exception NonOptedError
 exception NonOptedTokenError of string
 exception CallFail of string
 exception NotEnoughFundsError of string
+exception TokenAlreadyExistsError of string
 
 type contract = Contract of decl list * aclause list
 and ide = Ide of string
@@ -23,6 +24,8 @@ and clause =
 | AssertClause of exp
 | FunctionClause of oncomplete * ide * parameter list * cmd list 
 | StateClause of statetype * ide option * ide option
+| NewtokClause of pattern * ide * pattern
+(* | TokOptInClause of pattern * pattern *)
 and exp = 
 | EInt of int
 | EString of string
@@ -39,7 +42,8 @@ and exp =
 | Escrow
 and cmd = 
 | Assign of key * exp
-| Ifte of exp * cmd list * cmd list
+| Ifte of exp * cmd * cmd option 
+| Block of cmd list
 and pattern = 
 | RangePattern of exp option * exp option * ide option
 | FixedPattern of exp * ide option
@@ -74,6 +78,8 @@ and transaction =
 | CloseTransaction of tok * address * address
 | CallTransaction of address * address * oncomplete * ide * eval list
 | CreateTransaction of address * contract * ide * eval list
+| NewtokTransaction of int * tok * address
+(* | TokOptInTransaction of tok * address *)
 and opres =
 | ContractAddr of address
 | OpFailed

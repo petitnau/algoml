@@ -1,6 +1,6 @@
 glob token t0
 glob token t1
-glob token minted_token
+glob token minted_t
 glob mut int r0
 glob mut int r1
 glob mut int minted_supply
@@ -8,65 +8,60 @@ loc mut int t0_redeemable
 loc mut int t1_redeemable
 loc mut int minted_redeemable
 
-Create create(token t0, token t1) {
+@pay $v0 of t0 : caller -> escrow
+@pay $v1 of t1 : caller -> escrow
+@newtok 1000000 of $minted_t -> escrow  
+@pay v0 of minted_t : escrow -> caller
+Create amm(token t0, token t1) {
     glob.t0 = t0
     glob.t1 = t1
-}
-
-@pay $v0 glob.t0 : caller -> escrow
-@pay $v1 glob.t1 : caller -> escrow
-@newtok $minted_t 1000000
-@pay v0 minted_t : escrow -> *
-NOOp init(Token t0, Token t1) {
-    glob.minted_token = minted_t
+    glob.minted_t = minted_t
     glob.r0 = v0
     glob.r1 = v1
     glob.minted_supply = v0
 }
 
-@pay $v0 glob.t0 : * -> escrow
-@pay $v1 glob.t1 : * -> escrow
+@pay $v0 of glob.t0 : * -> escrow
+@pay $v1 of glob.t1 : * -> escrow
 @assert v0 / glob.r0 * glob.minted_supply >= x && x > 0
 @assert glob.r1 * v0 == glob.r0 * v1
-NoOp dep_lock(int x) {
+dep_lock(int x) {
     glob.minted_supply += v0 / glob.r0 * glob.minted_supply
     loc.minted_redeemable += v0 / glob.r0 * glob.minted_supply
 }
 
-@pay (v0 / glob.r0 * glob.minted_supply) minted_t : escrow -> *
-NoOp dep() {
+@pay loc.minted_redeemable of glob.minted_t : escrow -> *   
+dep() {
     loc.minted_redeemable = 0
 }
 
-@pay $v0 glob.t0 : * -> escrow
+@pay $v0 of glob.t0 : * -> escrow
 @assert (glob.r1 * v0) / (glob.r0 * v0) >= lowb && lowb > 0
-NoOp swap0_lock(int d, int lowb) {
+swap0_lock(int d, int lowb) {
 	loc.t1_redeemable += (glob.r1 * v0) / (glob.r0 + v0)
 	glob.r1 -= (glob.r1 * v0) / (glob.r0 + v0)
 	glob.r0 += v0
 }
 
-@pay loc.t1_redeemable t1 : escrow -> *
-NoOp swap0() {
+@pay loc.t1_redeemable of glob.t1 : escrow -> *
+swap0() {
     loc.t1_redeemable = 0
 }
 
-/* add swap1_lock, swap1 */
-
-@pay $v minted_t : * -> escrow
-@assert x * glob.r0 / glob.minted_supply >= v0_lowb && v0_lowb > 0
-@assert x * glob.r1 / glob.minted_supply >= v1_lowb && v1_lowb > 0
-NoOp redeem_lock(int v0_lowb, int v1_lowb) {
-    glob.r0 -= x * glob.r0 / glob.minted_supply
-    glob.r1 -= x * glob.r1 / glob.minted_supply
-    loc.t0_redeemable += x * glob.r0 / glob.minted_supply
-    loc.t1_redeemable += x * glob.r1 / glob.minted_supply
+@pay $v of glob.minted_t : * -> escrow
+@assert v * glob.r0 / glob.minted_supply >= v0_lowb && v0_lowb > 0
+@assert v * glob.r1 / glob.minted_supply >= v1_lowb && v1_lowb > 0
+redeem_lock(int v0_lowb, int v1_lowb) {
+    glob.r0 -= v * glob.r0 / glob.minted_supply
+    glob.r1 -= v * glob.r1 / glob.minted_supply
+    loc.t0_redeemable += v * glob.r0 / glob.minted_supply
+    loc.t1_redeemable += v * glob.r1 / glob.minted_supply
     glob.minted_supply -= v
 }
 
-@pay loc.t1_redeemable t0 : escrow -> *
-@pay loc.t1_redeemable t1 : escrow -> *
-NoOp redeem() {
+@pay loc.t1_redeemable of glob.t0 : escrow -> *
+@pay loc.t1_redeemable of glob.t1 : escrow -> *
+redeem() {
     loc.t0_redeemable = 0
     loc.t1_redeemable = 0
 }

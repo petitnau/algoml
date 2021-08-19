@@ -17,6 +17,10 @@ let raise_operand_type s atl ftl : 'a =
   let at_str = String.concat "," (List.map (string_of_vartype) atl) in
   raise(TypeError(Printf.sprintf "%s operands have type %s, but should have type %s." s ft_str at_str))
 
+let raise_operand_difftype s at1 at2 : 'a = 
+  let at_str = String.concat "," (List.map (string_of_vartype) [at1;at2]) in
+  raise(TypeError(Printf.sprintf "%s operand types don't correspond: they have type %s." s at_str))
+
 type typeenv = (key * vartype) list
 module TypeEnv = struct
   let empty : typeenv = []
@@ -38,6 +42,13 @@ module TypeEnv = struct
   let bind (td:typeenv) (k:key) (t:vartype) : typeenv = 
     if apply_opt td k = None then (k,t)::td
     else raise_duplicate_var k
+
+      
+  let bind_pattern (td:typeenv) (t:vartype) (p:pattern) : typeenv = match p with
+    | RangePattern(_,_,Some(x)) | FixedPattern(_,Some(x)) | AnyPattern(Some(x)) ->
+      bind td (NormVar x) t
+    | RangePattern(_,_,None) | FixedPattern(_,None) | AnyPattern(None) ->
+      td
 end
   
 let string_of_typeenv : typeenv -> string = fun td ->
@@ -56,6 +67,12 @@ let rec check_exp_operand_type td e el ftl : unit =
   ignore e;
   let atl = List.map (eval_type td) el in
   if atl <> ftl then raise_operand_type "e" atl ftl
+
+and check_exp_same_type td e e1 e2 : unit = 
+  ignore e;
+  let at1 = eval_type td e1 in
+  let at2 = eval_type td e2 in
+  if at1 <> at2 then raise_operand_difftype "e" at1 at2
   
 and eval_type (td:typeenv) (e:exp) : vartype = match e with
   | EInt(_) -> TInt
@@ -70,6 +87,9 @@ and eval_type (td:typeenv) (e:exp) : vartype = match e with
   | IBop(_,e1,e2) -> 
     check_exp_operand_type td e [e1;e2] [TInt;TInt];
     TInt
+  | CBop(Eq,e1,e2) ->
+    check_exp_same_type td e e1 e2;
+    TBool    
   | CBop(_,e1,e2) ->
     check_exp_operand_type td e [e1;e2] [TInt;TInt];
     TBool
@@ -103,12 +123,6 @@ let check_pattern (td:typeenv) (t:vartype) (p:pattern) : 'a = match p with
       
   | RangePattern(None, None, _) | AnyPattern(_) -> ()
 
-let bind_pattern (td:typeenv) (t:vartype) (p:pattern) : typeenv = match p with
-  | RangePattern(_,_,Some(x)) | FixedPattern(_,Some(x)) | AnyPattern(Some(x)) ->
-    TypeEnv.bind td (NormVar x) t
-  | RangePattern(_,_,None) | FixedPattern(_,None) | AnyPattern(None) ->
-    td
-
 let check_cmd_operand_type td c el ftl : 'a = 
   ignore c;
   let atl = List.map (eval_type td) el in
@@ -125,10 +139,15 @@ let rec check_cmdl td cl =
       let t2 = eval_type td e in
       if t1 <> t2 then raise_var_mistype c t1 t2
 
-    | Ifte(e, cl1, cl2) ->
+    | Ifte(e, c1, c2) ->
       check_cmd_operand_type td c [e] [TBool];
-      check_cmdl td cl1;
-      check_cmdl td cl2
+      check_cmd td c1;
+      (match c2 with 
+      | Some(c2) -> check_cmd td c2
+      | None -> ())
+    
+    | Block(cl) ->
+      check_cmdl td cl
   in 
   match cl with
   | cmd::cmdtl -> 
@@ -158,29 +177,34 @@ let rec bind_params (td:typeenv) (pl:parameter list) : typeenv =
 let rec bind_aclause td ao = 
   let bind_clause td o = match o with
     | PayClause(amt_p, tkn_p, afr_p, ato_p) ->
-      let td = bind_pattern td TInt amt_p in
-      let td = bind_pattern td TToken tkn_p in
-      let td = bind_pattern td TAddress afr_p in
-      let td = bind_pattern td TAddress ato_p in
+      let td = TypeEnv.bind_pattern td TInt amt_p in
+      let td = TypeEnv.bind_pattern td TToken tkn_p in
+      let td = TypeEnv.bind_pattern td TAddress afr_p in
+      let td = TypeEnv.bind_pattern td TAddress ato_p in
       td
 
     | CloseClause(tkn_p, afr_p, ato_p) ->
-      let td = bind_pattern td TToken tkn_p in
-      let td = bind_pattern td TAddress afr_p in
-      let td = bind_pattern td TAddress ato_p in
+      let td = TypeEnv.bind_pattern td TToken tkn_p in
+      let td = TypeEnv.bind_pattern td TAddress afr_p in
+      let td = TypeEnv.bind_pattern td TAddress ato_p in
       td
 
     | TimestampClause(timestamp_p) -> 
-      bind_pattern td TInt timestamp_p
+      TypeEnv.bind_pattern td TInt timestamp_p
 
     | RoundClause(round_p) -> 
-      bind_pattern td TInt round_p
+      TypeEnv.bind_pattern td TInt round_p
 
     | FromClause(caller_p) -> 
-      bind_pattern td TAddress caller_p 
+      TypeEnv.bind_pattern td TAddress caller_p 
 
     | FunctionClause(_, _, pl, _) ->
       bind_params td pl
+
+    | NewtokClause(amt_p, i, xto_p) -> 
+      let td = TypeEnv.bind_pattern td TInt amt_p in
+      let td = TypeEnv.bind td (NormVar i) TToken in
+      TypeEnv.bind_pattern td TAddress xto_p
         
     | AssertClause(_) | StateClause(_,_,_) -> td
 
@@ -224,7 +248,12 @@ let check_aclause td ao =
       check_cmdl td cl
 
     | StateClause(_,_,_) -> ()
-  in
+    
+    | NewtokClause(amt_p, _, xto_p) -> 
+      check_pattern td TInt amt_p;
+      check_pattern td TAddress xto_p;
+
+in
   let rec check_aclause_aux td ao =
     (match ao with
     | aohd::aotl -> 

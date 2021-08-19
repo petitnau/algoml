@@ -1,4 +1,5 @@
 open Types
+open Togeneric
 open Tealtypes
 
 let rec tealbinary (e1:tealexp) (e2:tealexp) (op:string) : string = 
@@ -13,20 +14,6 @@ and tealunary (e1:tealexp) (op:string) : string =
 and tealfun (el:tealexp list) (op:string) : string = 
   let sl = List.map tealexp_to_str el in
   Printf.sprintf "%s(%s)" op (String.concat ", " sl)
-
-and txnfield_to_str (tf:txnfield) : string = match tf with TFSender -> "Sender" | TFFee -> "Fee" | TFReceiver -> "Receiver" | TFAmount -> "Amount" | TFCloseRemainderTo -> "CloseRemainderTo"
-  | TFTypeEnum -> "TypeEnum" | TFXferAsset -> "XferAsset" | TFAssetAmount -> "AssetAmount" | TFAssetSender -> "AssetSender" | TFAssetReceiver -> "AssetReceiver"
-  | TFAssetCloseTo -> "AssetCloseTo" | TFApplicationID -> "ApplicationID" | TFOnCompletion -> "OnCompletion" | TFApplicationArgs -> "ApplicationArgs"
-  | TFNumAppArgs -> "NumAppArgs" | TFAccounts -> "Accounts" | TFNumAccounts -> "NumAccounts" | TFRekeyTo -> "RekeyTo" | TFAssets -> "Assets" 
-  | TFNumAssets -> "NumAssets" | TFApplications -> "Applications" | TFNumApplications -> "NumApplications"
-
-and globalfield_to_str (gf:globalfield) : string = match gf with GFZeroAddress -> "ZeroAddress" | GFGroupSize -> "GroupSize" | GFRound -> "Round" | GFLatestTimestamp -> "LatestTimestamp"
-  | GFCreatorAddress -> "CreatorAddress"
-
-and typeenum_to_str (te:typeenumfield) : string = match te with TEPay -> "pay" | TEAxfer -> "axfer" | TEAppl -> "appl"
-
-and oncompletion_to_str (onc:oncomplete) : string = match onc with NoOp -> "NoOp" | Update -> "UpdateApplication" | Delete -> "DeleteApplication" | OptIn -> "OptIn"
- | OptOut -> "CloseOut" | ClearState -> "ClearState" |  Create -> failwith "No str"
 
 and tealexpd_to_str (ed:tealexpd) : string = match ed with
   | OPLocalGetEx(e1,e2,e3) ->
@@ -84,6 +71,9 @@ and tealexp_to_str (e:tealexp) : string = match e with
   | OPGtxna(n1, tf, n2) ->
     let ctf = txnfield_to_str tf in
     Printf.sprintf "txn[%n].%s[%n]" n1 ctf n2
+
+  | OPGaid(n1) ->
+    Printf.sprintf "gaid[%d]" n1
 
   | OPGlobal(gf) ->
     let cgf = globalfield_to_str gf in

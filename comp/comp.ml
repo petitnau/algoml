@@ -4,9 +4,10 @@ open Utils
 open Compenvs
 open General
 open Postcomp
-open Pseudotealify
+open Topseudoteal
   
-let rec comp_exp (e:exp) (sd:stateenv) (nd:normenv)  : tealexp = match e with
+let rec comp_exp (e:exp) (sd:stateenv) (nd:normenv) : tealexp = 
+  match e with
   | EInt(n) -> OPInt(n)
   | EString(s) -> OPByte(s)
   | EBool(b) -> if b then OPInt(1) else OPInt(0)
@@ -24,9 +25,11 @@ let rec comp_exp (e:exp) (sd:stateenv) (nd:normenv)  : tealexp = match e with
   | Caller -> OPTxn(TFSender)
   | Escrow -> OPGlobalGet(OPByte("escrow"))
 
-let comp_pattern (p:pattern) (obj:tealexp) (sd:stateenv) (nd:normenv) : tealcmd = match p with
-  | AnyPattern(_) -> 
-    OPNoop
+let comp_pattern ?anydiff:(anydiff=None) (p:pattern) (obj:tealexp) (sd:stateenv) (nd:normenv) : tealcmd =
+  match p with
+  | AnyPattern(_) -> (match anydiff with
+    | None -> OPNoop
+    | Some(diff) -> OPAssertSkip(OPCbop(Neq, obj, diff)))
   | FixedPattern(e, _) -> 
     OPAssertSkip(OPCbop(Eq, obj, comp_exp e sd nd))
   | RangePattern(Some e1, Some e2, _) -> 
@@ -39,7 +42,7 @@ let comp_pattern (p:pattern) (obj:tealexp) (sd:stateenv) (nd:normenv) : tealcmd 
     OPNoop
 
 let rec comp_cmdlist ?mutchecks:((gcheckmut,lcheckmut)=(true,true)) (cl:cmd list) (sd:stateenv) (nd:normenv) : tealcmd list = 
-  let comp_cmd c = match c with
+  let rec comp_cmd c = match c with
     | Assign(GlobVar(Ide(i)), e) -> 
       let cassign = OPGlobalPut(OPByte(i), comp_exp e sd nd) in
       let cchecknotin = OPBnz(OPGlobalExists(OPInt(0), OPByte(i)), "fail") in
@@ -59,11 +62,13 @@ let rec comp_cmdlist ?mutchecks:((gcheckmut,lcheckmut)=(true,true)) (cl:cmd list
       if mt = Mutable || not(lcheckmut) then cassign
       else OPSeq([cchecknotin; cassign]) (* todo refactor code  repetition *)
     | Assign(NormVar(Ide(_)), _) -> failwith "can't assign normvars"
-    | Ifte(e, cl1, cl2) -> 
+    | Ifte(e, c1, c2) -> 
       let cond = comp_exp e sd nd in
-      let cl1_comp = comp_cmdlist cl1 sd nd ~mutchecks:(gcheckmut,lcheckmut) in
-      let cl2_comp = comp_cmdlist cl2 sd nd ~mutchecks:(gcheckmut,lcheckmut) in
-      OPIfte(cond, cl1_comp, cl2_comp)
+      let c1_comp = comp_cmd c1 in
+      let c2_comp = (match c2 with Some(c2) -> comp_cmd c2 | None -> OPNoop) in
+      OPIfte(cond, c1_comp, c2_comp)
+    | Block(cl) ->
+      OPSeq(comp_cmdlist cl sd nd ~mutchecks:(gcheckmut,lcheckmut))
   in 
   List.map comp_cmd cl
 
@@ -72,7 +77,7 @@ let comp_clause (o:clause) (txnid:int) (_:int) (sd:stateenv) (nd:normenv) : teal
   | PayClause(amt,FixedPattern(EToken(Algo), None),xfr,xto) ->
     let check_txntype =  OPAssertSkip(OPCbop(Eq, OPGtxn(txnid, TFTypeEnum), OPTypeEnum(TEPay))) in
     let check_amount = comp_pattern amt (OPGtxn(txnid, TFAmount)) sd nd in
-    let check_sender = comp_pattern xfr (OPGtxn(txnid, TFSender)) sd nd in
+    let check_sender = comp_pattern xfr (OPGtxn(txnid, TFSender)) sd nd ~anydiff:(Some (OPGlobalGet(OPByte("escrow")))) in
     let check_receiver = comp_pattern xto (OPGtxn(txnid, TFReceiver)) sd nd in
     let check_remainder = OPAssertSkip(OPCbop(Eq, OPGtxn(txnid, TFCloseRemainderTo), OPGlobal(GFZeroAddress))) in
     [check_txntype], [check_amount; check_sender; check_receiver; check_remainder], []
@@ -81,15 +86,15 @@ let comp_clause (o:clause) (txnid:int) (_:int) (sd:stateenv) (nd:normenv) : teal
     let check_txntype = OPAssertSkip(OPCbop(Eq, OPGtxn(txnid, TFTypeEnum), OPTypeEnum(TEAxfer))) in
     let check_amount = comp_pattern amt (OPGtxn(txnid, TFAssetAmount)) sd nd in
     let check_token = comp_pattern tkn (OPGtxn(txnid, TFXferAsset)) sd nd in
-    let check_sender = comp_pattern xfr (OPGtxn(txnid, TFAssetSender)) sd nd in
+    let check_sender = comp_pattern xfr (OPGtxn(txnid, TFAssetSender)) sd nd ~anydiff:(Some (OPGlobalGet(OPByte("escrow")))) in
     let check_receiver = comp_pattern xto (OPGtxn(txnid, TFAssetReceiver)) sd nd in
     let check_remainder = OPAssertSkip(OPCbop(Eq, OPGtxn(txnid, TFAssetCloseTo), OPGlobal(GFZeroAddress))) in
     [check_txntype], [check_amount; check_token; check_sender; check_receiver; check_remainder], []
 
   | CloseClause(_,xfr,xto) ->
-    let check_txntype =  OPAssertSkip(OPCbop(Eq, OPGtxn(txnid, TFTypeEnum), OPTypeEnum(TEPay))) in
-    let check_amount = OPAssertSkip(OPCbop(Eq, OPGtxn(txnid, TFAmount), OPInt(0))) in
-    let check_sender = comp_pattern xfr (OPGtxn(txnid, TFSender)) sd nd in
+    let check_txntype = OPAssertSkip(OPCbop(Eq, OPGtxn(txnid, TFTypeEnum), OPTypeEnum(TEPay))) in
+    let check_amount = comp_pattern (FixedPattern(EInt(0), None)) (OPGtxn(txnid, TFAmount)) sd nd in
+    let check_sender = comp_pattern xfr (OPGtxn(txnid, TFSender)) sd nd ~anydiff:(Some (OPGlobalGet(OPByte("escrow")))) in
     let check_remainder = comp_pattern xto (OPGtxn(txnid, TFCloseRemainderTo)) sd nd in
     [check_txntype], [check_amount; check_sender; check_remainder], []
 
@@ -124,16 +129,24 @@ let comp_clause (o:clause) (txnid:int) (_:int) (sd:stateenv) (nd:normenv) : teal
       | None -> OPNoop) in
     [], [check_state], [set_state]
 
+  | NewtokClause(amt, _, xto) ->
+    let check_txntype_fund = OPAssertSkip(OPCbop(Eq, OPGtxn(txnid, TFTypeEnum), OPTypeEnum(TEPay))) in
+    let check_amount_fund = comp_pattern (FixedPattern(EInt(100000), None)) (OPGtxn(txnid, TFAmount)) sd nd in
+    let check_sender_fund = comp_pattern (AnyPattern(None)) (OPGtxn(txnid, TFReceiver)) sd nd ~anydiff:(Some (OPGlobalGet(OPByte("escrow")))) in
+    let check_receiver_fund = comp_pattern (FixedPattern(Escrow, None)) (OPGtxn(txnid, TFReceiver)) sd nd in
+    let check_txntype_create = OPAssertSkip(OPCbop(Eq, OPGtxn(txnid+1, TFTypeEnum), OPTypeEnum(TEAcfg))) in
+    let check_amount_create = comp_pattern amt (OPGtxn(txnid+1, TFConfigAssetTotal)) sd nd in
+    let check_sender_create = comp_pattern xto (OPGtxn(txnid+1, TFSender)) sd nd in
+    [check_txntype_fund; check_txntype_create], [check_amount_fund; check_sender_fund; check_receiver_fund; check_amount_create; check_sender_create], []
+
   | FunctionClause(onc, Ide(fn), pl, cl) ->
-    let check_oncomplete =
-      if onc = Create
-      then OPAssertSkip(OPCbop(Eq, OPTxn(TFApplicationID), OPInt(0)))
-      else OPAssertSkip(OPCbop(Eq, OPTxn(TFOnCompletion), OPOnCompletion(onc))) in
+    let check_creator = if onc = Create then OPAssertSkip(OPCbop(Eq, OPTxn(TFSender), OPGlobal(GFCreatorAddress))) else OPNoop in
+    let check_oncomplete = OPAssertSkip(OPCbop(Eq, OPTxn(TFOnCompletion), OPOnCompletion(if onc = Create then NoOp else onc))) in
     let check_argcount = OPAssertSkip(OPCbop(Eq, OPTxn(TFNumAppArgs), OPInt((List.length pl) + 1))) in
     let check_fn = OPAssertSkip(OPCbop(Eq, OPTxna(TFApplicationArgs, 0), OPByte(fn))) in
     let mutchecks = if onc=Create then (false,false) else if onc=OptIn then (true,false) else (false,false) in
     let body = comp_cmdlist cl sd nd ~mutchecks:mutchecks in
-    [check_oncomplete; check_argcount; check_fn], [], body)
+    [check_oncomplete; check_argcount; check_fn], [check_creator], body)
   in
   let keys = get_clause_vars o in
   let check_vars_exist = (match o with 
@@ -155,41 +168,36 @@ let comp_aclause (ao:aclause) (acid:int) (sd:stateenv) =
       let unfhead' = unfhead@nunfhead in
       let head' = head@nhead in
       let body' = body@nbody in
-      let txnid = (match hd with PayClause(_,_,_,_) | CloseClause(_,_,_) | FunctionClause(_,_,_,_) -> txnid+1 | _ -> txnid) in
+      let txnid = (match hd with PayClause(_,_,_,_) | CloseClause(_,_,_) | FunctionClause(_,_,_,_) -> txnid+1 | NewtokClause(_,_,_) -> txnid+2 | _ -> txnid) in
       comp_aclause_aux tl txnid unfhead' head' body' nd
     | [] -> unfhead, head, body
   in 
-  let txn_count = List.length (List.filter (fun t -> match t with PayClause(_,_,_,_) | CloseClause(_,_,_) | FunctionClause(_,_,_,_) -> true  | _ -> false) ao) in
+  let txn_count = List.fold_right (+) (List.map (fun t -> match t with PayClause(_,_,_,_) | CloseClause(_,_,_) | FunctionClause(_,_,_,_)  -> 1 | NewtokClause(_,_,_) -> 2  | _ -> 0) ao) 0 in
   let pre_checks = [OPAssertSkip(OPCbop(Eq, OPGlobal(GFGroupSize), OPInt(txn_count)))] in
   let nd = NormEnv.bind_aclause ao acid NormEnv.empty in
+  print_endline (Batteries.dump nd);
   let unfhead,head,body = comp_aclause_aux ao 0 [] [] [] nd in
   OPBlock(pre_checks@unfhead@head, body)
 
 let precomp (p:contract) (sd:stateenv) : contract * stateenv = 
-  if not(is_escrow_used p) then p, sd
-  else
-    let sd' = StateEnv.bind sd (Ide("escrow"), TGlob) Immutable in
-    let init_state = get_init_state p in
-    let init_escrow_base = [
+  let Contract(dl,aol) = p in
+  let p' = if not(is_escrow_used p) then p else 
+    let Contract(dl,aol) = Contract(dl,[[
       FromClause(FixedPattern(Creator, None));
       PayClause(FixedPattern(EInt(100000), None), FixedPattern(EToken(Algo), None), AnyPattern(None), AnyPattern(Some(Ide "escrow")));
-      FunctionClause(NoOp, Ide("init_escrow"), [], 
-        [Assign(GlobVar(Ide("escrow")), Val(NormVar(Ide("escrow"))))])] in
-    (* let init_escrow_base = [
-      FromClause(FixedPattern(Creator, None));
-      PayClause(FixedPattern(EInt(100000), None), FixedPattern(EToken(Algo), None), AnyPattern(None), FixedPattern(Val(NormVar(Ide("escrow"))), None));
-      FunctionClause(NoOp, Ide("init_escrow"), [Parameter(TAddress, Ide("escrow"))], 
-        [Assign(GlobVar(Ide("escrow")), Val(NormVar(Ide("escrow"))))])] in *)
-    let p' = (match init_state with
-      | Some(init_state) ->
-        let p = change_init_state p (Ide "init_escrow") in
-        let Contract(dl,aol) = p in
-        Contract(dl, aol@[
-          (StateClause(TGlob, Some(Ide "init_escrow"), Some(init_state)))::init_escrow_base])
-      | None ->
-        let Contract(dl,aol) = p in
-        Contract(dl, aol@[init_escrow_base])) in
-    p', sd'
+      FunctionClause(NoOp, Ide("init_escrow"), [], [
+        Assign(GlobVar(Ide("escrow")), Val(NormVar(Ide("escrow"))))
+      ])
+    ]]@aol) in
+    let Contract(dl,aol) = if not(has_token_transfers p) then p else Contract(dl,aol@[
+      [PayClause(FixedPattern(EInt(100000), None), FixedPattern(EToken(Algo), None), AnyPattern(None), FixedPattern(Escrow, None));
+        PayClause(FixedPattern(EInt(0), None), AnyPattern(None), FixedPattern(Escrow, None), FixedPattern(Escrow, None));
+        FunctionClause(NoOp, Ide("optin_token"), [], [])]
+    ]) in
+    Contract(dl,aol)
+  in
+  let sd' = StateEnv.bind sd (Ide("escrow"), TGlob) Immutable in
+  p', sd'
 
 let comp_escrow (len:int) : tealcmd = 
   let check_txnappl i = OPSeq([OPLabel(Printf.sprintf "call_%d" i); OPBz(OPCbop(Eq, OPGtxn(i, TFTypeEnum), OPTypeEnum(TEAppl)), Printf.sprintf "call_%d" (i+1)); OPBnz(OPCbop(Eq, OPGtxn(i, TFApplicationID), OPELiteral("int <APP-ID>")), "app_called")]) in
@@ -221,8 +229,10 @@ let comp_contract (p:contract) : string * string * string option =
 
 let test_comp ast = 
   let appr_prog, clear_prog, escrow_prog = comp_contract ast in
-  (* let s = comp_aclause ([PayClause(RangePattern(Some(EInt(3)), Some(EInt(5)), None), FixedPattern(EToken(Algo), None), FixedPattern(Val(GlobVar(Ide("receiver"))),None), AnyPattern(None))]) in *)
   print_endline appr_prog;
+  let oc = open_out "out.teal" in
+  Printf.fprintf oc "%s" appr_prog;
+  close_out oc;
   print_endline "\n\n/-/-/-/-/-/-/-/-/-/-/-/-/-/-/\n\n";
   print_endline clear_prog;
   print_endline "\n\n/-/-/-/-/-/-/-/-/-/-/-/-/-/-/\n\n";

@@ -83,7 +83,7 @@ let rec eval_exp (s:state) (d:env) (ci:callinfo) (e:exp) : eval =
 
     
 let rec run_cmds (s:state) (d:env) (ci:callinfo) (cl:cmd list) : state * env =
-  let run_cmd (s:state) (d:env) (c:cmd) : state * env = 
+  let rec run_cmd (s:state) (d:env) (c:cmd) : state * env = 
     (match c with
     | Assign(k, e) -> 
       let v = eval_exp s d ci e in
@@ -111,14 +111,19 @@ let rec run_cmds (s:state) (d:env) (ci:callinfo) (cl:cmd list) : state * env =
         let s' = State.bind s acaller' in
         (s', d))
         
-    | Ifte(e, cl1, cl2) -> 
+    | Ifte(e, c1, c2) -> 
       let v = eval_exp s d ci e in
-      (match v with 
-      | VBool(true) -> 
-        run_cmds s d ci cl1
-      | VBool(false) -> 
-        run_cmds s d ci cl2
-      | _ -> raise (ErrDynamic "If condition must be of type bool"))) in
+      (match v, c2 with 
+      | VBool(true), _ -> 
+        run_cmd s d c1
+      | VBool(false), Some(c2) -> 
+        run_cmd s d c2
+      | VBool(false), None ->
+        (s, d)
+      | _ -> raise (ErrDynamic "If condition must be of type bool"))
+
+    | Block(cl) ->
+      run_cmds s d ci cl) in
       
   match cl with
   | c::cltl -> 
@@ -201,6 +206,14 @@ let rec bind_aclause (s:state) (d:env) (ao:aclause) (ci:callinfo) (txnl:transact
 
   | FunctionClause(_, _, _, _)::_, _ -> None
 
+  | NewtokClause(amt_p, i, xto_p)::aotl, NewtokTransaction(amt, t, xto)::txntl ->
+    let d = bind_pattern(d, amt_p, VInt(amt)) in
+    let d = bind_pattern(d, xto_p, VAddress(xto)) in
+    let d = Env.init d i Immutable TToken (VToken(t)) in
+    bind_aclause s d aotl ci txntl
+  
+  | NewtokClause(_, _, _)::_, _ -> None
+
   | AssertClause(_)::aotl, _  | StateClause(_,_,_)::aotl, _->  bind_aclause s d aotl ci txnl
       
   | [], [] -> Some(d)
@@ -260,6 +273,14 @@ let run_aclause (s:state) (d:env) (ao:aclause) (ci:callinfo) (txnl:transaction l
       run_aclause_aux s' d' aotl ci txntl
 
     | FunctionClause(_, _, _, _)::_, _ -> None
+
+    | NewtokClause(amt_p, _, xto_p)::aotl, NewtokTransaction(amt, _, xto)::txntl ->
+      if check_pattern(s, d, ci, amt_p, VInt(amt))
+        && check_pattern(s, d, ci, xto_p, VAddress(xto))
+      then run_aclause_aux s d aotl ci txntl
+      else None
+
+    | NewtokClause(_, _, _)::_, _ -> None
 
     | StateClause(stype, fromstate, tostate)::aotl, _ -> 
       let b = (match fromstate with
@@ -344,15 +365,18 @@ let run_txns (s:state) (txnl:transaction list) : state =
         else State.bind s (Account.opt_in acaller acalled) in
       let p = Account.get_contract_ex acalled in
       let cinf = {caller=xfr; called=xto; onc=onc; fn=fn; params=params} in
-      try (
+      (try 
         let s'' = run_contract s' p cinf txnl in
         if onc = Delete then State.unbind s'' xto
         else if onc = OptOut || onc = ClearState then State.bind s (Account.opt_out acaller xto) 
-        else s'')
+        else s''
       with CallFail(_) as ex ->
         if onc = ClearState then State.bind s (Account.opt_out acaller xto)
-        else raise ex
-      )  
+        else raise ex)
+
+    | NewtokTransaction(amt, t, xto) ->
+      State.create_token s xto t amt
+    )
   in
   let rec run_txns_aux s' toexectxnl =
     match toexectxnl with

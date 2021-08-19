@@ -34,10 +34,10 @@ let rec post_comp_cmd (bout:string) (checkex:bool) (c:tealcmd) =
     | OPLocalPut(e1,e2,e3) -> [e1;e2;e3]
     | OPIfte(e1,cl1,cl2) -> [e1]@() *)
   match c with 
-  | OPIfte(e1,cl1,cl2) -> 
+  | OPIfte(e1,c1,c2) -> 
     let lblelse = new_label() in
     let lblout = new_label() in
-    OPSeq([OPBz(post_comp_exp e1, lblelse); OPSeq(List.map post_comp_cmd cl1); OPB(lblout); OPLabel(lblelse); OPSeq(List.map post_comp_cmd cl2)])
+    OPSeq([OPBz(post_comp_exp e1, lblelse); post_comp_cmd c1; OPB(lblout); OPLabel(lblelse); post_comp_cmd c2; OPLabel(lblout)])
   | OPAssertSkip(e1) -> OPBz(post_comp_exp e1, bout)
   | OPBz(e1,s) -> OPBz(post_comp_exp e1, s)
   | OPBnz(e1,s) -> OPBnz(post_comp_exp e1, s)
@@ -59,6 +59,6 @@ let post_comp (OPProgram(bl):tealprog) =
     | hd::tl -> post_comp_aux (idx+1) tl (acc@[post_comp_block idx hd])
     | [] -> OPProgram(acc)
   in
-  post_comp_aux 0 (bl@[OPBlock([], [OPLabel("fail"); OPErr])]) []
+  post_comp_aux 0 ([OPBlock([OPAssertSkip(OPCbop(Eq, OPTxn(TFApplicationID), OPInt(0)))],[])]@bl@[OPBlock([], [OPLabel("fail"); OPErr])]) []
 
 let post_comp_escrow cl = post_comp_cmd "" false cl

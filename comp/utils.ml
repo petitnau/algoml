@@ -1,4 +1,8 @@
 open Types
+open General
+
+let get_function_clause (ao:aclause) = 
+  List.find (function FunctionClause(_,_,_,_) -> true | _ -> false) ao
 
 let any_contract_check (Contract(_,aol):contract) fe fc fp fo = 
   let rec any_exp_check (e:exp) = 
@@ -11,7 +15,9 @@ let any_contract_check (Contract(_,aol):contract) fe fc fp fo =
     (match fc with Some(fc) -> fc c | None -> false) || (match c with
     | Assign(LocVar(_,Some(e1)),e2) -> List.exists any_exp_check [e1;e2]
     | Assign(_,e1) -> any_exp_check e1
-    | Ifte(e1,cl1,cl2) -> (any_exp_check e1) || (List.exists any_cmd_check cl1) || (List.exists any_cmd_check cl2)) 
+    | Ifte(e1,c1,None) -> (any_exp_check e1) || (any_cmd_check c1)
+    | Ifte(e1,c1,Some c2) -> (any_exp_check e1) || (any_cmd_check c1) || (any_cmd_check c2)
+    | Block(cl) -> List.exists any_cmd_check cl)
   in
   let any_pattern_check (p:pattern) =
     (match fp with Some(fp) -> fp p | None -> false) || (match p with
@@ -29,6 +35,7 @@ let any_contract_check (Contract(_,aol):contract) fe fc fp fo =
     | TimestampClause(p1) | RoundClause(p1) | FromClause(p1) -> any_pattern_check p1
     | AssertClause(e1) -> any_exp_check e1
     | FunctionClause(_,_,_,cl) -> List.exists any_cmd_check cl
+    | NewtokClause(p1,_,p2) -> List.exists any_pattern_check [p1;p2]
     | StateClause(_,_,_) -> false)
   in 
   List.exists (List.exists any_clause_check) aol
@@ -49,7 +56,9 @@ let rec map_cmd fe fc (c:cmd) =
   (match c with
   | Assign(LocVar(i,Some(e1)),e2) -> Assign(LocVar(i,Some(map_exp e1)), map_exp e2)
   | Assign(k,e1) -> Assign(k, map_exp e1)
-  | Ifte(e1,cl1,cl2) -> Ifte(map_exp e1, List.map map_cmd cl1, List.map map_cmd cl2))
+  | Ifte(e1,c1,Some c2) -> Ifte(map_exp e1, map_cmd c1, Some(map_cmd c2))
+  | Ifte(e1,c1,None) -> Ifte(map_exp e1, map_cmd c1, None)
+  | Block(cl) -> Block(List.map map_cmd cl))
 let map_pattern fe _ fp (p:pattern) =
   let map_exp = map_exp fe in
   let p = (match fp with Some(fp) -> fp p | None -> p) in
@@ -73,10 +82,14 @@ let map_clause fe fc fp fo (o:clause) =
   | FromClause(p1) -> FromClause(map_pattern p1)
   | AssertClause(e1) -> AssertClause(map_exp e1)
   | FunctionClause(onc,fn,pl,cl) -> FunctionClause(onc, fn, pl, List.map map_cmd cl)
+  | NewtokClause(amt,i,xto) -> NewtokClause(map_pattern amt, i, map_pattern xto)
   | _ -> o)
-  
-let map_contract fe fc fp fo (Contract(_,aol):contract) = 
-  List.map (List.map (map_clause fe fc fp fo)) aol
+let map_aclause fe fc fp fo fao (ao:aclause) = 
+  let map_clause = map_clause fe fc fp fo in
+  let ao = (match fao with Some(fao) -> fao ao | None -> ao) in
+  List.map map_clause ao
+let map_contract fe fc fp fo fao (Contract(dl,aol):contract) = 
+  Contract(dl, List.map (map_aclause fe fc fp fo fao) aol)
 
 let rec filter_exp fe (e:exp) : exp list = 
   let filter_exp = filter_exp fe in
@@ -100,13 +113,15 @@ let rec filter_cmd fe fc (c:cmd) : exp list * cmd list=
     | Assign(_,e1) -> 
       let el1 = filter_exp e1 in
       el1, []
-    | Ifte(e1,cl1,cl2) -> 
+    | Ifte(e1,c1,c2) -> 
       let el1 = filter_exp e1 in
-      let el2, cl1 = List.split (List.map filter_cmd cl1) in
-      let el2, cl1 = List.flatten el2, List.flatten cl1 in
-      let el3, cl2 = List.split (List.map filter_cmd cl2) in
-      let el3, cl2 = List.flatten el3, List.flatten cl2 in
-      el1@el2@el3, cl1@cl2) in
+      let el2, cl1 = filter_cmd c1 in
+      let el3, cl2 = (match c2 with Some(c2) -> filter_cmd c2 | None -> [], []) in
+      el1@el2@el3, cl1@cl2
+    | Block(cl) ->
+      let el1, cl1 = List.split (List.map filter_cmd cl) in
+      let el1, cl1 = List.flatten el1, List.flatten cl1 in
+      el1, cl1) in
   let filter_c = match curr_filter with Some(curr_filter) -> curr_filter::next_filter_c | None -> next_filter_c in
   filter_e, filter_c
 
@@ -157,6 +172,11 @@ let filter_clause fe fc fp fo (o:clause) : exp list * cmd list * pattern list * 
       let el1, cl1 = List.flatten el1, List.flatten cl1 in
       el1, cl1, [], []
 
+    | NewtokClause(p1,_,p2) ->
+      let el1, cl1, pl1 = filter_pattern p1 in
+      let el2, cl2, pl2 = filter_pattern p2 in
+      el1@el2, cl1@cl2, pl1@pl2, []
+
     | _ -> [],[],[],[]) in
   let filter_o = match curr_filter with Some(curr_filter) -> curr_filter::next_filter_o | None -> next_filter_o in
   filter_e, filter_c, filter_p, filter_o
@@ -201,7 +221,7 @@ let change_init_state (Contract(dl,aol):contract) (i:ide) : contract =
   Contract(dl, List.map change_aclause aol)
 
 let longest_aclause (Contract(_,aol):contract) : int = 
-  let get_txn_clauses = List.filter (function PayClause(_,_,_,_) | CloseClause(_,_,_) | FunctionClause(_,_,_,_) -> true | _ -> false) in
+  let get_txn_clauses = List.filter (function PayClause(_,_,_,_) | CloseClause(_,_,_) | FunctionClause(_,_,_,_) | NewtokClause(_,_,_) -> true | _ -> false) in
   List.fold_left (fun a b -> max a b) 0 (List.map (fun x -> List.length (get_txn_clauses x)) aol)
   
 let is_aclause_clearstate (ao:aclause) : bool =
@@ -209,7 +229,21 @@ let is_aclause_clearstate (ao:aclause) : bool =
   onc = ClearState
 
 let get_clause_vars (o:clause) : key list = 
-  let uniq_cons x xs = if List.mem x xs then xs else x :: xs in
-  let remove_from_right xs = List.fold_right uniq_cons xs [] in
-  let el, _, _, _  = (filter_clause (Some (function Val(_) | Escrow -> true | _ -> false)) None None None o) in
-  remove_from_right (List.filter_map (function Val(k) -> Some k | Escrow -> Some (GlobVar (Ide "escrow")) | _ -> None) el)  
+  let el, _, _, _  = filter_clause (Some (function
+    | Val(_) | Escrow -> true 
+    | _ -> false
+  )) None None None o in
+  remove_from_right (List.filter_map (function 
+    | Val(k) -> Some k 
+    | Escrow -> Some (GlobVar (Ide "escrow")) 
+    | _ -> None
+  ) el)  
+
+let has_token_transfers (p:contract) : bool =
+    (* todo newtokclause -> assign *)
+  let _, _, _, ol =  filter_contract None None None (Some (function 
+    | PayClause(_, FixedPattern(Val(_), _), _, _) -> true
+    | CloseClause(FixedPattern(Val(_), _), _, _) -> true
+    | _ -> false
+  )) p in
+  (List.length ol) > 0

@@ -61,6 +61,7 @@ rule read =
     | "from" { FROM }
     | "round" { ROUND }
     | "timestamp" { TIMESTAMP }
+    | "newtok" { NEWTOK }
     | "Create" { CREATE }
     | "OptIn" { OPTIN }
     | "OptOut" { OPTOUT }
@@ -69,6 +70,8 @@ rule read =
     | "Delete" { DELETE } 
     | "NoOp" { NOOP } 
     
+    | "of" { OF }
+
     | "if" { IF }
     | "else" { ELSE }
 

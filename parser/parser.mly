@@ -60,6 +60,9 @@
 %token ROUND
 %token TIMESTAMP
 %token ASSERT
+%token NEWTOK
+
+%token OF
 
 %token CREATE
 %token OPTIN
@@ -132,13 +135,10 @@ aclause:
 | cl = optterm_nonempty_list(SEOL, clause) { cl }
 
 clause:
-| o=partclause; { o }
-
-partclause:
 | AT; s=state; sf=option(ide); ARROW; st=option(ide) { StateClause(s, sf, st) }
 | AT; s=state; TIMES { StateClause(s, None, None) }
-| AT; PAY; amt_p=pattern; tkn_p=pattern; COLON; xfr_p=pattern; ARROW; xto_p=pattern; { PayClause(amt_p, tkn_p, xfr_p, xto_p) }
-| AT; PAY; amt_p=pattern; ALGO; COLON; xfr_p=pattern; ARROW; xto_p=pattern; { PayClause(amt_p, FixedPattern(EToken(Algo), None), xfr_p, xto_p) }
+| AT; PAY; amt_p=pattern; OF; tkn_p=pattern; COLON; xfr_p=pattern; ARROW; xto_p=pattern; { PayClause(amt_p, tkn_p, xfr_p, xto_p) }
+| AT; PAY; amt_p=pattern; OF; ALGO; COLON; xfr_p=pattern; ARROW; xto_p=pattern; { PayClause(amt_p, FixedPattern(EToken(Algo), None), xfr_p, xto_p) }
 | AT; PAY; amt_p=pattern; COLON; xfr_p=pattern; ARROW; xto_p=pattern; { PayClause(amt_p, FixedPattern(EToken(Algo), None), xfr_p, xto_p) }
 | AT; PAY; xfr_p=pattern; ARROW; xto_p=pattern; { PayClause(AnyPattern(None), FixedPattern(EToken(Algo), None), xfr_p, xto_p) }
 | AT; CLOSE; tkn_p=pattern; COLON; xfr_p=pattern; ARROW; xto_p=pattern; { CloseClause(tkn_p, xfr_p, xto_p) }
@@ -148,6 +148,7 @@ partclause:
 | AT; ROUND; p=pattern; { RoundClause(p) }
 | AT; FROM; p=pattern; { FromClause(p) }
 | AT; ASSERT; e=exp; { AssertClause(e) }
+| AT; NEWTOK; amt_p=pattern; OF; DOLLAR; i=ide; ARROW; xto_p=pattern; { NewtokClause(amt_p, i, xto_p) }
 | fc=functionclause; { fc }
 
 state:
@@ -165,7 +166,7 @@ bind:
 | DOLLAR; i=ide { Some(i) }
 
 functionclause:
-| onc=oncomplete; i=ide; LPAREN; pl = separated_list(COMMA, parameter); RPAREN; cl = block; { FunctionClause(onc, i, pl, cl) }
+| onc=oncomplete; i=ide; LPAREN; pl = separated_list(COMMA, parameter); RPAREN; cl = funblock; { FunctionClause(onc, i, pl, cl) }
 
 oncomplete:
 | CREATE { Create }
@@ -183,23 +184,25 @@ ide:
 parameter:
 | t=vartype; i=IDE; { Parameter(t,Ide(i)) }
 
-block:
+funblock:
 | eols?; LBRACE; eols?; cl = optterm_list(eols, cmd); RBRACE; { cl }
+
+block:
+| eols?; LBRACE; eols?; cl = optterm_list(eols, cmd); RBRACE; eols? { cl }
 
 eols:
 | SEOL { () }
 | MEOL { () }
 
 cmd:
-| c=cmdpart { c }
-cmdpart:
+| cl=block; { Block(cl) }
 | k=key; EQUALS; e=exp; { Assign(k, e) }
 | k=key; PEQ; e=exp; { Assign(k, IBop(Sum, Val(k), e)) }
 | k=key; MEQ; e=exp; { Assign(k, IBop(Diff, Val(k), e)) }
 | k=key; TEQ; e=exp; { Assign(k, IBop(Mul, Val(k), e)) }
 | k=key; DEQ; e=exp; { Assign(k, IBop(Div, Val(k), e)) }
-| IF; LPAREN; e=exp; RPAREN; cl1=block; ELSE; cl2=block; { Ifte(e, cl1, cl2) }
-| IF; LPAREN; e=exp; RPAREN; cl1=block; { Ifte(e, cl1, []) }
+| IF; LPAREN; e=exp; RPAREN; c1=cmd; ELSE; c2=cmd; { Ifte(e, c1, Some c2) }
+| IF; LPAREN; e=exp; RPAREN; c1=cmd; { Ifte(e, c1, None) }
 
 exp:
 | LPAREN; e=exp; RPAREN { e }

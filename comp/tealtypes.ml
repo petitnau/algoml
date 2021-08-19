@@ -12,7 +12,7 @@ type tealcmd =
 | OPErr
 | OPSeq of tealcmd list
 | OPAssert of tealexp
-| OPIfte of tealexp * tealcmd list * tealcmd list
+| OPIfte of tealexp * tealcmd * tealcmd
 | OPAssertSkip of tealexp
 
 | OPReturn of tealexp
@@ -47,6 +47,7 @@ and tealexp =
 | OPTxna of txnfield * int
 | OPGtxn of int * txnfield
 | OPGtxna of int * txnfield * int
+| OPGaid of int
 | OPGlobal of globalfield
 
 | OPTypeEnum of typeenumfield
@@ -69,6 +70,7 @@ and typeenumfield =
 | TEPay
 | TEAxfer
 | TEAppl
+| TEAcfg
 
 and globalfield = 
 | GFZeroAddress
@@ -102,3 +104,4 @@ and txnfield =
 | TFNumAssets
 | TFApplications
 | TFNumApplications
+| TFConfigAssetTotal

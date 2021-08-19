@@ -71,8 +71,7 @@ module Env = struct
         let d' = init d i Immutable t v in
         init_params d' pltl apltl
       | [], [] -> Some(d)
-      | _ -> None
-      
+      | _ -> None  
 end
 
 
@@ -304,4 +303,10 @@ module State = struct
     let a = get_account_ex s x in
     let a' = Account.set_globalv_ex a i v in
     bind s a'   
+
+  let create_token (s:state) (xcreator:address) (t:tok) (amt:int) : state = 
+    let already_exists = List.exists (fun (_,a) -> (Account.apply_balance a t) <> None) s.accounts in
+    if already_exists then raise(TokenAlreadyExistsError(Printf.sprintf "Token %s already exists" (string_of_token t)));
+    let acreator = get_account_ex s xcreator in
+    bind s (Account.bind_balance acreator t amt)
 end
