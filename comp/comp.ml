@@ -175,7 +175,6 @@ let comp_aclause (ao:aclause) (acid:int) (sd:stateenv) =
   let txn_count = List.fold_right (+) (List.map (fun t -> match t with PayClause(_,_,_,_) | CloseClause(_,_,_) | FunctionClause(_,_,_,_)  -> 1 | NewtokClause(_,_,_) -> 2  | _ -> 0) ao) 0 in
   let pre_checks = [OPAssertSkip(OPCbop(Eq, OPGlobal(GFGroupSize), OPInt(txn_count)))] in
   let nd = NormEnv.bind_aclause ao acid NormEnv.empty in
-  print_endline (Batteries.dump nd);
   let unfhead,head,body = comp_aclause_aux ao 0 [] [] [] nd in
   OPBlock(pre_checks@unfhead@head, body)
 
@@ -226,16 +225,3 @@ let comp_contract (p:contract) : string * string * string option =
     if not(is_escrow_used p) then None 
     else Some(tealcmd_to_str (post_comp_escrow (comp_escrow (longest_aclause p)))) in
   (tealprog_to_str appr_prog), (tealprog_to_str clear_prog), escrow_prog_str
-
-let test_comp ast = 
-  let appr_prog, clear_prog, escrow_prog = comp_contract ast in
-  print_endline appr_prog;
-  let oc = open_out "out.teal" in
-  Printf.fprintf oc "%s" appr_prog;
-  close_out oc;
-  print_endline "\n\n/-/-/-/-/-/-/-/-/-/-/-/-/-/-/\n\n";
-  print_endline clear_prog;
-  print_endline "\n\n/-/-/-/-/-/-/-/-/-/-/-/-/-/-/\n\n";
-  match escrow_prog with
-  | Some(escrow_prog) -> print_endline escrow_prog
-  | None -> ()
