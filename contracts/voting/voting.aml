@@ -23,7 +23,7 @@ OptIn register() {}
 
 @lstate not_voted->voted
 @round (glob.voteBegin, glob.voteEnd)
-@pay 1 glob.vote_token : caller -> escrow
+@pay 1 of glob.vote_token : caller -> escrow
 @assert candidate == "a" || candidate == "b"
 vote(string candidate) {
 	if (candidate == "a") {

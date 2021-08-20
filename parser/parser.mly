@@ -109,8 +109,11 @@ optterm_nonempty_list(separator, X):
     xs = optterm_nonempty_list(separator, X)
      { x :: xs }
 
+meol:
+| MEOL; eols*; {}
+
 contract:
-| eols?; dl = optterm_list(eols, declaration); cl = optterm_list(MEOL, aclause); eols?; EOF{ Contract(dl, cl) }
+| eols?; dl = optterm_list(eols, declaration); cl = optterm_list(meol, aclause); eols?; EOF{ Contract(dl, cl) }
 
 declaration: 
 | s=statetype; m=muttype; t=vartype; i=ide; { Declaration(s,m,t,i) }
@@ -191,8 +194,8 @@ block:
 | eols?; LBRACE; eols?; cl = optterm_list(eols, cmd); RBRACE; eols? { cl }
 
 eols:
-| SEOL { () }
-| MEOL { () }
+| SEOL; eols* { () }
+| MEOL; eols* { () }
 
 cmd:
 | cl=block; { Block(cl) }

@@ -6,7 +6,7 @@ let parse_buf (lexbuf:Lexing.lexbuf) =
   try
     let ast = Parser.contract Lexer.read lexbuf in 
     check_program ast;
-    if not(check_aclauses_funcclause ast) then failwith "Not all atomic clauses have a function clause"
+    if not(check_aclauses_funcclause ast) then failwith "Not all atomic clauses have one function clause"
     else if not(check_create_in_contract ast) then failwith "Incorrect amount of create clauses"
     else if not(check_duplicates ast) then failwith "Duplicate glob ides or loc ides"
     else if not(check_reachable_states ast) then failwith "Not all states are reachable"
@@ -18,6 +18,7 @@ let parse_buf (lexbuf:Lexing.lexbuf) =
       let line = curr.Lexing.pos_lnum in
       let cnum = curr.Lexing.pos_cnum - curr.Lexing.pos_bol in
       let tok = Lexing.lexeme lexbuf in
+      print_string "Parser.Error: ";
       print_int line;
       print_string " ";
       print_int cnum;

@@ -1,5 +1,6 @@
 {
     open Parser
+    let string_buff = Buffer.create 256
 }
 
 let white = [' ' '\t']+
@@ -10,13 +11,29 @@ let hexdigits = ['0'-'9' 'a'-'f' 'A'-'F']
 let int = '-'? digits+ | '-'? "0x" hexdigits+
 let letter = ['a'-'z' 'A'-'Z']
 let id = (letter|'_') (letter|digits|'_')*
-let str = ('"' [^'"']* '"' | '\'' [^'\'']* '\'')
 
-rule read = 
+rule linecomment =
+    parse
+    | meol {print_endline "/M/"; MEOL}
+    | eol { print_endline "/E/"; SEOL}
+    | _ as c  {Printf.printf "%c" c; linecomment lexbuf }
+and multicomment = 
+    parse
+    | "*/" { read lexbuf }
+    | _ { multicomment lexbuf }
+and string = 
+    parse
+    | '"' { () }
+    | "\\\"" { Buffer.add_char string_buff '"' }
+    | _ as c { Buffer.add_char string_buff c; string lexbuf }
+and read = 
     parse
     | white { read lexbuf }
-    | meol { MEOL }
+    | meol { MEOL } 
     | eol { SEOL }
+    | eol* "//" { Printf.printf "gocommentX:"; linecomment lexbuf }
+    | '"' { Buffer.clear string_buff; string lexbuf; STR (Buffer.contents string_buff)}
+    | "/*" { multicomment lexbuf }
     | "<=" { LEQ }
     | "<" { LT }
     | ">=" { GEQ }
@@ -89,6 +106,5 @@ rule read =
     | "false" { FALSE }
 
     | id { IDE (Lexing.lexeme lexbuf) }
-    | str { STR (Lexing.lexeme lexbuf) }
     | int { INTEGER (int_of_string(Lexing.lexeme lexbuf))}
     | eof { EOF }
