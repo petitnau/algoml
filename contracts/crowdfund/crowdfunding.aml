@@ -22,7 +22,7 @@ OptIn optin() {
 }
 
 @timestamp (glob.startDate, glob.endDate)
-@pay $donated ALGO : caller -> escrow
+@pay $donated of ALGO : caller -> escrow
 donate() {
 	glob.donated_total += donated
 	loc.donated_local += donated
@@ -30,20 +30,20 @@ donate() {
 
 @assert glob.donated_total < glob.goal
 @timestamp (glob.endDate, )
-@pay (, loc.donated_local)$reclaimed ALGO : escrow -> caller
+@pay (, loc.donated_local)$reclaimed of ALGO : escrow -> caller
 reclaim() {
 	loc.donated_local -= reclaimed
 }
 		
 @assert glob.donated_total >= glob.goal
 @timestamp (glob.endDate, )
-@pay glob.donated_total : escrow -> glob.receiver
+@pay glob.donated_total of ALGO : escrow -> glob.receiver
 claim() {
 	glob.donated_total = 0
 }
 
 @assert glob.donated_total == 0
 @timestamp (glob.fundCloseDate, )
-@close : escrow -> creator
+@close ALGO : escrow -> creator
 @from creator
 Delete delete() {}

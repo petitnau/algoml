@@ -4,41 +4,49 @@ open General
 let get_function_clause (ao:aclause) = 
   List.find (function FunctionClause(_,_,_,_) -> true | _ -> false) ao
 
-let any_contract_check (Contract(_,aol):contract) fe fc fp fo = 
-  let rec any_exp_check (e:exp) = 
-    (match fe with Some(fe) -> fe e | None -> false) || (match e with
-    | Not(e1) -> (any_exp_check e1)
-    | IBop(_,e1,e2) | LBop(_,e1,e2) | CBop(_,e1,e2) -> List.exists any_exp_check [e1;e2]
-    | _ -> false) 
-  in
-  let rec any_cmd_check (c:cmd) =
-    (match fc with Some(fc) -> fc c | None -> false) || (match c with
-    | Assign(LocVar(_,Some(e1)),e2) -> List.exists any_exp_check [e1;e2]
-    | Assign(_,e1) -> any_exp_check e1
-    | Ifte(e1,c1,None) -> (any_exp_check e1) || (any_cmd_check c1)
-    | Ifte(e1,c1,Some c2) -> (any_exp_check e1) || (any_cmd_check c1) || (any_cmd_check c2)
-    | Block(cl) -> List.exists any_cmd_check cl)
-  in
-  let any_pattern_check (p:pattern) =
-    (match fp with Some(fp) -> fp p | None -> false) || (match p with
-    | RangePattern(e1,e2,_) ->
-       let check1 = (match e1 with Some(e1) -> any_exp_check e1 | None -> false) in
-       let check2 = (match e2 with Some(e2) -> any_exp_check e2 | None -> false) in
-       check1 || check2
-    | FixedPattern(e1,_) -> any_exp_check e1
-    | AnyPattern(_) -> false)
-  in
-  let any_clause_check (o:clause) = 
-    (match fo with Some(fo) -> fo o | None -> false) || (match o with
-    | PayClause(p1,p2,p3,p4) -> List.exists any_pattern_check [p1;p2;p3;p4] 
-    | CloseClause(p1,p2,p3) -> List.exists any_pattern_check [p1;p2;p3] 
-    | TimestampClause(p1) | RoundClause(p1) | FromClause(p1) -> any_pattern_check p1
-    | AssertClause(e1) -> any_exp_check e1
-    | FunctionClause(_,_,_,cl) -> List.exists any_cmd_check cl
-    | NewtokClause(p1,_,p2) -> List.exists any_pattern_check [p1;p2]
-    | StateClause(_,_,_) -> false)
-  in 
-  List.exists (List.exists any_clause_check) aol
+let rec any_exp_check fe (e:exp) = 
+  let any_exp_check = any_exp_check fe in
+  (match fe with Some(fe) -> fe e | None -> false) || (match e with
+  | Not(e1) -> (any_exp_check e1)
+  | IBop(_,e1,e2) | LBop(_,e1,e2) | CBop(_,e1,e2) -> List.exists any_exp_check [e1;e2]
+  | _ -> false) 
+let rec any_cmd_check fe fc (c:cmd) =
+  let any_exp_check = any_exp_check fe in
+  let any_cmd_check = any_cmd_check fe fc in
+  (match fc with Some(fc) -> fc c | None -> false) || (match c with
+  | Assign(LocVar(_,Some(e1)),e2) -> List.exists any_exp_check [e1;e2]
+  | Assign(_,e1) -> any_exp_check e1
+  | Ifte(e1,c1,None) -> (any_exp_check e1) || (any_cmd_check c1)
+  | Ifte(e1,c1,Some c2) -> (any_exp_check e1) || (any_cmd_check c1) || (any_cmd_check c2)
+  | Block(cl) -> List.exists any_cmd_check cl)
+let any_pattern_check fe _ fp (p:pattern) =
+  let any_exp_check = any_exp_check fe in
+  (match fp with Some(fp) -> fp p | None -> false) || (match p with
+  | RangePattern(e1,e2,_) ->
+      let check1 = (match e1 with Some(e1) -> any_exp_check e1 | None -> false) in
+      let check2 = (match e2 with Some(e2) -> any_exp_check e2 | None -> false) in
+      check1 || check2
+  | FixedPattern(e1,_) -> any_exp_check e1
+  | AnyPattern(_) -> false)
+let any_clause_check fe fc fp fo (o:clause) = 
+  let any_exp_check = any_exp_check fe in
+  let any_cmd_check = any_cmd_check fe fc in
+  let any_pattern_check = any_pattern_check fe fc fp in
+  (match fo with Some(fo) -> fo o | None -> false) || (match o with
+  | PayClause(p1,p2,p3,p4) -> List.exists any_pattern_check [p1;p2;p3;p4] 
+  | CloseClause(p1,p2,p3) -> List.exists any_pattern_check [p1;p2;p3] 
+  | TimestampClause(p1) | RoundClause(p1) | FromClause(p1) -> any_pattern_check p1
+  | AssertClause(e1) -> any_exp_check e1
+  | FunctionClause(_,_,_,cl) -> List.exists any_cmd_check cl
+  | NewtokClause(p1,_,p2) -> List.exists any_pattern_check [p1;p2]
+  | StateClause(_,_,_) -> false)
+let any_aclause_check fe fc fp fo fao (ao:aclause) = 
+  let any_clause_check = any_clause_check fe fc fp fo in
+  (match fao with Some(fao) -> fao ao | None -> false) 
+  || (List.exists any_clause_check ao)
+let any_contract_check fe fc fp fo fao (Contract(_,aol):contract) = 
+  let any_aclause_check = any_aclause_check fe fc fp fo fao in
+  List.exists (any_aclause_check) aol
 
 let rec map_exp fe (e:exp) = 
   let map_exp = map_exp fe in
@@ -181,22 +189,19 @@ let filter_clause fe fc fp fo (o:clause) : exp list * cmd list * pattern list * 
   let filter_o = match curr_filter with Some(curr_filter) -> curr_filter::next_filter_o | None -> next_filter_o in
   filter_e, filter_c, filter_p, filter_o
 
-let rec filter_aclause_list fe fc fp fo aol : exp list * cmd list * pattern list * clause list  = 
-  let filter_aclause_list = filter_aclause_list fe fc fp fo in
+let filter_aclause fe fc fp fo (ao:aclause) =
   let filter_clause = filter_clause fe fc fp fo in
-  match aol with
-  | (ohd::otl)::aotl -> 
-    let el1, cl1, pl1, ol1 = filter_clause ohd in  
-    let el2, cl2, pl2, ol2 = filter_aclause_list (otl::aotl) in
-    el1@el2, cl1@cl2, pl1@pl2, ol1@ol2
-  | []::aotl ->
-    let el1, cl1, pl1, ol1 = filter_aclause_list aotl in  
-    el1, cl1, pl1, ol1
-  | [] -> [],[],[],[]
-let filter_contract fe fc fp fo (Contract(_,aol):contract) : exp list * cmd list * pattern list * clause list  =
-  filter_aclause_list fe fc fp fo aol
+  let el1, cl1, pl1, ol1 = split_4 (List.map filter_clause ao) in
+  let el1, cl1, pl1, ol1 = List.flatten el1, List.flatten cl1, List.flatten pl1, List.flatten ol1 in
+  el1, cl1, pl1, ol1
+  
+let filter_contract fe fc fp fo (Contract(_,aol):contract) : exp list * cmd list * pattern list * clause list =
+  let filter_aclause = filter_aclause fe fc fp fo in
+  let el1, cl1, pl1, ol1 = split_4 (List.map filter_aclause aol) in
+  let el1, cl1, pl1, ol1 = List.flatten el1, List.flatten cl1, List.flatten pl1, List.flatten ol1 in
+  el1, cl1, pl1, ol1
 
-let is_escrow_used (p:contract) = any_contract_check p (Some(fun e -> e = Escrow)) None None None
+let is_escrow_used (p:contract) = any_contract_check (Some(fun e -> e = Escrow)) None None None None p
 
 let get_init_state (p:contract) = 
   let get_create_aclause (Contract(_,aol):contract) : aclause = 
@@ -247,3 +252,14 @@ let has_token_transfers (p:contract) : bool =
     | _ -> false
   )) p in
   (List.length ol) > 0
+
+let get_gstate ao = 
+  let _, _, _, ol = filter_aclause None None None (Some (function StateClause(TGlob, _, _) -> true | _ -> false)) ao in
+  match ol with
+  | [s] -> Some s
+  | [] -> None
+  | _ -> failwith "Multiple state changes in one function"
+
+let is_create_aclause ao = List.exists (function FunctionClause(Create,_,_,_) -> true | _ -> false) ao
+
+let remove_gstate ao = List.filter (function StateClause(TGlob,_,_) -> false | _ -> true) ao

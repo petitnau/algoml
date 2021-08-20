@@ -178,22 +178,42 @@ let comp_aclause (ao:aclause) (acid:int) (sd:stateenv) =
   let unfhead,head,body = comp_aclause_aux ao 0 [] [] [] nd in
   OPBlock(pre_checks@unfhead@head, body)
 
+
 let precomp (p:contract) (sd:stateenv) : contract * stateenv = 
-  let Contract(dl,aol) = p in
   let p' = if not(is_escrow_used p) then p else 
-    let Contract(dl,aol) = Contract(dl,[[
+    let Contract(dl,aol) = p in
+    let p = Contract(dl,[[
       FromClause(FixedPattern(Creator, None));
+      StateClause(TGlob, Some(Ide("@created")), Some(Ide("@escrowinited")));
       PayClause(FixedPattern(EInt(100000), None), FixedPattern(EToken(Algo), None), AnyPattern(None), AnyPattern(Some(Ide "escrow")));
       FunctionClause(NoOp, Ide("init_escrow"), [], [
         Assign(GlobVar(Ide("escrow")), Val(NormVar(Ide("escrow"))))
       ])
     ]]@aol) in
-    let Contract(dl,aol) = if not(has_token_transfers p) then p else Contract(dl,aol@[
+    let Contract(dl,aol) = p in
+    let p = if not(has_token_transfers p) then p else Contract(dl,aol@[
       [PayClause(FixedPattern(EInt(100000), None), FixedPattern(EToken(Algo), None), AnyPattern(None), FixedPattern(Escrow, None));
         PayClause(FixedPattern(EInt(0), None), AnyPattern(None), FixedPattern(Escrow, None), FixedPattern(Escrow, None));
         FunctionClause(NoOp, Ide("optin_token"), [], [])]
     ]) in
-    Contract(dl,aol)
+    (* TODO
+    All aclauses should have a == @inited if no state
+    create clause should check that gstate = @escrowinited if escrow is used (so any ->x becomes @escinitd->x) and go to @inited if none are assigned
+      If no escrow, then create should become @created->@inited / @created->@x
+    init_escrow has @created->@escrowinited
+    *)
+    let p = map_contract None None None None (Some (fun ao ->
+      match is_escrow_used p, get_gstate ao, is_create_aclause ao with
+      | false, None, false -> [StateClause(TGlob, Some(Ide("@inited")), None)]@ao
+      | false, None, true -> [StateClause(TGlob, Some(Ide("@created")), Some(Ide("@inited")))]@ao
+      | false, Some(StateClause(TGlob, None, new_state)), true -> [StateClause(TGlob, Some(Ide("@created")), new_state)]@(remove_gstate ao)
+      | true, None, false -> [StateClause(TGlob, Some(Ide("@escrowinited")), None)]@ao
+      | true, None, true -> [StateClause(TGlob, Some(Ide("@escrowinited")), Some(Ide("@inited")))]@ao
+      | true, Some(StateClause(TGlob, None, new_state)), true -> [StateClause(TGlob, Some(Ide("@escrowinited")), new_state)]@(remove_gstate ao)
+      | _, Some(StateClause(TLoc,_,_)), _ -> failwith "get_gstate returned an lstate"
+      | _, _, _ -> ao
+    )) p in
+    p
   in
   let sd' = StateEnv.bind sd (Ide("escrow"), TGlob) Immutable in
   p', sd'

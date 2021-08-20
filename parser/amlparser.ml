@@ -1,7 +1,3 @@
-(* open Ast  *)
-(* open Format *)
-(* open General *)
-open Batteries
 open Static
 
 exception Error of exn * (int * int * string)

@@ -59,6 +59,8 @@ let post_comp (OPProgram(bl):tealprog) =
     | hd::tl -> post_comp_aux (idx+1) tl (acc@[post_comp_block idx hd])
     | [] -> OPProgram(acc)
   in
-  post_comp_aux 0 ([OPBlock([OPAssertSkip(OPCbop(Eq, OPTxn(TFApplicationID), OPInt(0)))],[])]@bl@[OPBlock([], [OPLabel("fail"); OPErr])]) []
+  post_comp_aux 0 ([OPBlock([OPAssertSkip(OPCbop(Eq, OPTxn(TFApplicationID), OPInt(0)))],[
+    OPGlobalPut(OPByte("gstate"), OPByte("@created"))
+  ])]@bl@[OPBlock([], [OPLabel("fail"); OPErr])]) []
 
 let post_comp_escrow cl = post_comp_cmd "" false cl
