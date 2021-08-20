@@ -2,9 +2,12 @@
 
 AlgoML (after *Algorand Modelling Language*) is a DSL for specifying Algorand smart contracts, which compiles into TEAL scripts.
 
-## Documentation
+## Usage
 
-https://petitnau.notion.site/AlgoML-b6a7abd7f06a43679cd88a1e8a49b4f5
+To compile an AlgoML file into TEAL scripts, the following command can be used:
+```console
+caml.exe /path/to/input.aml [-o outprefix]
+```
 
 ## Credits
 
