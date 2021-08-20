@@ -13,12 +13,9 @@ Create crowdfund(int startDate, int endDate, int fundCloseDate, int goal, addres
 	glob.fundCloseDate = fundCloseDate
 	glob.goal = goal
 	glob.receiver = receiver 
-	//zan zan 123
 	glob.donated_total = 0
-	loc.donated_local = 0 // abc 123
+	loc.donated_local = 0
 }
-@timestamp (glob.startDate, glob.endDate)
-// prova 123
 
 OptIn optin() {
 	loc.donated_local = 0
