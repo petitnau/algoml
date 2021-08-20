@@ -12,11 +12,11 @@ let int = '-'? digits+ | '-'? "0x" hexdigits+
 let letter = ['a'-'z' 'A'-'Z']
 let id = (letter|'_') (letter|digits|'_')*
 
-rule linecomment =
+rule linecomment mnl =
     parse
-    | meol {print_endline "/M/"; MEOL}
-    | eol { print_endline "/E/"; SEOL}
-    | _ as c  {Printf.printf "%c" c; linecomment lexbuf }
+    | meol { MEOL }
+    | eol { if mnl then MEOL else SEOL}
+    | _  {linecomment mnl lexbuf }
 and multicomment = 
     parse
     | "*/" { read lexbuf }
@@ -31,7 +31,8 @@ and read =
     | white { read lexbuf }
     | meol { MEOL } 
     | eol { SEOL }
-    | eol* "//" { Printf.printf "gocommentX:"; linecomment lexbuf }
+    | meol "//" { linecomment true lexbuf }
+    | eol? "//" { linecomment false lexbuf }
     | '"' { Buffer.clear string_buff; string lexbuf; STR (Buffer.contents string_buff)}
     | "/*" { multicomment lexbuf }
     | "<=" { LEQ }

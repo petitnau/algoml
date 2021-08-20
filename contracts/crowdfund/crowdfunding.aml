@@ -21,13 +21,6 @@ OptIn optin() {
 	loc.donated_local = 0
 }
 
-@timestamp (glob.startDate, glob.endDate)
-@pay $donated of ALGO : caller -> escrow
-donate() {
-	glob.donated_total += donated
-	loc.donated_local += donated
-}
-
 @assert glob.donated_total < glob.goal
 @timestamp (glob.endDate, )
 @pay (, loc.donated_local)$reclaimed of ALGO : escrow -> caller

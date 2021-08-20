@@ -135,7 +135,7 @@ vartype:
 | TADDRESS; { TAddress }
 
 aclause: 
-| cl = optterm_nonempty_list(SEOL, clause) { cl }
+| cl = optterm_nonempty_list(SEOL+, clause) { cl }
 
 clause:
 | AT; s=state; sf=option(ide); ARROW; st=option(ide) { StateClause(s, sf, st) }
