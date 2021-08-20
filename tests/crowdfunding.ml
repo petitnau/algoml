@@ -1,6 +1,6 @@
 open General
 open Int
-open Amlparser
+open Frontend
 open Amlprinter
 open Batteries
 open! Comp

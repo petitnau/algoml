@@ -1,4 +1,4 @@
-open Amlparser
+open Frontend
 open! Comp
 
 let script = parse_file "contracts/voting.aml";;

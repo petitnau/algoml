@@ -1,3 +1,3 @@
 (executables
  (names caml)
- (libraries comp amlparser cmdliner))
+ (libraries comp frontend cmdliner))

@@ -5,5 +5,5 @@
   (modules parser))
 
 (library
- (name amlparser)
+ (name frontend)
  (libraries types batteries static))

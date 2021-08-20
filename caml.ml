@@ -1,6 +1,6 @@
 open Cmdliner
 open Comp
-open Amlparser
+open Frontend
 open Filename
 
 let write_to_file fn content = 

@@ -1,6 +1,6 @@
 open Types
 open General
-open Amlparser
+open Frontend
 open Amlprinter
 open Int
 open OUnit2
