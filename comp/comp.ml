@@ -4,7 +4,6 @@ open Utils
 open Compenvs
 open General
 open Postcomp
-open Topseudoteal
   
 let rec comp_exp (e:exp) (sd:stateenv) (nd:normenv) : tealexp = 
   match e with
@@ -228,7 +227,9 @@ let comp_escrow (len:int) : tealcmd =
   let approve = OPReturn(OPInt(1)) in
   OPSeq([app_called; OPLabel("app_called"); check_call; OPLabel("not_call"); check_callself; check_rekey; check_fee; approve])
     
-let comp_contract (p:contract) : string * string * string option = 
+type comptype = CompToTeal | CompToPseudo
+
+let comp_contract (mode:comptype) (p:contract) : string * string * string option = 
   let rec comp_aclause_list aol sd appr_idx appr_prog clear_idx clear_prog = 
     match aol with
     | ao::tl -> 
@@ -236,12 +237,16 @@ let comp_contract (p:contract) : string * string * string option =
         (comp_aclause_list tl sd appr_idx appr_prog (clear_idx+1) (clear_prog@[comp_aclause ao clear_idx sd]))
       else (comp_aclause_list tl sd (appr_idx+1) (appr_prog@[comp_aclause ao appr_idx sd]) clear_idx clear_prog)
     | [] ->
-      post_comp (OPProgram(appr_prog)), post_comp (OPProgram(clear_prog))
+      post_comp false (OPProgram(appr_prog)), post_comp true (OPProgram(clear_prog))
   in      
   let Contract(dl,cl), sd = precomp p StateEnv.empty in
   let sd = StateEnv.bind_decls sd dl in
   let appr_prog, clear_prog = comp_aclause_list cl sd 0 [] 0 [] in
+  let prog_to_str, cmd_to_str = match mode with
+    | CompToTeal -> Toteal.tealprog_to_str, Toteal.tealcmd_to_str
+    | CompToPseudo -> Topseudoteal.tealprog_to_str, Topseudoteal.tealcmd_to_str
+  in
   let escrow_prog_str = 
     if not(is_escrow_used p) then None 
-    else Some(tealcmd_to_str (post_comp_escrow (comp_escrow (longest_aclause p)))) in
-  (tealprog_to_str appr_prog), (tealprog_to_str clear_prog), escrow_prog_str
+    else Some(cmd_to_str (post_comp_escrow (comp_escrow (longest_aclause p)))) in
+  (prog_to_str appr_prog), (prog_to_str clear_prog), escrow_prog_str

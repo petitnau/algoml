@@ -8,12 +8,12 @@ let write_to_file fn content =
   Printf.fprintf oc "%s" content;
   close_out oc
 
-let compile infile outprefix = 
+let compile infile outprefix mode = 
   let outprefix = (match outprefix with
   | Some(outprefix) -> outprefix
   | None -> infile |> basename |> remove_extension) in
   let ast = parse_file infile in
-  let appr_prog, clear_prog, escrow_prog = comp_contract ast in
+  let appr_prog, clear_prog, escrow_prog = comp_contract mode ast in
   write_to_file (outprefix^"_approval.teal") appr_prog;
   write_to_file (outprefix^"_clear.teal") clear_prog;
   match escrow_prog with
@@ -29,9 +29,15 @@ let outprefix =
 let infile =
   let docv = "INFILE" in
   let doc = "The file to compile." in
-  Arg.(required & pos 0 (some string) None & info [] ~docv ~doc )
+  Arg.(required & pos 0 (some string) None & info [] ~docv ~doc)
 
-let caml_t = Term.(const compile $ infile $ outprefix)
+let mode = 
+  let docv = "MODE" in
+  let doc = "Compile to pseudo-TEAL" in
+  Arg.(value & vflag CompToTeal & [(CompToPseudo, info ["pseudo"] ~docv ~doc)])
+
+
+let caml_t = Term.(const compile $ infile $ outprefix $ mode)
 
 let info =
   let doc = "print a customizable message repeatedly" in

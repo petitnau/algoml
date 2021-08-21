@@ -54,13 +54,16 @@ let post_comp_block (bnum:int) (OPBlock(cl1, cl2):tealblock) =
   let cl2 = post_comp_cmdl "fail" false cl2 in
   OPBlock((OPLabel(Printf.sprintf "aclause_%d" bnum))::cl1, cl2@[OPReturn(OPInt(1))])
 
-let post_comp (OPProgram(bl):tealprog) = 
+let post_comp (clearprog:bool) (OPProgram(bl):tealprog) = 
   let rec post_comp_aux idx bl acc = match bl with
     | hd::tl -> post_comp_aux (idx+1) tl (acc@[post_comp_block idx hd])
     | [] -> OPProgram(acc)
   in
-  post_comp_aux 0 ([OPBlock([OPAssertSkip(OPCbop(Eq, OPTxn(TFApplicationID), OPInt(0)))],[
+  let bl = if clearprog then bl else   
+  [OPBlock([OPAssertSkip(OPCbop(Eq, OPTxn(TFApplicationID), OPInt(0)))],[
     OPGlobalPut(OPByte("gstate"), OPByte("@created"))
-  ])]@bl@[OPBlock([], [OPLabel("fail"); OPErr])]) []
+  ])]@bl
+  in
+  post_comp_aux 0 (bl@[OPBlock([], [OPLabel("fail"); OPErr])]) []
 
 let post_comp_escrow cl = post_comp_cmd "" false cl
