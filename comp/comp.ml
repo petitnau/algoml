@@ -135,7 +135,7 @@ let comp_clause (o:clause) (txnid:int) (_:int) (sd:stateenv) (nd:normenv) : teal
   | NewtokClause(amt, _, xto) ->
     let check_txntype_fund = OPAssertSkip(OPCbop(Eq, OPGtxn(txnid, TFTypeEnum), OPTypeEnum(TEPay))) in
     let check_amount_fund = comp_pattern (FixedPattern(EInt(100000), None)) (OPGtxn(txnid, TFAmount)) sd nd in
-    let check_sender_fund = comp_pattern (AnyPattern(None)) (OPGtxn(txnid, TFReceiver)) sd nd ~anydiff:(Some (OPGlobalGet(OPByte("escrow")))) in
+    let check_sender_fund = comp_pattern (AnyPattern(None)) (OPGtxn(txnid, TFSender)) sd nd ~anydiff:(Some (OPGlobalGet(OPByte("escrow")))) in
     let check_receiver_fund = comp_pattern (FixedPattern(Escrow, None)) (OPGtxn(txnid, TFReceiver)) sd nd in
     let check_txntype_create = OPAssertSkip(OPCbop(Eq, OPGtxn(txnid+1, TFTypeEnum), OPTypeEnum(TEAcfg))) in
     let check_amount_create = comp_pattern amt (OPGtxn(txnid+1, TFConfigAssetTotal)) sd nd in
@@ -183,8 +183,30 @@ let comp_aclause (ao:aclause) (acid:int) (sd:stateenv) =
 
 
 let precomp (p:contract) (sd:stateenv) : contract * stateenv = 
-  let p' = if not(is_escrow_used p) then p else 
-    let Contract(dl,aol) = p in
+  let rec optin_newtok_pay ao = match ao with
+    | (NewtokClause(_, i, xto') as o)::aotl -> 
+      let _,_,_, payclauses = filter_aclause None None None (Some (function
+        | PayClause(_, tkn, xfr, _) when xfr = xto' && tkn = FixedPattern(Val(NormVar(i)), None) -> true
+        | _ -> false
+      )) aotl in
+      let optins = List.map (function PayClause(_, tkn, _, xto) -> PayClause(FixedPattern(EInt(0), None), tkn, xto, xto) | o -> o) payclauses in
+      o::optins@aotl
+    | o::aotl -> o::(optin_newtok_pay aotl)
+    | [] -> []
+  in
+  let p' = map_contract None None None None (Some (fun ao ->
+    match is_escrow_used p, get_gstate ao, is_create_aclause ao with
+    | false, None, false -> [AssertClause(CBop(Neq, Val(GlobVar(Ide("gstate"))), EString("@created")))]@ao
+    | true, None, false -> [AssertClause(LBop(And, CBop(Neq, Val(GlobVar(Ide("gstate"))), EString("@created")), CBop(Neq, Val(GlobVar(Ide("gstate"))), EString("@escrowinited"))))]@ao
+    | false, None, true -> [StateClause(TGlob, Some(Ide("@created")), Some(Ide("@inited")))]@ao
+    | true, None, true -> [StateClause(TGlob, Some(Ide("@escrowinited")), Some(Ide("@inited")))]@ao
+    | false, Some(StateClause(TGlob, None, new_state)), true -> [StateClause(TGlob, Some(Ide("@created")), new_state)]@(remove_gstate ao)
+    | true, Some(StateClause(TGlob, None, new_state)), true -> [StateClause(TGlob, Some(Ide("@escrowinited")), new_state)]@(remove_gstate ao)
+    | _, Some(StateClause(TLoc,_,_)), _ -> failwith "get_gstate returned an lstate"
+    | _, _, _ -> ao
+  )) p in
+  let p'' = if not(is_escrow_used p) then p' else 
+    let Contract(dl,aol) = p' in
     let p = Contract(dl,[[
       FromClause(FixedPattern(Creator, None));
       StateClause(TGlob, Some(Ide("@created")), Some(Ide("@escrowinited")));
@@ -195,25 +217,16 @@ let precomp (p:contract) (sd:stateenv) : contract * stateenv =
     ]]@aol) in
     let Contract(dl,aol) = p in
     let p = if not(has_token_transfers p) then p else Contract(dl,aol@[
-      [PayClause(FixedPattern(EInt(100000), None), FixedPattern(EToken(Algo), None), AnyPattern(None), FixedPattern(Escrow, None));
-        PayClause(FixedPattern(EInt(0), None), AnyPattern(None), FixedPattern(Escrow, None), FixedPattern(Escrow, None));
-        FunctionClause(NoOp, Ide("optin_token"), [], [])]
+      [AssertClause(CBop(Neq, Val(GlobVar(Ide("gstate"))), EString("@created")));
+       PayClause(FixedPattern(EInt(100000), None), FixedPattern(EToken(Algo), None), AnyPattern(None), FixedPattern(Escrow, None));
+       PayClause(FixedPattern(EInt(0), None), AnyPattern(None), FixedPattern(Escrow, None), FixedPattern(Escrow, None));
+       FunctionClause(NoOp, Ide("optin_token"), [], [])]
     ]) in
     p
   in  
-  let p'' = map_contract None None None None (Some (fun ao ->
-    match is_escrow_used p, get_gstate ao, is_create_aclause ao with
-    | false, None, false -> [AssertClause(CBop(Neq, Val(GlobVar(Ide("gstate"))), EString("@created")))]@ao
-    | true, None, false -> [AssertClause(LBop(And, CBop(Neq, Val(GlobVar(Ide("gstate"))), EString("@created")), CBop(Neq, Val(GlobVar(Ide("gstate"))), EString("@escrowinited"))))]@ao
-    | false, None, true -> [StateClause(TGlob, Some(Ide("@created")), Some(Ide("@inited")))]@ao
-    | true, None, true -> [StateClause(TGlob, Some(Ide("@escrowinited")), Some(Ide("@inited")))]@ao
-    | false, Some(StateClause(TGlob, None, new_state)), true -> [StateClause(TGlob, Some(Ide("@created")), new_state)]@(remove_gstate ao)
-    | true, Some(StateClause(TGlob, None, new_state)), true -> [StateClause(TGlob, Some(Ide("@escrowinited")), new_state)]@(remove_gstate ao)
-    | _, Some(StateClause(TLoc,_,_)), _ -> failwith "get_gstate returned an lstate"
-    | _, _, _ -> ao
-  )) p' in
+  let p''' = map_contract None None None None (Some optin_newtok_pay) p'' in
   let sd' = if is_escrow_used p then StateEnv.bind sd (Ide("escrow"), TGlob) Immutable else sd in
-  p'', sd'
+  p''', sd'
 
 let comp_escrow (len:int) : tealcmd = 
   let check_txnappl i = OPSeq([OPLabel(Printf.sprintf "call_%d" i); OPBz(OPCbop(Eq, OPGtxn(i, TFTypeEnum), OPTypeEnum(TEAppl)), Printf.sprintf "call_%d" (i+1)); OPBnz(OPCbop(Eq, OPGtxn(i, TFApplicationID), OPELiteral("int <APP-ID>")), "app_called")]) in

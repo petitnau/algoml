@@ -25,7 +25,6 @@ and clause =
 | FunctionClause of oncomplete * ide * parameter list * cmd list 
 | StateClause of statetype * ide option * ide option
 | NewtokClause of pattern * ide * pattern
-(* | TokOptInClause of pattern * pattern *)
 and exp = 
 | EInt of int
 | EString of string
