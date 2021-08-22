@@ -1,0 +1,1414 @@
+#pragma version 4
+
+aclause_0:
+
+txn ApplicationID
+int 0
+==
+bz aclause_1
+
+//*******
+
+byte "gstate"
+byte "@created"
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_1:
+
+global GroupSize
+int 2
+==
+bz aclause_2
+
+gtxn 0 TypeEnum
+int pay
+==
+bz aclause_2
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_2
+
+txn NumAppArgs
+int 1
+==
+bz aclause_2
+
+txna ApplicationArgs 0
+byte "init_escrow"
+==
+bz aclause_2
+
+txn Sender
+global CreatorAddress
+==
+bz aclause_2
+
+byte "gstate"
+app_global_get
+byte "@created"
+==
+bz aclause_2
+
+gtxn 0 Amount
+int 100000
+==
+bz aclause_2
+
+gtxn 0 Sender
+gtxn 0 Receiver
+!=
+bz aclause_2
+
+gtxn 0 CloseRemainderTo
+global ZeroAddress
+==
+bz aclause_2
+
+//*******
+
+byte "gstate"
+byte "@escrowinited"
+app_global_put
+
+byte "escrow"
+gtxn 0 Receiver
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_2:
+
+global GroupSize
+int 7
+==
+bz aclause_3
+
+gtxn 0 TypeEnum
+int axfer
+==
+bz aclause_3
+
+gtxn 1 TypeEnum
+int axfer
+==
+bz aclause_3
+
+gtxn 2 TypeEnum
+int pay
+==
+bz aclause_3
+
+gtxn 3 TypeEnum
+int acfg
+==
+bz aclause_3
+
+gtxn 4 TypeEnum
+int axfer
+==
+bz aclause_3
+
+gtxn 5 TypeEnum
+int axfer
+==
+bz aclause_3
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_3
+
+txn NumAppArgs
+int 3
+==
+bz aclause_3
+
+txna ApplicationArgs 0
+byte "amm"
+==
+bz aclause_3
+
+byte "gstate"
+app_global_get
+byte "@escrowinited"
+==
+bz aclause_3
+
+int 0
+byte "escrow"
+app_global_get_ex
+swap
+pop
+bz aclause_3
+
+gtxn 0 XferAsset
+txna ApplicationArgs 1
+btoi
+==
+bz aclause_3
+
+gtxn 0 AssetSender
+txn Sender
+==
+bz aclause_3
+
+gtxn 0 AssetReceiver
+byte "escrow"
+app_global_get
+==
+bz aclause_3
+
+gtxn 0 AssetCloseTo
+global ZeroAddress
+==
+bz aclause_3
+
+int 0
+byte "escrow"
+app_global_get_ex
+swap
+pop
+bz aclause_3
+
+gtxn 1 XferAsset
+txna ApplicationArgs 2
+btoi
+==
+bz aclause_3
+
+gtxn 1 AssetSender
+txn Sender
+==
+bz aclause_3
+
+gtxn 1 AssetReceiver
+byte "escrow"
+app_global_get
+==
+bz aclause_3
+
+gtxn 1 AssetCloseTo
+global ZeroAddress
+==
+bz aclause_3
+
+int 0
+byte "escrow"
+app_global_get_ex
+swap
+pop
+bz aclause_3
+
+gtxn 2 Amount
+int 100000
+==
+bz aclause_3
+
+gtxn 2 Sender
+byte "escrow"
+app_global_get
+!=
+bz aclause_3
+
+gtxn 2 Receiver
+byte "escrow"
+app_global_get
+==
+bz aclause_3
+
+gtxn 3 ConfigAssetTotal
+int 1000000
+==
+bz aclause_3
+
+gtxn 3 Sender
+byte "escrow"
+app_global_get
+==
+bz aclause_3
+
+gtxn 4 AssetAmount
+int 0
+==
+bz aclause_3
+
+gtxn 4 XferAsset
+gaid 3
+==
+bz aclause_3
+
+gtxn 4 AssetSender
+txn Sender
+==
+bz aclause_3
+
+gtxn 4 AssetReceiver
+txn Sender
+==
+bz aclause_3
+
+gtxn 4 AssetCloseTo
+global ZeroAddress
+==
+bz aclause_3
+
+int 0
+byte "escrow"
+app_global_get_ex
+swap
+pop
+bz aclause_3
+
+gtxn 5 AssetAmount
+gtxn 0 Amount
+==
+bz aclause_3
+
+gtxn 5 XferAsset
+gaid 3
+==
+bz aclause_3
+
+gtxn 5 AssetSender
+byte "escrow"
+app_global_get
+==
+bz aclause_3
+
+gtxn 5 AssetReceiver
+txn Sender
+==
+bz aclause_3
+
+gtxn 5 AssetCloseTo
+global ZeroAddress
+==
+bz aclause_3
+
+txn Sender
+global CreatorAddress
+==
+bz aclause_3
+
+//*******
+
+byte "gstate"
+byte "@inited"
+app_global_put
+
+byte "t0"
+txna ApplicationArgs 1
+btoi
+app_global_put
+
+byte "t1"
+txna ApplicationArgs 2
+btoi
+app_global_put
+
+byte "minted_t"
+gaid 3
+app_global_put
+
+byte "r0"
+gtxn 0 Amount
+app_global_put
+
+byte "r1"
+gtxn 1 Amount
+app_global_put
+
+byte "minted_supply"
+gtxn 0 Amount
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_3:
+
+global GroupSize
+int 3
+==
+bz aclause_4
+
+gtxn 0 TypeEnum
+int axfer
+==
+bz aclause_4
+
+gtxn 1 TypeEnum
+int axfer
+==
+bz aclause_4
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_4
+
+txn NumAppArgs
+int 2
+==
+bz aclause_4
+
+txna ApplicationArgs 0
+byte "dep_lock"
+==
+bz aclause_4
+
+int 0
+byte "gstate"
+app_global_get_ex
+swap
+pop
+bz aclause_4
+
+byte "gstate"
+app_global_get
+byte "@created"
+!=
+byte "gstate"
+app_global_get
+byte "@escrowinited"
+!=
+&&
+bz aclause_4
+
+int 0
+byte "t0"
+app_global_get_ex
+swap
+pop
+bz aclause_4
+
+int 0
+byte "escrow"
+app_global_get_ex
+swap
+pop
+bz aclause_4
+
+gtxn 0 XferAsset
+byte "t0"
+app_global_get
+==
+bz aclause_4
+
+gtxn 0 AssetSender
+byte "escrow"
+app_global_get
+!=
+bz aclause_4
+
+gtxn 0 AssetReceiver
+byte "escrow"
+app_global_get
+==
+bz aclause_4
+
+gtxn 0 AssetCloseTo
+global ZeroAddress
+==
+bz aclause_4
+
+int 0
+byte "t1"
+app_global_get_ex
+swap
+pop
+bz aclause_4
+
+int 0
+byte "escrow"
+app_global_get_ex
+swap
+pop
+bz aclause_4
+
+gtxn 1 XferAsset
+byte "t1"
+app_global_get
+==
+bz aclause_4
+
+gtxn 1 AssetSender
+byte "escrow"
+app_global_get
+!=
+bz aclause_4
+
+gtxn 1 AssetReceiver
+byte "escrow"
+app_global_get
+==
+bz aclause_4
+
+gtxn 1 AssetCloseTo
+global ZeroAddress
+==
+bz aclause_4
+
+int 0
+byte "r0"
+app_global_get_ex
+swap
+pop
+bz aclause_4
+
+int 0
+byte "minted_supply"
+app_global_get_ex
+swap
+pop
+bz aclause_4
+
+gtxn 0 Amount
+byte "r0"
+app_global_get
+/
+byte "minted_supply"
+app_global_get
+*
+txna ApplicationArgs 1
+btoi
+>=
+txna ApplicationArgs 1
+btoi
+int 0
+>
+&&
+bz aclause_4
+
+int 0
+byte "r1"
+app_global_get_ex
+swap
+pop
+bz aclause_4
+
+int 0
+byte "r0"
+app_global_get_ex
+swap
+pop
+bz aclause_4
+
+byte "r1"
+app_global_get
+gtxn 0 Amount
+*
+byte "r0"
+app_global_get
+gtxn 1 Amount
+*
+==
+bz aclause_4
+
+//*******
+
+byte "minted_supply"
+byte "minted_supply"
+app_global_get
+gtxn 0 Amount
+byte "r0"
+app_global_get
+/
+byte "minted_supply"
+app_global_get
+*
++
+app_global_put
+
+txn Sender
+byte "minted_redeemable"
+txn Sender
+byte "minted_redeemable"
+app_local_get
+gtxn 0 Amount
+byte "r0"
+app_global_get
+/
+byte "minted_supply"
+app_global_get
+*
++
+app_local_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_4:
+
+global GroupSize
+int 2
+==
+bz aclause_5
+
+gtxn 0 TypeEnum
+int axfer
+==
+bz aclause_5
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_5
+
+txn NumAppArgs
+int 1
+==
+bz aclause_5
+
+txna ApplicationArgs 0
+byte "dep"
+==
+bz aclause_5
+
+int 0
+byte "gstate"
+app_global_get_ex
+swap
+pop
+bz aclause_5
+
+byte "gstate"
+app_global_get
+byte "@created"
+!=
+byte "gstate"
+app_global_get
+byte "@escrowinited"
+!=
+&&
+bz aclause_5
+
+txn Sender
+int 0
+byte "minted_redeemable"
+app_local_get_ex
+swap
+pop
+bz aclause_5
+
+int 0
+byte "minted_t"
+app_global_get_ex
+swap
+pop
+bz aclause_5
+
+int 0
+byte "escrow"
+app_global_get_ex
+swap
+pop
+bz aclause_5
+
+gtxn 0 AssetAmount
+txn Sender
+byte "minted_redeemable"
+app_local_get
+==
+bz aclause_5
+
+gtxn 0 XferAsset
+byte "minted_t"
+app_global_get
+==
+bz aclause_5
+
+gtxn 0 AssetSender
+byte "escrow"
+app_global_get
+==
+bz aclause_5
+
+gtxn 0 AssetCloseTo
+global ZeroAddress
+==
+bz aclause_5
+
+//*******
+
+txn Sender
+byte "minted_redeemable"
+int 0
+app_local_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_5:
+
+global GroupSize
+int 2
+==
+bz aclause_6
+
+gtxn 0 TypeEnum
+int axfer
+==
+bz aclause_6
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_6
+
+txn NumAppArgs
+int 3
+==
+bz aclause_6
+
+txna ApplicationArgs 0
+byte "swap0_lock"
+==
+bz aclause_6
+
+int 0
+byte "gstate"
+app_global_get_ex
+swap
+pop
+bz aclause_6
+
+byte "gstate"
+app_global_get
+byte "@created"
+!=
+byte "gstate"
+app_global_get
+byte "@escrowinited"
+!=
+&&
+bz aclause_6
+
+int 0
+byte "t0"
+app_global_get_ex
+swap
+pop
+bz aclause_6
+
+int 0
+byte "escrow"
+app_global_get_ex
+swap
+pop
+bz aclause_6
+
+gtxn 0 XferAsset
+byte "t0"
+app_global_get
+==
+bz aclause_6
+
+gtxn 0 AssetSender
+byte "escrow"
+app_global_get
+!=
+bz aclause_6
+
+gtxn 0 AssetReceiver
+byte "escrow"
+app_global_get
+==
+bz aclause_6
+
+gtxn 0 AssetCloseTo
+global ZeroAddress
+==
+bz aclause_6
+
+int 0
+byte "r1"
+app_global_get_ex
+swap
+pop
+bz aclause_6
+
+int 0
+byte "r0"
+app_global_get_ex
+swap
+pop
+bz aclause_6
+
+byte "r1"
+app_global_get
+gtxn 0 Amount
+*
+byte "r0"
+app_global_get
+gtxn 0 Amount
++
+/
+txna ApplicationArgs 2
+btoi
+>=
+txna ApplicationArgs 2
+btoi
+int 0
+>
+&&
+bz aclause_6
+
+//*******
+
+txn Sender
+byte "t1_redeemable"
+txn Sender
+byte "t1_redeemable"
+app_local_get
+byte "r1"
+app_global_get
+gtxn 0 Amount
+*
+byte "r0"
+app_global_get
+gtxn 0 Amount
++
+/
++
+app_local_put
+
+byte "r1"
+byte "r1"
+app_global_get
+byte "r1"
+app_global_get
+gtxn 0 Amount
+*
+byte "r0"
+app_global_get
+gtxn 0 Amount
++
+/
+-
+app_global_put
+
+byte "r0"
+byte "r0"
+app_global_get
+gtxn 0 Amount
++
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_6:
+
+global GroupSize
+int 2
+==
+bz aclause_7
+
+gtxn 0 TypeEnum
+int axfer
+==
+bz aclause_7
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_7
+
+txn NumAppArgs
+int 1
+==
+bz aclause_7
+
+txna ApplicationArgs 0
+byte "swap0"
+==
+bz aclause_7
+
+int 0
+byte "gstate"
+app_global_get_ex
+swap
+pop
+bz aclause_7
+
+byte "gstate"
+app_global_get
+byte "@created"
+!=
+byte "gstate"
+app_global_get
+byte "@escrowinited"
+!=
+&&
+bz aclause_7
+
+txn Sender
+int 0
+byte "t1_redeemable"
+app_local_get_ex
+swap
+pop
+bz aclause_7
+
+int 0
+byte "t1"
+app_global_get_ex
+swap
+pop
+bz aclause_7
+
+int 0
+byte "escrow"
+app_global_get_ex
+swap
+pop
+bz aclause_7
+
+gtxn 0 AssetAmount
+txn Sender
+byte "t1_redeemable"
+app_local_get
+==
+bz aclause_7
+
+gtxn 0 XferAsset
+byte "t1"
+app_global_get
+==
+bz aclause_7
+
+gtxn 0 AssetSender
+byte "escrow"
+app_global_get
+==
+bz aclause_7
+
+gtxn 0 AssetCloseTo
+global ZeroAddress
+==
+bz aclause_7
+
+//*******
+
+txn Sender
+byte "t1_redeemable"
+int 0
+app_local_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_7:
+
+global GroupSize
+int 2
+==
+bz aclause_8
+
+gtxn 0 TypeEnum
+int axfer
+==
+bz aclause_8
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_8
+
+txn NumAppArgs
+int 3
+==
+bz aclause_8
+
+txna ApplicationArgs 0
+byte "redeem_lock"
+==
+bz aclause_8
+
+int 0
+byte "gstate"
+app_global_get_ex
+swap
+pop
+bz aclause_8
+
+byte "gstate"
+app_global_get
+byte "@created"
+!=
+byte "gstate"
+app_global_get
+byte "@escrowinited"
+!=
+&&
+bz aclause_8
+
+int 0
+byte "minted_t"
+app_global_get_ex
+swap
+pop
+bz aclause_8
+
+int 0
+byte "escrow"
+app_global_get_ex
+swap
+pop
+bz aclause_8
+
+gtxn 0 XferAsset
+byte "minted_t"
+app_global_get
+==
+bz aclause_8
+
+gtxn 0 AssetSender
+byte "escrow"
+app_global_get
+!=
+bz aclause_8
+
+gtxn 0 AssetReceiver
+byte "escrow"
+app_global_get
+==
+bz aclause_8
+
+gtxn 0 AssetCloseTo
+global ZeroAddress
+==
+bz aclause_8
+
+int 0
+byte "r0"
+app_global_get_ex
+swap
+pop
+bz aclause_8
+
+int 0
+byte "minted_supply"
+app_global_get_ex
+swap
+pop
+bz aclause_8
+
+gtxn 0 Amount
+byte "r0"
+app_global_get
+*
+byte "minted_supply"
+app_global_get
+/
+txna ApplicationArgs 1
+btoi
+>=
+txna ApplicationArgs 1
+btoi
+int 0
+>
+&&
+bz aclause_8
+
+int 0
+byte "r1"
+app_global_get_ex
+swap
+pop
+bz aclause_8
+
+int 0
+byte "minted_supply"
+app_global_get_ex
+swap
+pop
+bz aclause_8
+
+gtxn 0 Amount
+byte "r1"
+app_global_get
+*
+byte "minted_supply"
+app_global_get
+/
+txna ApplicationArgs 2
+btoi
+>=
+txna ApplicationArgs 2
+btoi
+int 0
+>
+&&
+bz aclause_8
+
+//*******
+
+byte "r0"
+byte "r0"
+app_global_get
+gtxn 0 Amount
+byte "r0"
+app_global_get
+*
+byte "minted_supply"
+app_global_get
+/
+-
+app_global_put
+
+byte "r1"
+byte "r1"
+app_global_get
+gtxn 0 Amount
+byte "r1"
+app_global_get
+*
+byte "minted_supply"
+app_global_get
+/
+-
+app_global_put
+
+txn Sender
+byte "t0_redeemable"
+txn Sender
+byte "t0_redeemable"
+app_local_get
+gtxn 0 Amount
+byte "r0"
+app_global_get
+*
+byte "minted_supply"
+app_global_get
+/
++
+app_local_put
+
+txn Sender
+byte "t1_redeemable"
+txn Sender
+byte "t1_redeemable"
+app_local_get
+gtxn 0 Amount
+byte "r1"
+app_global_get
+*
+byte "minted_supply"
+app_global_get
+/
++
+app_local_put
+
+byte "minted_supply"
+byte "minted_supply"
+app_global_get
+gtxn 0 Amount
+-
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_8:
+
+global GroupSize
+int 3
+==
+bz aclause_9
+
+gtxn 0 TypeEnum
+int axfer
+==
+bz aclause_9
+
+gtxn 1 TypeEnum
+int axfer
+==
+bz aclause_9
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_9
+
+txn NumAppArgs
+int 1
+==
+bz aclause_9
+
+txna ApplicationArgs 0
+byte "redeem"
+==
+bz aclause_9
+
+int 0
+byte "gstate"
+app_global_get_ex
+swap
+pop
+bz aclause_9
+
+byte "gstate"
+app_global_get
+byte "@created"
+!=
+byte "gstate"
+app_global_get
+byte "@escrowinited"
+!=
+&&
+bz aclause_9
+
+txn Sender
+int 0
+byte "t1_redeemable"
+app_local_get_ex
+swap
+pop
+bz aclause_9
+
+int 0
+byte "t0"
+app_global_get_ex
+swap
+pop
+bz aclause_9
+
+int 0
+byte "escrow"
+app_global_get_ex
+swap
+pop
+bz aclause_9
+
+gtxn 0 AssetAmount
+txn Sender
+byte "t1_redeemable"
+app_local_get
+==
+bz aclause_9
+
+gtxn 0 XferAsset
+byte "t0"
+app_global_get
+==
+bz aclause_9
+
+gtxn 0 AssetSender
+byte "escrow"
+app_global_get
+==
+bz aclause_9
+
+gtxn 0 AssetCloseTo
+global ZeroAddress
+==
+bz aclause_9
+
+txn Sender
+int 0
+byte "t1_redeemable"
+app_local_get_ex
+swap
+pop
+bz aclause_9
+
+int 0
+byte "t1"
+app_global_get_ex
+swap
+pop
+bz aclause_9
+
+int 0
+byte "escrow"
+app_global_get_ex
+swap
+pop
+bz aclause_9
+
+gtxn 1 AssetAmount
+txn Sender
+byte "t1_redeemable"
+app_local_get
+==
+bz aclause_9
+
+gtxn 1 XferAsset
+byte "t1"
+app_global_get
+==
+bz aclause_9
+
+gtxn 1 AssetSender
+byte "escrow"
+app_global_get
+==
+bz aclause_9
+
+gtxn 1 AssetCloseTo
+global ZeroAddress
+==
+bz aclause_9
+
+//*******
+
+txn Sender
+byte "t0_redeemable"
+int 0
+app_local_put
+
+txn Sender
+byte "t1_redeemable"
+int 0
+app_local_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_9:
+
+global GroupSize
+int 3
+==
+bz aclause_10
+
+gtxn 0 TypeEnum
+int pay
+==
+bz aclause_10
+
+gtxn 1 TypeEnum
+int axfer
+==
+bz aclause_10
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_10
+
+txn NumAppArgs
+int 1
+==
+bz aclause_10
+
+txna ApplicationArgs 0
+byte "optin_token"
+==
+bz aclause_10
+
+int 0
+byte "gstate"
+app_global_get_ex
+swap
+pop
+bz aclause_10
+
+byte "gstate"
+app_global_get
+byte "@created"
+!=
+bz aclause_10
+
+int 0
+byte "escrow"
+app_global_get_ex
+swap
+pop
+bz aclause_10
+
+gtxn 0 Amount
+int 100000
+==
+bz aclause_10
+
+gtxn 0 Sender
+byte "escrow"
+app_global_get
+!=
+bz aclause_10
+
+gtxn 0 Receiver
+byte "escrow"
+app_global_get
+==
+bz aclause_10
+
+gtxn 0 CloseRemainderTo
+global ZeroAddress
+==
+bz aclause_10
+
+int 0
+byte "escrow"
+app_global_get_ex
+swap
+pop
+bz aclause_10
+
+gtxn 1 AssetAmount
+int 0
+==
+bz aclause_10
+
+gtxn 1 AssetSender
+byte "escrow"
+app_global_get
+==
+bz aclause_10
+
+gtxn 1 AssetReceiver
+byte "escrow"
+app_global_get
+==
+bz aclause_10
+
+gtxn 1 AssetCloseTo
+global ZeroAddress
+==
+bz aclause_10
+
+//*******
+
+int 1
+return
+
+//--------------------------------
+
+aclause_10:
+
+//*******
+
+fail:
+
+err
+
+int 1
+return

@@ -36,7 +36,7 @@ dep() {
 }
 
 @pay $v0 of glob.t0 : * -> escrow
-@assert (glob.r1 * v0) / (glob.r0 * v0) >= lowb && lowb > 0
+@assert (glob.r1 * v0) / (glob.r0 + v0) >= lowb && lowb > 0
 swap0_lock(int d, int lowb) {
 	loc.t1_redeemable += (glob.r1 * v0) / (glob.r0 + v0)
 	glob.r1 -= (glob.r1 * v0) / (glob.r0 + v0)
