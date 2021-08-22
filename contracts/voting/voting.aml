@@ -8,7 +8,6 @@ glob token vote_token
 glob mut int candidate_a_votes
 glob mut int candidate_b_votes
 
-@lstate ->not_voted
 Create create(int regBegin, int regEnd, int voteBegin, int voteEnd, token vote_token) {
 	glob.regBegin = regBegin
 	glob.regEnd = regEnd
@@ -36,4 +35,6 @@ vote(string candidate) {
 
 @round (glob.voteEnd, )
 @from creator
+@close glob.vote_token : escrow -> creator
+@close ALGO : escrow -> creator
 Delete delete() {}
