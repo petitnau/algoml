@@ -76,7 +76,11 @@ let comp_clause (o:clause) (txnid:int) (_:int) (sd:stateenv) (nd:normenv) : teal
   | PayClause(amt,FixedPattern(EToken(Algo), None),xfr,xto) ->
     let check_txntype =  OPAssertSkip(OPCbop(Eq, OPGtxn(txnid, TFTypeEnum), OPTypeEnum(TEPay))) in
     let check_amount = comp_pattern amt (OPGtxn(txnid, TFAmount)) sd nd in
-    let check_sender = comp_pattern xfr (OPGtxn(txnid, TFSender)) sd nd ~anydiff:(Some (OPGlobalGet(OPByte("escrow")))) in
+    let check_sender = if not(StateEnv.contains sd (Ide "escrow") TGlob)  
+      then comp_pattern xfr (OPGtxn(txnid, TFSender)) sd nd ~anydiff:None
+      else if xto = AnyPattern(Some(Ide "escrow"))  
+      then comp_pattern xfr (OPGtxn(txnid, TFSender)) sd nd ~anydiff:(Some (OPGtxn(txnid, TFReceiver)))
+      else comp_pattern xfr (OPGtxn(txnid, TFSender)) sd nd ~anydiff:(Some (OPGlobalGet(OPByte("escrow")))) in
     let check_receiver = comp_pattern xto (OPGtxn(txnid, TFReceiver)) sd nd in
     let check_remainder = OPAssertSkip(OPCbop(Eq, OPGtxn(txnid, TFCloseRemainderTo), OPGlobal(GFZeroAddress))) in
     [check_txntype], [check_amount; check_sender; check_receiver; check_remainder], []
@@ -203,18 +207,18 @@ let precomp (p:contract) (sd:stateenv) : contract * stateenv =
     *)
     let p = map_contract None None None None (Some (fun ao ->
       match is_escrow_used p, get_gstate ao, is_create_aclause ao with
-      | false, None, false -> [StateClause(TGlob, Some(Ide("@inited")), None)]@ao
+      | false, None, false -> [AssertClause(CBop(Neq, Val(GlobVar(Ide("gstate"))), EString("@created")))]@ao
+      | true, None, false -> [AssertClause(LBop(And, CBop(Neq, Val(GlobVar(Ide("gstate"))), EString("@created")), CBop(Neq, Val(GlobVar(Ide("gstate"))), EString("@escrowinited"))))]@ao
       | false, None, true -> [StateClause(TGlob, Some(Ide("@created")), Some(Ide("@inited")))]@ao
-      | false, Some(StateClause(TGlob, None, new_state)), true -> [StateClause(TGlob, Some(Ide("@created")), new_state)]@(remove_gstate ao)
-      | true, None, false -> [StateClause(TGlob, Some(Ide("@escrowinited")), None)]@ao
       | true, None, true -> [StateClause(TGlob, Some(Ide("@escrowinited")), Some(Ide("@inited")))]@ao
+      | false, Some(StateClause(TGlob, None, new_state)), true -> [StateClause(TGlob, Some(Ide("@created")), new_state)]@(remove_gstate ao)
       | true, Some(StateClause(TGlob, None, new_state)), true -> [StateClause(TGlob, Some(Ide("@escrowinited")), new_state)]@(remove_gstate ao)
       | _, Some(StateClause(TLoc,_,_)), _ -> failwith "get_gstate returned an lstate"
       | _, _, _ -> ao
     )) p in
     p
   in
-  let sd' = StateEnv.bind sd (Ide("escrow"), TGlob) Immutable in
+  let sd' = if is_escrow_used p then StateEnv.bind sd (Ide("escrow"), TGlob) Immutable else sd in
   p', sd'
 
 let comp_escrow (len:int) : tealcmd = 
@@ -243,8 +247,8 @@ let comp_contract (mode:comptype) (p:contract) : string * string * string option
   let sd = StateEnv.bind_decls sd dl in
   let appr_prog, clear_prog = comp_aclause_list cl sd 0 [] 0 [] in
   let prog_to_str, cmd_to_str = match mode with
-    | CompToTeal -> Toteal.tealprog_to_str, Toteal.tealcmd_to_str
-    | CompToPseudo -> Topseudoteal.tealprog_to_str, Topseudoteal.tealcmd_to_str
+    | CompToTeal -> Toteal.tealprog_to_str, Toteal.tealescrow_to_str
+    | CompToPseudo -> Topseudoteal.tealprog_to_str, Topseudoteal.tealescrow_to_str
   in
   let escrow_prog_str = 
     if not(is_escrow_used p) then None 

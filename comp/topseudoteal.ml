@@ -180,5 +180,10 @@ and tealblock_to_str (OPBlock(cl1, cl2)) =
   let comp2 = String.concat "\n" (List.map tealcmd_to_str (List.filter (function OPNoop -> false | _ -> true) cl2)) in
   comp1^"\n\n//*******\n\n"^comp2
 
+and tealescrow_to_str (c:tealcmd) = 
+  Printf.sprintf "%s\n\n%s" "#pragma version 3"
+  (tealcmd_to_str c)
+
 and tealprog_to_str (OPProgram(bl)) = 
-  String.concat "\n\n//--------------------------------\n\n" (List.map tealblock_to_str bl)
+  Printf.sprintf "%s\n\n%s" "#pragma version 4" 
+  (String.concat "\n\n//--------------------------------\n\n" (List.map tealblock_to_str bl))

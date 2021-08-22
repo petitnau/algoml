@@ -80,4 +80,8 @@ module StateEnv = struct
     | (i',s', m)::_ when i=i' && s=s' -> m
     | _::tl -> apply tl i s
     | [] -> failwith ( "No state var: "^(match i with Ide(s) -> s))
+  let rec contains (sd:stateenv) (i:ide) (s:statetype) : bool = match sd with
+    | (i',s', _)::_ when i=i' && s=s' -> true
+    | _::tl -> contains tl i s
+    | [] -> false
 end
