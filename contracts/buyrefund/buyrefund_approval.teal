@@ -547,13 +547,6 @@ app_global_get
 bz aclause_7
 
 int 0
-byte "cafe"
-app_global_get_ex
-swap
-pop
-bz aclause_7
-
-int 0
 byte "escrow"
 app_global_get_ex
 swap
@@ -574,6 +567,13 @@ bz aclause_7
 gtxn 0 CloseRemainderTo
 txn Sender
 ==
+bz aclause_7
+
+int 0
+byte "cafe"
+app_global_get_ex
+swap
+pop
 bz aclause_7
 
 int 0
@@ -654,11 +654,6 @@ byte "gstate"
 app_global_get
 byte "@created"
 !=
-byte "gstate"
-app_global_get
-byte "@escrowinited"
-!=
-&&
 bz aclause_8
 
 int 0
