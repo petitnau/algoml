@@ -153,13 +153,13 @@ After the withdrawal wait period has passed, the vault creator can finalize the 
 @gstate requested->waiting
 @round (glob.request_time + glob.wait_time,)
 @from creator
-@pay glob.amount : vault -> glob.receiver
+@pay glob.amount : glob.vault -> glob.receiver
 finalize() { }
 ```
 
 The `finalize` function can only be called by the vault creator, provided that the current state is `requested` and `wait_time` rounds have passed since the `requested_time`. Further, the precondition:
 ```java
-@pay glob.amount : vault -> glob.receiver
+@pay glob.amount : glob.vault -> glob.receiver
 ```
 requires that the function call is bundled with a pay transaction that transfers the amount of algos specified in the request from the vault to the declared receiver. After the function call, the contract state is set to `waiting`.
 
@@ -668,7 +668,7 @@ withdraw(int amount, address receiver) {
 @gstate requesting->waiting
 @round (glob.request_time + glob.wait_time,)
 @from creator
-@pay glob.amount : escrow -> glob.receiver
+@pay glob.amount : glob.vault -> glob.receiver
 finalize() { }
 
 @gstate requesting->waiting

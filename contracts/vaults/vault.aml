@@ -31,7 +31,7 @@ withdraw(int amount, address receiver) {
 @gstate requesting->waiting
 @round (glob.request_time + glob.wait_time,)
 @from creator
-@pay glob.amount : escrow -> glob.receiver
+@pay glob.amount : glob.vault -> glob.receiver
 finalize() { }
 
 @gstate requesting->waiting
