@@ -1,30 +1,35 @@
+glob int curseDuration
+glob int ratePercent
+glob int dethroneFee
+glob int startAmount
+
 glob mut int claimPrice
-glob mut address monarch
 glob mut int curseStart
+glob mut address monarch
 glob mut string kingName
 
-Create create(int start, int dethroneFee, int rate, int curseDuration) {
-	glob.start = start
+Create kotak(int startAmount, int dethroneFee, int ratePercent, int curseDuration) {
+	glob.startAmount = startAmount
 	glob.dethroneFee = dethroneFee
-	glob.rate = rate
+	glob.ratePercent = ratePercent
 	glob.curseDuration = curseDuration
 }
 
-@timestamp (, curseStart + curseDuration)
-@pay dehtroneFee ALGO : * -> global.CreatorAddress
-@pay claimPrice ALGO : * -> monarch
-NoOp dethrone(string kingName) {
-	curseStart = call.Round
-	monarch = caller
+@round (, glob.curseStart + glob.curseDuration)$curr_round
+@pay glob.dethroneFee of ALGO : * -> creator
+@pay glob.claimPrice of ALGO : * -> glob.monarch
+dethrone(string kingName) {
+	glob.curseStart = curr_round
+	glob.monarch = caller
 	glob.kingName = kingName
-	claimPrice *= rate
+	glob.claimPrice = (glob.claimPrice*glob.ratePercent)/100
 }
 
-@timestamp (curseStart + curseDuration, )
-@pay (start+dethroneFee) ALGO : * -> global.CreatorAddress
-NoOp dethrone(string kingName) {
-	curseStart = call.Round
-	monarch = caller
+@round (glob.curseStart + glob.curseDuration, )$curr_round
+@pay (glob.startAmount + glob.dethroneFee) of ALGO : * -> creator
+dethrone(string kingName) {
+	glob.curseStart = curr_round
+	glob.monarch = caller
 	glob.kingName = kingName
-	claimPrice = start*rate
+	glob.claimPrice = (glob.startAmount * glob.ratePercent)/100
 }

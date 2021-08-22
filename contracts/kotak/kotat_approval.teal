@@ -1,0 +1,370 @@
+#pragma version 4
+
+aclause_0:
+
+txn ApplicationID
+int 0
+==
+bz aclause_1
+
+//*******
+
+byte "gstate"
+byte "@created"
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_1:
+
+global GroupSize
+int 1
+==
+bz aclause_2
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_2
+
+txn NumAppArgs
+int 5
+==
+bz aclause_2
+
+txna ApplicationArgs 0
+byte "kotak"
+==
+bz aclause_2
+
+byte "gstate"
+app_global_get
+byte "@created"
+==
+bz aclause_2
+
+txn Sender
+global CreatorAddress
+==
+bz aclause_2
+
+//*******
+
+byte "gstate"
+byte "@inited"
+app_global_put
+
+byte "startAmount"
+txna ApplicationArgs 1
+btoi
+app_global_put
+
+byte "dethroneFee"
+txna ApplicationArgs 2
+btoi
+app_global_put
+
+byte "ratePercent"
+txna ApplicationArgs 3
+btoi
+app_global_put
+
+byte "curseDuration"
+txna ApplicationArgs 4
+btoi
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_2:
+
+global GroupSize
+int 3
+==
+bz aclause_3
+
+gtxn 0 TypeEnum
+int pay
+==
+bz aclause_3
+
+gtxn 1 TypeEnum
+int pay
+==
+bz aclause_3
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_3
+
+txn NumAppArgs
+int 2
+==
+bz aclause_3
+
+txna ApplicationArgs 0
+byte "dethrone"
+==
+bz aclause_3
+
+int 0
+byte "gstate"
+app_global_get_ex
+swap
+pop
+bz aclause_3
+
+byte "gstate"
+app_global_get
+byte "@created"
+!=
+bz aclause_3
+
+int 0
+byte "curseStart"
+app_global_get_ex
+swap
+pop
+bz aclause_3
+
+int 0
+byte "curseDuration"
+app_global_get_ex
+swap
+pop
+bz aclause_3
+
+global Round
+byte "curseStart"
+app_global_get
+byte "curseDuration"
+app_global_get
++
+<=
+bz aclause_3
+
+int 0
+byte "dethroneFee"
+app_global_get_ex
+swap
+pop
+bz aclause_3
+
+gtxn 0 Amount
+byte "dethroneFee"
+app_global_get
+==
+bz aclause_3
+
+gtxn 0 Receiver
+global CreatorAddress
+==
+bz aclause_3
+
+gtxn 0 CloseRemainderTo
+global ZeroAddress
+==
+bz aclause_3
+
+int 0
+byte "claimPrice"
+app_global_get_ex
+swap
+pop
+bz aclause_3
+
+int 0
+byte "monarch"
+app_global_get_ex
+swap
+pop
+bz aclause_3
+
+gtxn 1 Amount
+byte "claimPrice"
+app_global_get
+==
+bz aclause_3
+
+gtxn 1 Receiver
+byte "monarch"
+app_global_get
+==
+bz aclause_3
+
+gtxn 1 CloseRemainderTo
+global ZeroAddress
+==
+bz aclause_3
+
+//*******
+
+byte "curseStart"
+global Round
+app_global_put
+
+byte "monarch"
+txn Sender
+app_global_put
+
+byte "kingName"
+txna ApplicationArgs 1
+app_global_put
+
+byte "claimPrice"
+byte "claimPrice"
+app_global_get
+byte "ratePercent"
+app_global_get
+*
+int 100
+/
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_3:
+
+global GroupSize
+int 2
+==
+bz aclause_4
+
+gtxn 0 TypeEnum
+int pay
+==
+bz aclause_4
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_4
+
+txn NumAppArgs
+int 2
+==
+bz aclause_4
+
+txna ApplicationArgs 0
+byte "dethrone"
+==
+bz aclause_4
+
+int 0
+byte "gstate"
+app_global_get_ex
+swap
+pop
+bz aclause_4
+
+byte "gstate"
+app_global_get
+byte "@created"
+!=
+bz aclause_4
+
+int 0
+byte "curseStart"
+app_global_get_ex
+swap
+pop
+bz aclause_4
+
+int 0
+byte "curseDuration"
+app_global_get_ex
+swap
+pop
+bz aclause_4
+
+global Round
+byte "curseStart"
+app_global_get
+byte "curseDuration"
+app_global_get
++
+>=
+bz aclause_4
+
+int 0
+byte "startAmount"
+app_global_get_ex
+swap
+pop
+bz aclause_4
+
+int 0
+byte "dethroneFee"
+app_global_get_ex
+swap
+pop
+bz aclause_4
+
+gtxn 0 Amount
+byte "startAmount"
+app_global_get
+byte "dethroneFee"
+app_global_get
++
+==
+bz aclause_4
+
+gtxn 0 Receiver
+global CreatorAddress
+==
+bz aclause_4
+
+gtxn 0 CloseRemainderTo
+global ZeroAddress
+==
+bz aclause_4
+
+//*******
+
+byte "curseStart"
+global Round
+app_global_put
+
+byte "monarch"
+txn Sender
+app_global_put
+
+byte "kingName"
+txna ApplicationArgs 1
+app_global_put
+
+byte "claimPrice"
+byte "startAmount"
+app_global_get
+byte "ratePercent"
+app_global_get
+*
+int 100
+/
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_4:
+
+//*******
+
+fail:
+
+err
+
+int 1
+return
