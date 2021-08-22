@@ -1,0 +1,725 @@
+#pragma version 4
+
+aclause_0:
+
+txn ApplicationID
+int 0
+==
+bz aclause_1
+
+//*******
+
+byte "gstate"
+byte "@created"
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_1:
+
+global GroupSize
+int 2
+==
+bz aclause_2
+
+gtxn 0 TypeEnum
+int pay
+==
+bz aclause_2
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_2
+
+txn NumAppArgs
+int 1
+==
+bz aclause_2
+
+txna ApplicationArgs 0
+byte "init_escrow"
+==
+bz aclause_2
+
+txn Sender
+global CreatorAddress
+==
+bz aclause_2
+
+byte "gstate"
+app_global_get
+byte "@created"
+==
+bz aclause_2
+
+gtxn 0 Amount
+int 100000
+==
+bz aclause_2
+
+gtxn 0 Sender
+gtxn 0 Receiver
+!=
+bz aclause_2
+
+gtxn 0 CloseRemainderTo
+global ZeroAddress
+==
+bz aclause_2
+
+//*******
+
+byte "gstate"
+byte "@escrowinited"
+app_global_put
+
+byte "escrow"
+gtxn 0 Receiver
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_2:
+
+global GroupSize
+int 1
+==
+bz aclause_3
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_3
+
+txn NumAppArgs
+int 6
+==
+bz aclause_3
+
+txna ApplicationArgs 0
+byte "crowdfund"
+==
+bz aclause_3
+
+byte "gstate"
+app_global_get
+byte "@escrowinited"
+==
+bz aclause_3
+
+txn Sender
+global CreatorAddress
+==
+bz aclause_3
+
+//*******
+
+byte "gstate"
+byte "@inited"
+app_global_put
+
+byte "startDate"
+txna ApplicationArgs 1
+btoi
+app_global_put
+
+byte "endDate"
+txna ApplicationArgs 2
+btoi
+app_global_put
+
+byte "fundCloseDate"
+txna ApplicationArgs 3
+btoi
+app_global_put
+
+byte "goal"
+txna ApplicationArgs 4
+btoi
+app_global_put
+
+byte "receiver"
+txna ApplicationArgs 5
+app_global_put
+
+byte "donated_total"
+int 0
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_3:
+
+global GroupSize
+int 1
+==
+bz aclause_4
+
+txn OnCompletion
+int OptIn
+==
+bz aclause_4
+
+txn NumAppArgs
+int 1
+==
+bz aclause_4
+
+txna ApplicationArgs 0
+byte "optin"
+==
+bz aclause_4
+
+int 0
+byte "gstate"
+app_global_get_ex
+swap
+pop
+bz aclause_4
+
+byte "gstate"
+app_global_get
+byte "@created"
+!=
+byte "gstate"
+app_global_get
+byte "@escrowinited"
+!=
+&&
+bz aclause_4
+
+//*******
+
+txn Sender
+byte "donated_local"
+int 0
+app_local_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_4:
+
+global GroupSize
+int 2
+==
+bz aclause_5
+
+gtxn 0 TypeEnum
+int pay
+==
+bz aclause_5
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_5
+
+txn NumAppArgs
+int 1
+==
+bz aclause_5
+
+txna ApplicationArgs 0
+byte "donate"
+==
+bz aclause_5
+
+int 0
+byte "gstate"
+app_global_get_ex
+swap
+pop
+bz aclause_5
+
+byte "gstate"
+app_global_get
+byte "@created"
+!=
+byte "gstate"
+app_global_get
+byte "@escrowinited"
+!=
+&&
+bz aclause_5
+
+int 0
+byte "startDate"
+app_global_get_ex
+swap
+pop
+bz aclause_5
+
+int 0
+byte "endDate"
+app_global_get_ex
+swap
+pop
+bz aclause_5
+
+global Round
+byte "startDate"
+app_global_get
+>=
+global Round
+byte "endDate"
+app_global_get
+<=
+&&
+bz aclause_5
+
+int 0
+byte "escrow"
+app_global_get_ex
+swap
+pop
+bz aclause_5
+
+gtxn 0 Sender
+byte "escrow"
+app_global_get
+!=
+bz aclause_5
+
+gtxn 0 Receiver
+byte "escrow"
+app_global_get
+==
+bz aclause_5
+
+gtxn 0 CloseRemainderTo
+global ZeroAddress
+==
+bz aclause_5
+
+//*******
+
+byte "donated_total"
+byte "donated_total"
+app_global_get
+gtxn 0 Amount
++
+app_global_put
+
+txn Sender
+byte "donated_local"
+txn Sender
+byte "donated_local"
+app_local_get
+gtxn 0 Amount
++
+app_local_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_5:
+
+global GroupSize
+int 2
+==
+bz aclause_6
+
+gtxn 0 TypeEnum
+int pay
+==
+bz aclause_6
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_6
+
+txn NumAppArgs
+int 1
+==
+bz aclause_6
+
+txna ApplicationArgs 0
+byte "reclaim"
+==
+bz aclause_6
+
+int 0
+byte "gstate"
+app_global_get_ex
+swap
+pop
+bz aclause_6
+
+byte "gstate"
+app_global_get
+byte "@created"
+!=
+byte "gstate"
+app_global_get
+byte "@escrowinited"
+!=
+&&
+bz aclause_6
+
+int 0
+byte "donated_total"
+app_global_get_ex
+swap
+pop
+bz aclause_6
+
+int 0
+byte "goal"
+app_global_get_ex
+swap
+pop
+bz aclause_6
+
+byte "donated_total"
+app_global_get
+byte "goal"
+app_global_get
+<
+bz aclause_6
+
+int 0
+byte "endDate"
+app_global_get_ex
+swap
+pop
+bz aclause_6
+
+global Round
+byte "endDate"
+app_global_get
+>=
+bz aclause_6
+
+txn Sender
+int 0
+byte "donated_local"
+app_local_get_ex
+swap
+pop
+bz aclause_6
+
+int 0
+byte "escrow"
+app_global_get_ex
+swap
+pop
+bz aclause_6
+
+gtxn 0 Amount
+txn Sender
+byte "donated_local"
+app_local_get
+<=
+bz aclause_6
+
+gtxn 0 Sender
+byte "escrow"
+app_global_get
+==
+bz aclause_6
+
+gtxn 0 Receiver
+txn Sender
+==
+bz aclause_6
+
+gtxn 0 CloseRemainderTo
+global ZeroAddress
+==
+bz aclause_6
+
+//*******
+
+txn Sender
+byte "donated_local"
+txn Sender
+byte "donated_local"
+app_local_get
+gtxn 0 Amount
+-
+app_local_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_6:
+
+global GroupSize
+int 2
+==
+bz aclause_7
+
+gtxn 0 TypeEnum
+int pay
+==
+bz aclause_7
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_7
+
+txn NumAppArgs
+int 1
+==
+bz aclause_7
+
+txna ApplicationArgs 0
+byte "claim"
+==
+bz aclause_7
+
+int 0
+byte "gstate"
+app_global_get_ex
+swap
+pop
+bz aclause_7
+
+byte "gstate"
+app_global_get
+byte "@created"
+!=
+byte "gstate"
+app_global_get
+byte "@escrowinited"
+!=
+&&
+bz aclause_7
+
+int 0
+byte "donated_total"
+app_global_get_ex
+swap
+pop
+bz aclause_7
+
+int 0
+byte "goal"
+app_global_get_ex
+swap
+pop
+bz aclause_7
+
+byte "donated_total"
+app_global_get
+byte "goal"
+app_global_get
+>=
+bz aclause_7
+
+int 0
+byte "endDate"
+app_global_get_ex
+swap
+pop
+bz aclause_7
+
+global Round
+byte "endDate"
+app_global_get
+>=
+bz aclause_7
+
+int 0
+byte "donated_total"
+app_global_get_ex
+swap
+pop
+bz aclause_7
+
+int 0
+byte "escrow"
+app_global_get_ex
+swap
+pop
+bz aclause_7
+
+int 0
+byte "receiver"
+app_global_get_ex
+swap
+pop
+bz aclause_7
+
+gtxn 0 Amount
+byte "donated_total"
+app_global_get
+==
+bz aclause_7
+
+gtxn 0 Sender
+byte "escrow"
+app_global_get
+==
+bz aclause_7
+
+gtxn 0 Receiver
+byte "receiver"
+app_global_get
+==
+bz aclause_7
+
+gtxn 0 CloseRemainderTo
+global ZeroAddress
+==
+bz aclause_7
+
+//*******
+
+byte "donated_total"
+int 0
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_7:
+
+global GroupSize
+int 2
+==
+bz aclause_8
+
+gtxn 0 TypeEnum
+int pay
+==
+bz aclause_8
+
+txn OnCompletion
+int DeleteApplication
+==
+bz aclause_8
+
+txn NumAppArgs
+int 1
+==
+bz aclause_8
+
+txna ApplicationArgs 0
+byte "delete"
+==
+bz aclause_8
+
+int 0
+byte "gstate"
+app_global_get_ex
+swap
+pop
+bz aclause_8
+
+byte "gstate"
+app_global_get
+byte "@created"
+!=
+byte "gstate"
+app_global_get
+byte "@escrowinited"
+!=
+&&
+bz aclause_8
+
+int 0
+byte "donated_total"
+app_global_get_ex
+swap
+pop
+bz aclause_8
+
+int 0
+byte "goal"
+app_global_get_ex
+swap
+pop
+bz aclause_8
+
+byte "donated_total"
+app_global_get
+int 0
+==
+byte "donated_total"
+app_global_get
+byte "goal"
+app_global_get
+<=
+||
+bz aclause_8
+
+int 0
+byte "fundCloseDate"
+app_global_get_ex
+swap
+pop
+bz aclause_8
+
+global Round
+byte "fundCloseDate"
+app_global_get
+>=
+bz aclause_8
+
+int 0
+byte "escrow"
+app_global_get_ex
+swap
+pop
+bz aclause_8
+
+gtxn 0 Amount
+int 0
+==
+bz aclause_8
+
+gtxn 0 Sender
+byte "escrow"
+app_global_get
+==
+bz aclause_8
+
+gtxn 0 CloseRemainderTo
+global CreatorAddress
+==
+bz aclause_8
+
+txn Sender
+global CreatorAddress
+==
+bz aclause_8
+
+//*******
+
+int 1
+return
+
+//--------------------------------
+
+aclause_8:
+
+//*******
+
+fail:
+
+err
+
+int 1
+return
