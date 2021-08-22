@@ -1,0 +1,68 @@
+#pragma version 3
+
+call_0:
+
+gtxn 0 TypeEnum
+int appl
+==
+bz call_1
+
+gtxn 0 ApplicationID
+int <APP-ID>
+==
+bnz app_called
+
+call_1:
+
+gtxn 1 TypeEnum
+int appl
+==
+bz call_2
+
+gtxn 1 ApplicationID
+int <APP-ID>
+==
+bnz app_called
+
+call_2:
+
+gtxn 2 TypeEnum
+int appl
+==
+bz call_3
+
+gtxn 2 ApplicationID
+int <APP-ID>
+==
+bnz app_called
+
+call_3:
+
+err
+
+app_called:
+
+txn TypeEnum
+int pay
+==
+bz not_call
+
+not_call:
+
+txn ApplicationID
+int <APP-ID>
+!=
+assert
+
+txn RekeyTo
+global ZeroAddress
+==
+assert
+
+txn Fee
+int 0
+==
+assert
+
+int 1
+return

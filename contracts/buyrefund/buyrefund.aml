@@ -1,28 +1,31 @@
-token CAFE = 0xcafe
-
 glob int roundLimit
+glob token cafe
+loc mut int bought_amount
 
-Create create(int roundLimit) {
+Create create(int roundLimit, token cafe) {
     glob.roundLimit = roundLimit
+    glob.cafe = cafe
 }
 
 OptIn optin() {}
 
-@pay $algoAmount ALGO : sender -> escrow
-@pay $cafeAmount CAFE : escrow -> sender
+@pay $algoAmount of ALGO : caller -> escrow
+@pay $cafeAmount of glob.cafe : escrow -> caller
 @assert algoAmount*2 == cafeAmount*3 
-NoOp buy() {}
+NoOp buy() {
+    loc.bought_amount += cafeAmount
+}
 
-@from $sender
-@round (, roundLimit)
-@pay (, escrow.local)$algoAmount ALGO : escrow -> sender
-@pay $cafeAmount CAFE : sender -> escrow
+@round (, glob.roundLimit)
+@pay (, loc.bought_amount)$algoAmount of ALGO : escrow -> caller
+@pay $cafeAmount of glob.cafe : caller -> escrow
 @assert algoAmount*2 == cafeAmount*3 
-NoOp refund() {}
+NoOp refund() {
+    loc.bought_amount -= cafeAmount
+}
 
-@from $sender
-@round (roundLimit, )
-@close ALGO : escrow -> sender
-@close CAFE : escrow -> sender
-@from global.Creator
+@round (glob.roundLimit, )
+@close glob.cafe : escrow -> caller
+@close ALGO : escrow -> caller
+@from creator
 Delete delete() {}
