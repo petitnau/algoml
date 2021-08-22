@@ -199,27 +199,21 @@ let precomp (p:contract) (sd:stateenv) : contract * stateenv =
         PayClause(FixedPattern(EInt(0), None), AnyPattern(None), FixedPattern(Escrow, None), FixedPattern(Escrow, None));
         FunctionClause(NoOp, Ide("optin_token"), [], [])]
     ]) in
-    (* TODO
-    All aclauses should have a == @inited if no state
-    create clause should check that gstate = @escrowinited if escrow is used (so any ->x becomes @escinitd->x) and go to @inited if none are assigned
-      If no escrow, then create should become @created->@inited / @created->@x
-    init_escrow has @created->@escrowinited
-    *)
-    let p = map_contract None None None None (Some (fun ao ->
-      match is_escrow_used p, get_gstate ao, is_create_aclause ao with
-      | false, None, false -> [AssertClause(CBop(Neq, Val(GlobVar(Ide("gstate"))), EString("@created")))]@ao
-      | true, None, false -> [AssertClause(LBop(And, CBop(Neq, Val(GlobVar(Ide("gstate"))), EString("@created")), CBop(Neq, Val(GlobVar(Ide("gstate"))), EString("@escrowinited"))))]@ao
-      | false, None, true -> [StateClause(TGlob, Some(Ide("@created")), Some(Ide("@inited")))]@ao
-      | true, None, true -> [StateClause(TGlob, Some(Ide("@escrowinited")), Some(Ide("@inited")))]@ao
-      | false, Some(StateClause(TGlob, None, new_state)), true -> [StateClause(TGlob, Some(Ide("@created")), new_state)]@(remove_gstate ao)
-      | true, Some(StateClause(TGlob, None, new_state)), true -> [StateClause(TGlob, Some(Ide("@escrowinited")), new_state)]@(remove_gstate ao)
-      | _, Some(StateClause(TLoc,_,_)), _ -> failwith "get_gstate returned an lstate"
-      | _, _, _ -> ao
-    )) p in
     p
-  in
+  in  
+  let p'' = map_contract None None None None (Some (fun ao ->
+    match is_escrow_used p, get_gstate ao, is_create_aclause ao with
+    | false, None, false -> [AssertClause(CBop(Neq, Val(GlobVar(Ide("gstate"))), EString("@created")))]@ao
+    | true, None, false -> [AssertClause(LBop(And, CBop(Neq, Val(GlobVar(Ide("gstate"))), EString("@created")), CBop(Neq, Val(GlobVar(Ide("gstate"))), EString("@escrowinited"))))]@ao
+    | false, None, true -> [StateClause(TGlob, Some(Ide("@created")), Some(Ide("@inited")))]@ao
+    | true, None, true -> [StateClause(TGlob, Some(Ide("@escrowinited")), Some(Ide("@inited")))]@ao
+    | false, Some(StateClause(TGlob, None, new_state)), true -> [StateClause(TGlob, Some(Ide("@created")), new_state)]@(remove_gstate ao)
+    | true, Some(StateClause(TGlob, None, new_state)), true -> [StateClause(TGlob, Some(Ide("@escrowinited")), new_state)]@(remove_gstate ao)
+    | _, Some(StateClause(TLoc,_,_)), _ -> failwith "get_gstate returned an lstate"
+    | _, _, _ -> ao
+  )) p' in
   let sd' = if is_escrow_used p then StateEnv.bind sd (Ide("escrow"), TGlob) Immutable else sd in
-  p', sd'
+  p'', sd'
 
 let comp_escrow (len:int) : tealcmd = 
   let check_txnappl i = OPSeq([OPLabel(Printf.sprintf "call_%d" i); OPBz(OPCbop(Eq, OPGtxn(i, TFTypeEnum), OPTypeEnum(TEAppl)), Printf.sprintf "call_%d" (i+1)); OPBnz(OPCbop(Eq, OPGtxn(i, TFApplicationID), OPELiteral("int <APP-ID>")), "app_called")]) in
