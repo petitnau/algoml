@@ -149,7 +149,7 @@ byte "receiver"
 txna ApplicationArgs 5
 app_global_put
 
-byte "donated_total"
+byte "total_funds"
 int 0
 app_global_put
 
@@ -201,7 +201,7 @@ bz aclause_4
 //*******
 
 txn Sender
-byte "donated_local"
+byte "donated_amount"
 int 0
 app_local_put
 
@@ -306,17 +306,17 @@ bz aclause_5
 
 //*******
 
-byte "donated_total"
-byte "donated_total"
+byte "total_funds"
+byte "total_funds"
 app_global_get
 gtxn 0 Amount
 +
 app_global_put
 
 txn Sender
-byte "donated_local"
+byte "donated_amount"
 txn Sender
-byte "donated_local"
+byte "donated_amount"
 app_local_get
 gtxn 0 Amount
 +
@@ -373,7 +373,7 @@ byte "@escrowinited"
 bz aclause_6
 
 int 0
-byte "donated_total"
+byte "total_funds"
 app_global_get_ex
 swap
 pop
@@ -386,7 +386,7 @@ swap
 pop
 bz aclause_6
 
-byte "donated_total"
+byte "total_funds"
 app_global_get
 byte "goal"
 app_global_get
@@ -408,7 +408,7 @@ bz aclause_6
 
 txn Sender
 int 0
-byte "donated_local"
+byte "donated_amount"
 app_local_get_ex
 swap
 pop
@@ -423,7 +423,7 @@ bz aclause_6
 
 gtxn 0 Amount
 txn Sender
-byte "donated_local"
+byte "donated_amount"
 app_local_get
 <=
 bz aclause_6
@@ -446,10 +446,17 @@ bz aclause_6
 
 //*******
 
+byte "total_funds"
+byte "total_funds"
+app_global_get
+gtxn 0 Amount
+-
+app_global_put
+
 txn Sender
-byte "donated_local"
+byte "donated_amount"
 txn Sender
-byte "donated_local"
+byte "donated_amount"
 app_local_get
 gtxn 0 Amount
 -
@@ -506,7 +513,7 @@ byte "@escrowinited"
 bz aclause_7
 
 int 0
-byte "donated_total"
+byte "total_funds"
 app_global_get_ex
 swap
 pop
@@ -519,7 +526,7 @@ swap
 pop
 bz aclause_7
 
-byte "donated_total"
+byte "total_funds"
 app_global_get
 byte "goal"
 app_global_get
@@ -540,7 +547,7 @@ app_global_get
 bz aclause_7
 
 int 0
-byte "donated_total"
+byte "total_funds"
 app_global_get_ex
 swap
 pop
@@ -561,7 +568,7 @@ pop
 bz aclause_7
 
 gtxn 0 Amount
-byte "donated_total"
+byte "total_funds"
 app_global_get
 ==
 bz aclause_7
@@ -585,7 +592,7 @@ bz aclause_7
 
 //*******
 
-byte "donated_total"
+byte "total_funds"
 int 0
 app_global_put
 
@@ -640,7 +647,7 @@ byte "@escrowinited"
 bz aclause_8
 
 int 0
-byte "donated_total"
+byte "total_funds"
 app_global_get_ex
 swap
 pop
@@ -653,16 +660,11 @@ swap
 pop
 bz aclause_8
 
-byte "donated_total"
-app_global_get
-int 0
-==
-byte "donated_total"
+byte "total_funds"
 app_global_get
 byte "goal"
 app_global_get
-<=
-||
+<
 bz aclause_8
 
 int 0
