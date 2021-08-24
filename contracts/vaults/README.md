@@ -83,13 +83,12 @@ The variables `wait_time`, `recovery` and `vault` are initialized at contract cr
 
 The escrow account used by the vault is a stateless contract that releases funds provided that:
 1. the stateful contract participates in the transaction group
-1. the escrow does not pay any transaction fees
-1. the escrow does not send a rekey transaction
+2. the escrow does not pay any transaction fees
+3. the escrow does not send a rekey transaction
 
 ## Creating the vault
 
 Any user can create a vault, providing the recovery address and the withdrawal wait time. 
-<!-- Once the contract gets created, the user will need to provide the escrow account address (it won't be possible to provide it on creation, since the escrow account needs the application ID). -->
 
 We specify the behaviour of this action in AlgoML as follows:
 ```java
