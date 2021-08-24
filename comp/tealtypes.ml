@@ -105,3 +105,8 @@ and txnfield =
 | TFApplications
 | TFNumApplications
 | TFConfigAssetTotal
+| TFConfigAssetDecimals
+| TFConfigAssetManager
+| TFConfigAssetReserve
+| TFConfigAssetFreeze
+| TFConfigAssetClawback

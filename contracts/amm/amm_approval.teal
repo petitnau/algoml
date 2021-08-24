@@ -231,6 +231,31 @@ int 1000000
 ==
 bz aclause_3
 
+gtxn 3 ConfigAssetDecimals
+int 0
+==
+bz aclause_3
+
+gtxn 3 ConfigAssetManager
+byte ""
+==
+bz aclause_3
+
+gtxn 3 ConfigAssetReserve
+byte ""
+==
+bz aclause_3
+
+gtxn 3 ConfigAssetFreeze
+byte ""
+==
+bz aclause_3
+
+gtxn 3 ConfigAssetClawback
+byte ""
+==
+bz aclause_3
+
 gtxn 3 Sender
 byte "escrow"
 app_global_get

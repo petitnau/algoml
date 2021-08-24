@@ -139,8 +139,15 @@ let comp_clause (o:clause) (txnid:int) (_:int) (sd:stateenv) (nd:normenv) : teal
     let check_receiver_fund = comp_pattern (FixedPattern(Escrow, None)) (OPGtxn(txnid, TFReceiver)) sd nd in
     let check_txntype_create = OPAssertSkip(OPCbop(Eq, OPGtxn(txnid+1, TFTypeEnum), OPTypeEnum(TEAcfg))) in
     let check_amount_create = comp_pattern amt (OPGtxn(txnid+1, TFConfigAssetTotal)) sd nd in
+    let check_decimals_create = comp_pattern (FixedPattern(EInt(0), None)) (OPGtxn(txnid+1, TFConfigAssetDecimals)) sd nd in
+    let check_manager_create = comp_pattern (FixedPattern(EString(""), None)) (OPGtxn(txnid+1, TFConfigAssetManager)) sd nd in
+    let check_reserve_create = comp_pattern (FixedPattern(EString(""), None)) (OPGtxn(txnid+1, TFConfigAssetReserve)) sd nd in
+    let check_freeze_create = comp_pattern (FixedPattern(EString(""), None)) (OPGtxn(txnid+1, TFConfigAssetFreeze)) sd nd in
+    let check_clawback_create = comp_pattern (FixedPattern(EString(""), None)) (OPGtxn(txnid+1, TFConfigAssetClawback)) sd nd in
     let check_sender_create = comp_pattern xto (OPGtxn(txnid+1, TFSender)) sd nd in
-    [check_txntype_fund; check_txntype_create], [check_amount_fund; check_sender_fund; check_receiver_fund; check_amount_create; check_sender_create], []
+    [check_txntype_fund; check_txntype_create], 
+    [check_amount_fund; check_sender_fund; check_receiver_fund; 
+      check_amount_create; check_decimals_create; check_manager_create; check_reserve_create; check_freeze_create; check_clawback_create; check_sender_create], []
 
   | FunctionClause(onc, Ide(fn), pl, cl) ->
     let check_creator = if onc = Create then OPAssertSkip(OPCbop(Eq, OPTxn(TFSender), OPGlobal(GFCreatorAddress))) else OPNoop in
