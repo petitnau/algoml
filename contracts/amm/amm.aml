@@ -4,64 +4,68 @@ glob token minted_t
 glob mut int r0
 glob mut int r1
 glob mut int minted_supply
-loc mut int t0_redeemable
-loc mut int t1_redeemable
-loc mut int minted_redeemable
+loc mut int t0_reserved
+loc mut int t1_reserved
+loc mut int minted_reserved
 
 @pay $v0 of t0 : caller -> escrow
 @pay $v1 of t1 : caller -> escrow
 @newtok 1000000 of $minted_t -> escrow  
-@pay v0 of minted_t : escrow -> caller
+@pay $minted_v of minted_t : escrow -> caller
 Create amm(token t0, token t1) {
     glob.t0 = t0
     glob.t1 = t1
     glob.minted_t = minted_t
     glob.r0 = v0
     glob.r1 = v1
-    glob.minted_supply = v0
+    glob.minted_supply = minted_v
+}
+
+OptIn optin() {
+    loc.t0_reserved = 0
+    loc.t1_reserved = 0
+    loc.minted_reserved = 0
 }
 
 @pay $v0 of glob.t0 : * -> escrow
 @pay $v1 of glob.t1 : * -> escrow
-@assert v0 / glob.r0 * glob.minted_supply >= x && x > 0
+@assert v0 / glob.r0 * glob.minted_supply >= lowb && lowb > 0
 @assert glob.r1 * v0 == glob.r0 * v1
-dep_lock(int x) {
+dep(int lowb) {
     glob.minted_supply += v0 / glob.r0 * glob.minted_supply
-    loc.minted_redeemable += v0 / glob.r0 * glob.minted_supply
-}
-
-@pay loc.minted_redeemable of glob.minted_t : escrow -> *   
-dep() {
-    loc.minted_redeemable = 0
+    loc.minted_reserved += v0 / glob.r0 * glob.minted_supply
 }
 
 @pay $v0 of glob.t0 : * -> escrow
 @assert (glob.r1 * v0) / (glob.r0 + v0) >= lowb && lowb > 0
-swap0_lock(int d, int lowb) {
-	loc.t1_redeemable += (glob.r1 * v0) / (glob.r0 + v0)
+swap0(int lowb) {
+	loc.t1_reserved += (glob.r1 * v0) / (glob.r0 + v0)
 	glob.r1 -= (glob.r1 * v0) / (glob.r0 + v0)
 	glob.r0 += v0
-}
-
-@pay loc.t1_redeemable of glob.t1 : escrow -> *
-swap0() {
-    loc.t1_redeemable = 0
 }
 
 @pay $v of glob.minted_t : * -> escrow
 @assert v * glob.r0 / glob.minted_supply >= v0_lowb && v0_lowb > 0
 @assert v * glob.r1 / glob.minted_supply >= v1_lowb && v1_lowb > 0
-redeem_lock(int v0_lowb, int v1_lowb) {
+redeem(int v0_lowb, int v1_lowb) {
     glob.r0 -= v * glob.r0 / glob.minted_supply
     glob.r1 -= v * glob.r1 / glob.minted_supply
-    loc.t0_redeemable += v * glob.r0 / glob.minted_supply
-    loc.t1_redeemable += v * glob.r1 / glob.minted_supply
+    loc.t0_reserved += v * glob.r0 / glob.minted_supply
+    loc.t1_reserved += v * glob.r1 / glob.minted_supply
     glob.minted_supply -= v
 }
 
-@pay loc.t1_redeemable of glob.t0 : escrow -> *
-@pay loc.t1_redeemable of glob.t1 : escrow -> *
-redeem() {
-    loc.t0_redeemable = 0
-    loc.t1_redeemable = 0
+@pay loc.minted_reserved of glob.minted_t : escrow -> *   
+get_minted_t() {
+    loc.minted_reserved = 0
+}
+
+@pay loc.t0_reserved of glob.t0 : escrow -> *
+get_t0() {
+    loc.t0_reserved = 0
+}
+
+@pay loc.t1_reserved of glob.t1 : escrow -> *
+get_t1() {
+    loc.t1_reserved = 0
 }
