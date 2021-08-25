@@ -13,7 +13,7 @@ Global variables:
 * `t0` and `t1` are the two tokens traded in the AMM
 * `ro` and `r1` are the amount of `t0` and `t1` stored in the AMM
 * `minted_t` is the token minted by the contract
-* `minted_supply` is the circulating amount of `minted_t` (the minted units, not held by the AMM)
+* `minted_supply` is the circulating amount of `minted_t` (the minted units not held by the AMM)
 
 Local variables:
 
@@ -29,7 +29,7 @@ The escrow account used by the AMM is a stateless contract that releases assets 
 
 ## Creating the AMM
 
-Any user can create an AMM, providing the two tokens (namely t0 and t1) that are going to be traded, while also sending some amount of both. The creator in return, will receive a certain amount of minted tokens based on how many units of t0 and t1 they sent.
+Any user can create an AMM by providing the two tokens (namely t0 and t1) that are going to be traded, while also sending some amount of both. The creator in return, will receive a certain amount of minted tokens.
 
 ```java
 @pay $v0 of t0 : caller -> escrow
@@ -50,7 +50,7 @@ The function has two parameters, the two tokens that will be traded: `t0` and `t
 
 To call the function, the creator must send two pay transactions of the assets `t0` and `t1` from them to the escrow. 
 
-The creator must also create a new token with 1'000'000 units, which will be stored in the escrow account. They must also receive some amount of `minted_t` from the escrow. The amount of `minted_t` units received is irrelevant, so the creator is free to choose any amount.
+The creator must also create a new token with 1'000'000 units (ideally we would want to create an infinite number of tokens, but since this is not possible, we have to choose a big enough value), which will be stored in the escrow account. They must also receive some amount of `minted_t` from the escrow. The amount of `minted_t` units received is irrelevant, so the creator is free to choose any amount.
 
 ## Opting in
 
@@ -84,9 +84,9 @@ dep(int lowb) {
 }
 ```
 
-The dep_lock function has a single parameter: the lower bound on how many minted_token they can receive.
+The `dep` function has a single parameter: the lower bound on how many minted_token they can receive.
 To call this function, the user must send two payments to the escrow: one of the token `t0`, and one of the token `t1` (much alike the create function). When these tokens are added to the escrow account, the ratio between the tokens `t0` and `t1` must not change, and therefore, the ratio between the amount of tokens `t0` sent, and the amount of tokens `t1` sent, must be the same as the ratio between `r0` and `r1`. 
-The function, also checks that the lower bound is respected (`v0 / glob.r0 * glob.minted_supply >= lowb`). If this check fails, the function is not called.
+The function, also checks that the lower bound of received minted tokens tokens is respected (`v0 / glob.r0 * glob.minted_supply >= lowb`). If this check fails, the function is not called.
 
 When the function is called succesfully, the `minted_supply` gets increased by the amount of `minted_tokens` that the AMM will reserve for the user (even though the AMM still hasn't sent those tokens), and the `minted_reserved` gets increased by the same amount.
 
@@ -94,7 +94,7 @@ It is up to the caller to actually redeem the reserved tokens with a later call 
 
 ## Swapping assets
 
-If a user is in possess of some amount of `t0` but wants to trade it with some amount of `t1`, they can do so by using the swap operation. The same holds for the opposite direction, and its implementation is dual. 
+If a user is in possess of some amount of `t0` but wants to trade them with some amount of `t1`, they can do so by using the swap operation. The same holds in the opposite direction, and its implementation is dual. 
 
 Here, we will cover `swap0`: the operation that swaps units of `t0` on the caller account, for units of `t1` in the AMM.
 
@@ -108,9 +108,9 @@ swap0 (int lowb) {
 }
 ```
 
-The function has a single parameter: the lower bound on how many units of `t1` they can receive. To call this function the caller must send a payment to the escrow of the token `t0`. The contract checks if the amount of tokens reserved (equal to `(glob.r1 * v0) / (glob.r0 + v0)`) is higher than the lower bound `lowb`.
+The function has a single parameter: the lower bound on how many units of `t1` they can receive. To call this function the caller must send a payment to the escrow of the token `t0`. The contract checks if the amount of tokens that they would reserve (equal to `(glob.r1 * v0) / (glob.r0 + v0)`) is higher than the lower bound `lowb`. If this check fails, the function won't be called.
 
-When called, `r0` is increased by `v0` (since the user sent `v0` tokens to the AMM), `t1_reserved` is increased by the reserved amount (giving the user the ability to redeem the reserved units of `t1`), and `r1` is decreased by the same amount (since the AMM no longer owns those units).
+When called succesfully, `r0` is increased by `v0` (since the user sent `v0` tokens to the AMM), `t1_reserved` is increased by the reserved amount (giving the user the ability to redeem the reserved units of `t1`), and `r1` is decreased by the same amount (since the AMM no longer owns those units).
 
 ## Redeeming assets
 
@@ -129,9 +129,9 @@ redeem(int v0_lowb, int v1_lowb) {
 
 ```
 
-To call the redeem function, the user must send some amount of `minted_t` tokens to the escrow account. The user must also pass two parameters: the lower bound of the token `t0`, and the lower bound of the token `t1`. When called, those two lower bounds must be respected (the amount of units of `t0` reserved must be at least `v0_lowb`, and the amount of units of `t1` must be at least `v1_owb`). 
+To call the redeem function, the user must send some amount of `minted_t` tokens to the escrow account. The user must also pass two parameters: the lower bound of the token `t0`, and the lower bound of the token `t1`. When called, those two lower bounds must be respected: the amount of units of `t0` reserved must be at least `v0_lowb`, and the amount of units of `t1` must be at least `v1_owb`. 
 
-When all these preconditions are met, the function body updates `r0` and `r1` (removing the reserved tokens), `t0_reserved` and `t1_reserved` (adding the reserved tokens), and `minted_supply` (since those minted tokens do not circulate anymore).
+When all these preconditions are met, the function body updates `r0` and `r1` (removing the reserved tokens from the AMM balance), `t0_reserved` and `t1_reserved` (adding the reserved tokens), and `minted_supply` (removing those minted tokens that do not circulate anymore).
 
 ## Redeeming the reserved tokens
 
@@ -154,11 +154,9 @@ get_t1() {
 }
 ```
 
-Each of those functions checks if the caller is receiving a payment from the escrow of the amount to redeem of a chosen token. 
-
-When called, the reserved amount of that chosen token is set to 0.
+Each of those functions checks if the caller is receiving a payment from the escrow of the reserved amount of that particular token.
+When called, the reserved amount of the chosen token is set to 0.
 
 # Disclaimer
 
 The project is not audited and should not be used in a production environment.
-
