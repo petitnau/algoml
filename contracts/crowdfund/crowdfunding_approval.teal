@@ -125,17 +125,17 @@ byte "gstate"
 byte "@inited"
 app_global_put
 
-byte "startDate"
+byte "start_date"
 txna ApplicationArgs 1
 btoi
 app_global_put
 
-byte "endDate"
+byte "end_date"
 txna ApplicationArgs 2
 btoi
 app_global_put
 
-byte "fundCloseDate"
+byte "fund_close_date"
 txna ApplicationArgs 3
 btoi
 app_global_put
@@ -256,25 +256,25 @@ byte "@escrowinited"
 bz aclause_5
 
 int 0
-byte "startDate"
+byte "start_date"
 app_global_get_ex
 swap
 pop
 bz aclause_5
 
 int 0
-byte "endDate"
+byte "end_date"
 app_global_get_ex
 swap
 pop
 bz aclause_5
 
 global Round
-byte "startDate"
+byte "start_date"
 app_global_get
 >=
 global Round
-byte "endDate"
+byte "end_date"
 app_global_get
 <=
 &&
@@ -394,14 +394,14 @@ app_global_get
 bz aclause_6
 
 int 0
-byte "endDate"
+byte "end_date"
 app_global_get_ex
 swap
 pop
 bz aclause_6
 
 global Round
-byte "endDate"
+byte "end_date"
 app_global_get
 >=
 bz aclause_6
@@ -534,14 +534,14 @@ app_global_get
 bz aclause_7
 
 int 0
-byte "endDate"
+byte "end_date"
 app_global_get_ex
 swap
 pop
 bz aclause_7
 
 global Round
-byte "endDate"
+byte "end_date"
 app_global_get
 >=
 bz aclause_7
@@ -668,14 +668,14 @@ app_global_get
 bz aclause_8
 
 int 0
-byte "fundCloseDate"
+byte "fund_close_date"
 app_global_get_ex
 swap
 pop
 bz aclause_8
 
 global Round
-byte "fundCloseDate"
+byte "fund_close_date"
 app_global_get
 >=
 bz aclause_8

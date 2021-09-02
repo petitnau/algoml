@@ -2,15 +2,28 @@
 
 This contract is an AlgoML version of the [crowdfunding contract](https://developer.algorand.org/solutions/example-crowdfunding-stateful-smart-contract-application/) by Jason Weathersby, with slight modifications.
 
+Crowdfunding applications are a great way to gain some money for a project.
+A typical crowdfunding application is based on three actors: 
+
+- the *project creator*, which defines the project, the amount of funds needed and a time window, 
+- the *donators*, who donate money to the project,
+- a *middle man*, which holds the donated funds until the time window defined by the project creator ends. 
+  
+Often, crowdfunding applications work with a model called all-or-nothing, which means that if the goal is not reached in time, the project creator does not receive the donated funds, and instead the donators can claim their money back.
+
+With the aid of smart contracts, the need of a trusted middleman is eliminated, as the contract itself can keep the funds secure until the end of the donation phase.
+
+Popular examples of crowdfunding applications are [Kickstarter](https://www.kickstarter.com/), [Indiegogo](https://www.indiegogo.com/), and [GoFundMe](https://www.gofundme.com/).
+
 ## Contract state
 
 The contract state is stored in the following variables:
 
 Global variables:
 
-* `startDate` is the first round in which users can donate
-* `endDate` is the last round in which users can donate, after which donators can reclaim their donations, or the receiver can claim all the donations
-* `fundCloseDate` is the first round in which the creator can delete the contract (as long as the receiver has claimed the donations, if the goal was met)
+* `start_date` is the first round in which users can donate
+* `end_date` is the last round in which users can donate, after which donators can reclaim their donations, or the receiver can claim all the donations
+* `fund_close_date` is the first round in which the creator can delete the contract (as long as the receiver has claimed the donations, if the goal was met)
 * `goal` is the amount of ALGOs that must be donated for the crowdfunding to be succesful. If it is reached, the receiver can claim the funds, otherwise the donators can reclaim their donations. 
 * `receiver` is the receiver of the crowdfunding. If the goal is reached, they will get all the donations
 * `total_funds` is the amount of funds currently in the escrow (those that have been donated but have not been claimed/reclaimed)
@@ -33,10 +46,10 @@ The escrow account used by the crowdfunding contract is a stateless contract tha
 Any user can create the crowdfunding contract, providing the receiver, the goal of the crowdfunding, the donate round window in which users can donate funds, and the round after which the contract can be deleted.
 
 ```java
-Create crowdfund(int startDate, int endDate, int fundCloseDate, int goal, address receiver) {
-	glob.startDate = startDate
-	glob.endDate = endDate
-	glob.fundCloseDate = fundCloseDate
+Create crowdfund(int start_date, int end_date, int fund_close_date, int goal, address receiver) {
+	glob.start_date = start_date
+	glob.end_date = end_date
+	glob.fund_close_date = fund_close_date
 	glob.goal = goal
 	glob.receiver = receiver 
 	glob.total_funds = 0
@@ -45,9 +58,9 @@ Create crowdfund(int startDate, int endDate, int fundCloseDate, int goal, addres
 
 The function has five parameters:
 
-* `startDate`: the first round in which users can donate
-* `endDate`: the last round in which users can donate, after which users can claim / reclaim the funds
-* `fundCloseDate`: the first round in which the creator can close the contract and collect all the non-reclaimed funds if the goal was not reached
+* `start_date`: the first round in which users can donate
+* `end_date`: the last round in which users can donate, after which users can claim / reclaim the funds
+* `fund_close_date`: the first round in which the creator can close the contract and collect all the non-reclaimed funds if the goal was not reached
 * `goal`: the goal that must be reached for the `receiver` to collect the donated funds
 * `receiver`: the receiver of the donated funds (if the goal is reached)
 
@@ -73,20 +86,21 @@ The `OptIn` modifier allocates space on the caller account for the local state v
 Users that have opted into the contract must be able to donate funds during the donate round window, while being sure that, if the goal is not reached, they will be able to get their donated funds back.
 
 ```java
-@round (glob.startDate, glob.endDate)
+@round (glob.start_date, glob.end_date)
 @pay $donated of ALGO : * -> escrow
 donate() {
 	glob.total_funds += donated
 	loc.donated_amount += donated
 }
 ```
+
 The donate function can be called by anyone that has opted into the contract, as long as the other preconditions are satisfied.
 
 In particular, the clause
 ```java
-@round (glob.startDate, glob.endDate)
+@round (glob.start_date, glob.end_date)
 ```
-asserts that the contract is called while in a round between `startDate` and `endDate`;
+asserts that the contract is called while in a round between `start_date` and `end_date`;
 
 ```java
 @pay $donated of ALGO : * -> escrow
@@ -101,7 +115,7 @@ If the crowdfunding ends without hitting the goal, any user can reclaim the amou
 
 ```java
 @assert glob.total_funds < glob.goal
-@round (glob.endDate, )
+@round (glob.end_date, )
 @pay (, loc.donated_amount)$reclaimed of ALGO : escrow -> caller
 reclaim() {
 	loc.donated_amount -= reclaimed
@@ -120,7 +134,7 @@ If the crowdfunding is succesful, the receiver can claim all the funds that were
 ```java
 @gstate -> claimed
 @assert glob.total_funds >= glob.goal
-@round (glob.endDate, )
+@round (glob.end_date, )
 @pay glob.total_funds of ALGO : escrow -> glob.receiver
 claim() {
 	glob.total_funds = 0
@@ -137,7 +151,7 @@ After the fund close date, the creator can delete the contract and close the esc
 
 ```java
 @assert glob.total_funds < glob.goal
-@round (glob.fundCloseDate, )
+@round (glob.fund_close_date, )
 @close ALGO : escrow -> creator
 @from creator
 Delete delete() {}

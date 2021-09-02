@@ -1,16 +1,16 @@
-glob int startDate
-glob int endDate
-glob int fundCloseDate
+glob int start_date
+glob int end_date
+glob int fund_close_date
 glob int goal
 glob address receiver
 
 glob mut int total_funds
 loc mut int donated_amount
 
-Create crowdfund(int startDate, int endDate, int fundCloseDate, int goal, address receiver) {
-	glob.startDate = startDate
-	glob.endDate = endDate
-	glob.fundCloseDate = fundCloseDate
+Create crowdfund(int start_date, int end_date, int fund_close_date, int goal, address receiver) {
+	glob.start_date = start_date
+	glob.end_date = end_date
+	glob.fund_close_date = fund_close_date
 	glob.goal = goal
 	glob.receiver = receiver 
 	glob.total_funds = 0
@@ -20,7 +20,7 @@ OptIn optin() {
 	loc.donated_amount = 0
 }
 
-@round (glob.startDate, glob.endDate)
+@round (glob.start_date, glob.end_date)
 @pay $donated of ALGO : * -> escrow
 donate() {
 	glob.total_funds += donated
@@ -28,7 +28,7 @@ donate() {
 }
 
 @assert glob.total_funds < glob.goal
-@round (glob.endDate, )
+@round (glob.end_date, )
 @pay (, loc.donated_amount)$reclaimed of ALGO : escrow -> caller
 reclaim() {
 	glob.total_funds -= reclaimed
@@ -36,14 +36,14 @@ reclaim() {
 }
 		
 @assert glob.total_funds >= glob.goal
-@round (glob.endDate, )
+@round (glob.end_date, )
 @pay glob.total_funds of ALGO : escrow -> glob.receiver
 claim() {
 	glob.total_funds = 0
 }
 
 @assert glob.total_funds < glob.goal
-@round (glob.fundCloseDate, )
+@round (glob.fund_close_date, )
 @close ALGO : escrow -> creator
 @from creator
 Delete delete() {}
