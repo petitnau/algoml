@@ -64,7 +64,7 @@ OptIn optin() {
 }
 ```
 
-This function gives the users the opportunity to opt in, and initializes all the local variables to zero.
+This function gives any user the possibility of opting in. When called, it initializes all the local variables of the caller to zero.
 
 ## Depositing assets
 
@@ -86,7 +86,7 @@ dep(int lowb) {
 
 The `dep` function has a single parameter: the lower bound on how many minted_token they can receive.
 To call this function, the user must send two payments to the escrow: one of the token `t0`, and one of the token `t1` (much alike the create function). When these tokens are added to the escrow account, the ratio between the tokens `t0` and `t1` must not change, and therefore, the ratio between the amount of tokens `t0` sent, and the amount of tokens `t1` sent, must be the same as the ratio between `r0` and `r1`. 
-The function, also checks that the lower bound of received minted tokens tokens is respected (`v0 / glob.r0 * glob.minted_supply >= lowb`). If this check fails, the function is not called.
+The function, also checks that the lower bound of received minted tokens is respected (`v0 / glob.r0 * glob.minted_supply >= lowb`). If this check fails, the function is not executed.
 
 When the function is called succesfully, the `minted_supply` gets increased by the amount of `minted_tokens` that the AMM will reserve for the user (even though the AMM still hasn't sent those tokens), and the `minted_reserved` gets increased by the same amount.
 
@@ -126,12 +126,12 @@ redeem(int v0_lowb, int v1_lowb) {
     loc.t0_reserved += v * glob.r0 / glob.minted_supply
     loc.t1_reserved += v * glob.r1 / glob.minted_supply
     glob.minted_supply -= v
-
+}
 ```
 
 To call the redeem function, the user must send some amount of `minted_t` tokens to the escrow account. The user must also pass two parameters: the lower bound of the token `t0`, and the lower bound of the token `t1`. When called, those two lower bounds must be respected: the amount of units of `t0` reserved must be at least `v0_lowb`, and the amount of units of `t1` must be at least `v1_owb`. 
 
-When all these preconditions are met, the function body updates `r0` and `r1` (removing the reserved tokens from the AMM balance), `t0_reserved` and `t1_reserved` (adding the reserved tokens), and `minted_supply` (removing those minted tokens that do not circulate anymore).
+When all these preconditions are met, the function body updates `r0` and `r1` (removing the reserved tokens from the AMM balance), `t0_reserved` and `t1_reserved` (adding the reserved tokens), and `minted_supply` (removing the tokens sent to the escrow, as they do not circulate anymore).
 
 ## Redeeming the reserved tokens
 

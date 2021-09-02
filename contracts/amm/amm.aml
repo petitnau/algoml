@@ -44,6 +44,14 @@ swap0(int lowb) {
 	glob.r0 += v0
 }
 
+@pay $v1 of glob.t1 : * -> escrow
+@assert (glob.r0 * v1) / (glob.r1 + v1) >= lowb && lowb > 0
+swap1(int lowb) {
+	loc.t0_reserved += (glob.r0 * v1) / (glob.r1 + v1)
+	glob.r0 -= (glob.r0 * v1) / (glob.r1 + v1)
+	glob.r1 += v1
+}
+
 @pay $v of glob.minted_t : * -> escrow
 @assert v * glob.r0 / glob.minted_supply >= v0_lowb && v0_lowb > 0
 @assert v * glob.r1 / glob.minted_supply >= v1_lowb && v1_lowb > 0
