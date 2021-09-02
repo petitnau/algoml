@@ -1,0 +1,41 @@
+glob int curse_duration
+glob int rate_percent
+glob int dethrone_fee
+glob int start_amount
+
+glob mut int claim_price
+glob mut int curse_start
+glob mut address monarch
+glob mut string king_name
+
+@round $curr_round
+Create reign(int start_amount, int dethrone_fee, int rate_percent, int curse_duration, string king_name) {
+	glob.start_amount = start_amount
+	glob.dethrone_fee = dethrone_fee
+	glob.rate_percent = rate_percent
+	glob.curse_duration = curse_duration
+
+	glob.claim_price = start_amount
+	glob.curse_start = curr_round
+	glob.monarch = caller
+	glob.king_name = king_name
+}
+
+@round (glob.curse_start + glob.curse_duration, )$curr_round
+@pay (glob.start_amount) of ALGO : * -> creator
+take_power(string king_name) {
+	glob.curse_start = curr_round
+	glob.monarch = caller
+	glob.king_name = king_name
+	glob.claim_price = (glob.start_amount * glob.rate_percent)/100
+}
+
+@round (, glob.curse_start + glob.curse_duration)$curr_round
+@pay glob.dethrone_fee of ALGO : * -> creator
+@pay glob.claim_price of ALGO : * -> glob.monarch
+dethrone(string king_name) {
+	glob.curse_start = curr_round
+	glob.monarch = caller
+	glob.king_name = king_name
+	glob.claim_price = (glob.claim_price*glob.rate_percent)/100
+}

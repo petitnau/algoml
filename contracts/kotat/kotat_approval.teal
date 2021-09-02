@@ -31,12 +31,12 @@ int NoOp
 bz aclause_2
 
 txn NumAppArgs
-int 5
+int 6
 ==
 bz aclause_2
 
 txna ApplicationArgs 0
-byte "kotak"
+byte "reign"
 ==
 bz aclause_2
 
@@ -57,24 +57,41 @@ byte "gstate"
 byte "@inited"
 app_global_put
 
-byte "startAmount"
+byte "start_amount"
 txna ApplicationArgs 1
 btoi
 app_global_put
 
-byte "dethroneFee"
+byte "dethrone_fee"
 txna ApplicationArgs 2
 btoi
 app_global_put
 
-byte "ratePercent"
+byte "rate_percent"
 txna ApplicationArgs 3
 btoi
 app_global_put
 
-byte "curseDuration"
+byte "curse_duration"
 txna ApplicationArgs 4
 btoi
+app_global_put
+
+byte "claim_price"
+txna ApplicationArgs 1
+btoi
+app_global_put
+
+byte "curse_start"
+global Round
+app_global_put
+
+byte "monarch"
+txn Sender
+app_global_put
+
+byte "king_name"
+txna ApplicationArgs 5
 app_global_put
 
 int 1
@@ -85,16 +102,11 @@ return
 aclause_2:
 
 global GroupSize
-int 3
+int 2
 ==
 bz aclause_3
 
 gtxn 0 TypeEnum
-int pay
-==
-bz aclause_3
-
-gtxn 1 TypeEnum
 int pay
 ==
 bz aclause_3
@@ -110,7 +122,7 @@ int 2
 bz aclause_3
 
 txna ApplicationArgs 0
-byte "dethrone"
+byte "take_power"
 ==
 bz aclause_3
 
@@ -128,37 +140,37 @@ byte "@created"
 bz aclause_3
 
 int 0
-byte "curseStart"
+byte "curse_start"
 app_global_get_ex
 swap
 pop
 bz aclause_3
 
 int 0
-byte "curseDuration"
+byte "curse_duration"
 app_global_get_ex
 swap
 pop
 bz aclause_3
 
 global Round
-byte "curseStart"
+byte "curse_start"
 app_global_get
-byte "curseDuration"
+byte "curse_duration"
 app_global_get
 +
-<=
+>=
 bz aclause_3
 
 int 0
-byte "dethroneFee"
+byte "start_amount"
 app_global_get_ex
 swap
 pop
 bz aclause_3
 
 gtxn 0 Amount
-byte "dethroneFee"
+byte "start_amount"
 app_global_get
 ==
 bz aclause_3
@@ -173,40 +185,9 @@ global ZeroAddress
 ==
 bz aclause_3
 
-int 0
-byte "claimPrice"
-app_global_get_ex
-swap
-pop
-bz aclause_3
-
-int 0
-byte "monarch"
-app_global_get_ex
-swap
-pop
-bz aclause_3
-
-gtxn 1 Amount
-byte "claimPrice"
-app_global_get
-==
-bz aclause_3
-
-gtxn 1 Receiver
-byte "monarch"
-app_global_get
-==
-bz aclause_3
-
-gtxn 1 CloseRemainderTo
-global ZeroAddress
-==
-bz aclause_3
-
 //*******
 
-byte "curseStart"
+byte "curse_start"
 global Round
 app_global_put
 
@@ -214,14 +195,14 @@ byte "monarch"
 txn Sender
 app_global_put
 
-byte "kingName"
+byte "king_name"
 txna ApplicationArgs 1
 app_global_put
 
-byte "claimPrice"
-byte "claimPrice"
+byte "claim_price"
+byte "start_amount"
 app_global_get
-byte "ratePercent"
+byte "rate_percent"
 app_global_get
 *
 int 100
@@ -236,11 +217,16 @@ return
 aclause_3:
 
 global GroupSize
-int 2
+int 3
 ==
 bz aclause_4
 
 gtxn 0 TypeEnum
+int pay
+==
+bz aclause_4
+
+gtxn 1 TypeEnum
 int pay
 ==
 bz aclause_4
@@ -274,48 +260,38 @@ byte "@created"
 bz aclause_4
 
 int 0
-byte "curseStart"
+byte "curse_start"
 app_global_get_ex
 swap
 pop
 bz aclause_4
 
 int 0
-byte "curseDuration"
+byte "curse_duration"
 app_global_get_ex
 swap
 pop
 bz aclause_4
 
 global Round
-byte "curseStart"
+byte "curse_start"
 app_global_get
-byte "curseDuration"
+byte "curse_duration"
 app_global_get
 +
->=
+<=
 bz aclause_4
 
 int 0
-byte "startAmount"
-app_global_get_ex
-swap
-pop
-bz aclause_4
-
-int 0
-byte "dethroneFee"
+byte "dethrone_fee"
 app_global_get_ex
 swap
 pop
 bz aclause_4
 
 gtxn 0 Amount
-byte "startAmount"
+byte "dethrone_fee"
 app_global_get
-byte "dethroneFee"
-app_global_get
-+
 ==
 bz aclause_4
 
@@ -329,9 +305,40 @@ global ZeroAddress
 ==
 bz aclause_4
 
+int 0
+byte "claim_price"
+app_global_get_ex
+swap
+pop
+bz aclause_4
+
+int 0
+byte "monarch"
+app_global_get_ex
+swap
+pop
+bz aclause_4
+
+gtxn 1 Amount
+byte "claim_price"
+app_global_get
+==
+bz aclause_4
+
+gtxn 1 Receiver
+byte "monarch"
+app_global_get
+==
+bz aclause_4
+
+gtxn 1 CloseRemainderTo
+global ZeroAddress
+==
+bz aclause_4
+
 //*******
 
-byte "curseStart"
+byte "curse_start"
 global Round
 app_global_put
 
@@ -339,14 +346,14 @@ byte "monarch"
 txn Sender
 app_global_put
 
-byte "kingName"
+byte "king_name"
 txna ApplicationArgs 1
 app_global_put
 
-byte "claimPrice"
-byte "startAmount"
+byte "claim_price"
+byte "claim_price"
 app_global_get
-byte "ratePercent"
+byte "rate_percent"
 app_global_get
 *
 int 100
