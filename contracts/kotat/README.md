@@ -25,7 +25,7 @@ The variables `curse_duration`, `rate_percent`, `dethrone_fee` and `start_amount
 
 ## Creating a new reign
 
-If a user is not content with the current state of the world, they might decide to create a new reign and become its king. To create a new reign however, the user must create a curse, which will be inflicted upon each and every king (including them). It is the duty of the creator of the reign to decide 
+If a user is not content with the current state of the world, they might decide to create a new reign and become its king. To create a new reign however, the user must create a curse, which will be inflicted upon each and every king (including themselves). It is the duty of the creator of the reign to decide :
 
 - how much time the curse lasts (how much time a user can live while being king) 
 - how much money a user must spend to become king when the throne is vacant
