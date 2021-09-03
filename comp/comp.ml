@@ -57,7 +57,7 @@ let rec comp_cmdlist ?mutchecks:((gcheckmut,lcheckmut)=(true,true)) (cl:cmd list
     | Assign(LocVar(Ide(i), Some(a)), e) -> 
       let cassign = OPLocalPut(comp_exp a sd nd, OPByte(i), comp_exp e sd nd) in
       let cchecknotin = OPBnz(OPLocalExists(comp_exp a sd nd, OPInt(0), OPByte(i)), "fail") in
-      let mt = StateEnv.apply sd (Ide i) TGlob in
+      let mt = StateEnv.apply sd (Ide i) TLoc in
       if mt = Mutable || not(lcheckmut) then cassign
       else OPSeq([cchecknotin; cassign]) (* todo refactor code  repetition *)
     | Assign(NormVar(Ide(_)), _) -> failwith "can't assign normvars"
