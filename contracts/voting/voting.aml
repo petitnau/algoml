@@ -1,39 +1,32 @@
-glob int regBegin
-glob int regEnd
-glob int voteBegin
-glob int voteEnd
+glob int candidate_begin
+glob int candidate_end
+glob int vote_begin
+glob int vote_end
 
 glob token vote_token
 
-glob mut int candidate_a_votes
-glob mut int candidate_b_votes
+loc mut int votes
 
-Create create(int regBegin, int regEnd, int voteBegin, int voteEnd, token vote_token) {
-	glob.regBegin = regBegin
-	glob.regEnd = regEnd
-	glob.voteBegin = voteBegin
-	glob.voteEnd = voteEnd
+Create ballot(int candidate_begin, int candidate_end, int vote_begin, int vote_end, token vote_token) {
+	glob.candidate_begin = candidate_begin
+	glob.candidate_end = candidate_end
+	glob.vote_begin = vote_begin
+	glob.vote_end = vote_end
 	glob.vote_token = vote_token
 }
 
-@lstate ->not_voted
-@round (glob.regBegin, glob.regEnd)
-OptIn register() {}
-
-@lstate not_voted->voted
-@round (glob.voteBegin, glob.voteEnd)
-@pay 1 of glob.vote_token : caller -> escrow
-@assert candidate == "a" || candidate == "b"
-vote(string candidate) {
-	if (candidate == "a") {
-		glob.candidate_a_votes += 1
-	}
-	else if (candidate == "b") {
-		glob.candidate_b_votes += 1
-	}
+@round (glob.candidate_begin, glob.candidate_end)
+OptIn candidate() {
+	loc.votes = 0
 }
 
-@round (glob.voteEnd, )
+@round (glob.vote_begin, glob.vote_end)
+@pay 1 of glob.vote_token : caller -> escrow
+vote(address candidate) {
+	candidate.votes += 1
+}
+
+@round (glob.vote_end, )
 @from creator
 @close glob.vote_token : escrow -> creator
 @close ALGO : escrow -> creator

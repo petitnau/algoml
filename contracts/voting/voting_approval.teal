@@ -104,7 +104,7 @@ int 6
 bz aclause_3
 
 txna ApplicationArgs 0
-byte "create"
+byte "ballot"
 ==
 bz aclause_3
 
@@ -125,22 +125,22 @@ byte "gstate"
 byte "@inited"
 app_global_put
 
-byte "regBegin"
+byte "candidate_begin"
 txna ApplicationArgs 1
 btoi
 app_global_put
 
-byte "regEnd"
+byte "candidate_end"
 txna ApplicationArgs 2
 btoi
 app_global_put
 
-byte "voteBegin"
+byte "vote_begin"
 txna ApplicationArgs 3
 btoi
 app_global_put
 
-byte "voteEnd"
+byte "vote_end"
 txna ApplicationArgs 4
 btoi
 app_global_put
@@ -173,7 +173,7 @@ int 1
 bz aclause_4
 
 txna ApplicationArgs 0
-byte "register"
+byte "candidate"
 ==
 bz aclause_4
 
@@ -196,25 +196,25 @@ byte "@escrowinited"
 bz aclause_4
 
 int 0
-byte "regBegin"
+byte "candidate_begin"
 app_global_get_ex
 swap
 pop
 bz aclause_4
 
 int 0
-byte "regEnd"
+byte "candidate_end"
 app_global_get_ex
 swap
 pop
 bz aclause_4
 
 global Round
-byte "regBegin"
+byte "candidate_begin"
 app_global_get
 >=
 global Round
-byte "regEnd"
+byte "candidate_end"
 app_global_get
 <=
 &&
@@ -223,8 +223,8 @@ bz aclause_4
 //*******
 
 txn Sender
-byte "lstate"
-byte "not_voted"
+byte "votes"
+int 0
 app_local_put
 
 int 1
@@ -277,33 +277,26 @@ byte "@escrowinited"
 &&
 bz aclause_5
 
-txn Sender
-byte "lstate"
-app_local_get
-byte "not_voted"
-==
-bz aclause_5
-
 int 0
-byte "voteBegin"
+byte "vote_begin"
 app_global_get_ex
 swap
 pop
 bz aclause_5
 
 int 0
-byte "voteEnd"
+byte "vote_end"
 app_global_get_ex
 swap
 pop
 bz aclause_5
 
 global Round
-byte "voteBegin"
+byte "vote_begin"
 app_global_get
 >=
 global Round
-byte "voteEnd"
+byte "vote_end"
 app_global_get
 <=
 &&
@@ -350,57 +343,16 @@ global ZeroAddress
 ==
 bz aclause_5
 
-txna ApplicationArgs 1
-byte "a"
-==
-txna ApplicationArgs 1
-byte "b"
-==
-||
-bz aclause_5
-
 //*******
 
-txn Sender
-byte "lstate"
-byte "voted"
+txna ApplicationArgs 1
+byte "votes"
+txna ApplicationArgs 1
+byte "votes"
+app_local_get
+int 1
++
 app_local_put
-
-txna ApplicationArgs 1
-byte "a"
-==
-bz lbl_0
-
-byte "candidate_a_votes"
-byte "candidate_a_votes"
-app_global_get
-int 1
-+
-app_global_put
-
-b lbl_1
-
-lbl_0:
-
-txna ApplicationArgs 1
-byte "b"
-==
-bz lbl_2
-
-byte "candidate_b_votes"
-byte "candidate_b_votes"
-app_global_get
-int 1
-+
-app_global_put
-
-b lbl_3
-
-lbl_2:
-
-lbl_3:
-
-lbl_1:
 
 int 1
 return
@@ -458,14 +410,14 @@ byte "@escrowinited"
 bz aclause_6
 
 int 0
-byte "voteEnd"
+byte "vote_end"
 app_global_get_ex
 swap
 pop
 bz aclause_6
 
 global Round
-byte "voteEnd"
+byte "vote_end"
 app_global_get
 >=
 bz aclause_6
@@ -578,11 +530,6 @@ byte "gstate"
 app_global_get
 byte "@created"
 !=
-byte "gstate"
-app_global_get
-byte "@escrowinited"
-!=
-&&
 bz aclause_7
 
 int 0
