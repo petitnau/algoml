@@ -64,6 +64,6 @@ let post_comp (clearprog:bool) (OPProgram(bl):tealprog) =
     OPGlobalPut(OPByte("gstate"), OPByte("@created"))
   ])]@bl
   in
-  post_comp_aux 0 (bl@[OPBlock([], [OPLabel("fail"); OPErr])]) []
+  post_comp_aux 0 (bl@[OPBlock([], [OPErr])]) []
 
 let post_comp_escrow cl = post_comp_cmd "" false cl

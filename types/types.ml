@@ -36,6 +36,7 @@ and exp =
 | LBop of lbop * exp * exp
 | CBop of cbop * exp * exp
 | Not of exp
+| Substring of exp * int * int 
 | Creator
 | Caller
 | Escrow

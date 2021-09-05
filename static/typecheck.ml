@@ -99,6 +99,9 @@ and eval_type (td:typeenv) (e:exp) : vartype = match e with
   | Not(e1) ->
     check_exp_operand_type td e [e1] [TBool];
     TBool
+  | Substring(e1,_,_) ->
+    check_exp_operand_type td e [e1] [TString];
+    TString
   | Creator -> TAddress
   | Caller -> TAddress
   | Escrow -> TAddress

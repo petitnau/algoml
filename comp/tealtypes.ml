@@ -42,6 +42,7 @@ and tealexp =
 | OPLen of tealexp
 | OPItob of tealexp
 | OPBtoi of tealexp
+| OPSubstring of tealexp * int * int
 
 | OPTxn of txnfield
 | OPTxna of txnfield * int

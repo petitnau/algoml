@@ -67,6 +67,12 @@ let rec eval_exp (s:state) (d:env) (ci:callinfo) (e:exp) : eval =
       | Neq -> VBool(v1 <> v2))
     | _, _ -> raise (ErrDynamic "Compare operators can only operate on integers"))
 
+  | Substring(e1, n1, n2) ->
+    let v1 = eval_exp s d ci e1 in
+    (match v1 with
+    | VString(v1) -> VString(String.sub v1 n1 (n2-n1))
+    | _ -> raise (ErrDynamic "Substring only works on strings"))
+
   | Not(e1) ->
     let v1 = eval_exp s d ci e1 in
     (match v1 with

@@ -7,7 +7,6 @@ open! Comp
 
 let script = parse_file "contracts/crowdfunding.aml";;
 
-let _ = test_comp script;;
 (* ;;failwith "end";; *)
 
 let account_a = Account.bind_balance (Account.empty_user()) Algo 100

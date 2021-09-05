@@ -19,6 +19,7 @@ let rec comp_exp (e:exp) (sd:stateenv) (nd:normenv) : tealexp =
   | IBop(op,e1,e2) -> OPIbop(op, comp_exp e1 sd nd, comp_exp e2 sd nd)
   | LBop(op,e1,e2) -> OPLbop(op, comp_exp e1 sd nd, comp_exp e2 sd nd)
   | CBop(op,e1,e2) -> OPCbop(op, comp_exp e1 sd nd, comp_exp e2 sd nd)
+  | Substring(e1,n1,n2) -> OPSubstring(comp_exp e1 sd nd, n1, n2)
   | Not(e) -> OPLNot(comp_exp e sd nd)
   | Creator -> OPGlobal(GFCreatorAddress)
   | Caller -> OPTxn(TFSender)
@@ -44,19 +45,19 @@ let rec comp_cmdlist ?mutchecks:((gcheckmut,lcheckmut)=(true,true)) (cl:cmd list
   let rec comp_cmd c = match c with
     | Assign(GlobVar(Ide(i)), e) -> 
       let cassign = OPGlobalPut(OPByte(i), comp_exp e sd nd) in
-      let cchecknotin = OPBnz(OPGlobalExists(OPInt(0), OPByte(i)), "fail") in
+      let cchecknotin = OPAssert(OPLNot(OPGlobalExists(OPInt(0), OPByte(i)))) in
       let mt = StateEnv.apply sd (Ide i) TGlob in
       if mt = Mutable || not(gcheckmut) then cassign
       else OPSeq([cchecknotin; cassign])
     | Assign(LocVar(Ide(i), None), e) -> 
       let cassign = OPLocalPut(OPTxn(TFSender), OPByte(i), comp_exp e sd nd) in
-      let cchecknotin = OPBnz(OPLocalExists(OPTxn(TFSender), OPInt(0), OPByte(i)), "fail") in
+      let cchecknotin = OPAssert(OPLNot(OPLocalExists(OPTxn(TFSender), OPInt(0), OPByte(i)))) in
       let mt = StateEnv.apply sd (Ide i) TLoc in
       if mt = Mutable || not(lcheckmut) then cassign
       else OPSeq([cchecknotin; cassign])
     | Assign(LocVar(Ide(i), Some(a)), e) -> 
       let cassign = OPLocalPut(comp_exp a sd nd, OPByte(i), comp_exp e sd nd) in
-      let cchecknotin = OPBnz(OPLocalExists(comp_exp a sd nd, OPInt(0), OPByte(i)), "fail") in
+      let cchecknotin = OPAssert(OPLNot(OPLocalExists(comp_exp a sd nd, OPInt(0), OPByte(i)))) in
       let mt = StateEnv.apply sd (Ide i) TLoc in
       if mt = Mutable || not(lcheckmut) then cassign
       else OPSeq([cchecknotin; cassign]) (* todo refactor code  repetition *)
@@ -76,11 +77,14 @@ let comp_clause (o:clause) (txnid:int) (_:int) (sd:stateenv) (nd:normenv) : teal
   | PayClause(amt,FixedPattern(EToken(Algo), None),xfr,xto) ->
     let check_txntype =  OPAssertSkip(OPCbop(Eq, OPGtxn(txnid, TFTypeEnum), OPTypeEnum(TEPay))) in
     let check_amount = comp_pattern amt (OPGtxn(txnid, TFAmount)) sd nd in
-    let check_sender = if not(StateEnv.contains sd (Ide "escrow") TGlob)  
-      then comp_pattern xfr (OPGtxn(txnid, TFSender)) sd nd ~anydiff:None
+    let check_sender =
+      if not(StateEnv.contains sd (Ide "escrow") TGlob)  
+        then comp_pattern xfr (OPGtxn(txnid, TFSender)) sd nd ~anydiff:None
       else if xto = AnyPattern(Some(Ide "escrow"))  
-      then comp_pattern xfr (OPGtxn(txnid, TFSender)) sd nd ~anydiff:(Some (OPGtxn(txnid, TFReceiver)))
-      else comp_pattern xfr (OPGtxn(txnid, TFSender)) sd nd ~anydiff:(Some (OPGlobalGet(OPByte("escrow")))) in
+        (*then comp_pattern xfr (OPGtxn(txnid, TFSender)) sd nd ~anydiff:(Some (OPGtxn(txnid, TFReceiver)))*)
+        then comp_pattern xfr (OPGtxn(txnid, TFSender)) sd nd ~anydiff:None
+      else 
+        comp_pattern xfr (OPGtxn(txnid, TFSender)) sd nd ~anydiff:(Some (OPGlobalGet(OPByte("escrow")))) in
     let check_receiver = comp_pattern xto (OPGtxn(txnid, TFReceiver)) sd nd in
     let check_remainder = OPAssertSkip(OPCbop(Eq, OPGtxn(txnid, TFCloseRemainderTo), OPGlobal(GFZeroAddress))) in
     [check_txntype], [check_amount; check_sender; check_receiver; check_remainder], []
@@ -162,7 +166,9 @@ let comp_clause (o:clause) (txnid:int) (_:int) (sd:stateenv) (nd:normenv) : teal
   let check_vars_exist = (match o with 
     | FunctionClause(_,_,_,_) -> []
     | _ -> List.filter_map (function
-      | GlobVar(Ide(i)) -> Some(OPAssertSkip(OPGlobalExists(OPInt(0), OPByte(i))))
+      | GlobVar(Ide(i)) -> 
+        if i <> "escrow" then Some(OPAssertSkip(OPGlobalExists(OPInt(0), OPByte(i))))
+        else None
       | LocVar(Ide(i), Some(e)) -> Some(OPAssertSkip(OPLocalExists(comp_exp e sd nd, OPInt(0), OPByte(i))))
       | LocVar(Ide(i), None) -> Some(OPAssertSkip(OPLocalExists(OPTxn(TFSender), OPInt(0), OPByte(i))))
       | NormVar(_) -> None) 
@@ -203,8 +209,7 @@ let precomp (p:contract) (sd:stateenv) : contract * stateenv =
   in
   let p' = map_contract None None None None (Some (fun ao ->
     match is_escrow_used p, get_gstate ao, is_create_aclause ao with
-    | false, None, false -> [AssertClause(CBop(Neq, Val(GlobVar(Ide("gstate"))), EString("@created")))]@ao
-    | true, None, false -> [AssertClause(LBop(And, CBop(Neq, Val(GlobVar(Ide("gstate"))), EString("@created")), CBop(Neq, Val(GlobVar(Ide("gstate"))), EString("@escrowinited"))))]@ao
+    | _, None, false -> [AssertClause(CBop(Neq, Substring(Val(GlobVar(Ide("gstate"))),0,1), EString("@")))]@ao
     | false, None, true -> [StateClause(TGlob, Some(Ide("@created")), Some(Ide("@inited")))]@ao
     | true, None, true -> [StateClause(TGlob, Some(Ide("@escrowinited")), Some(Ide("@inited")))]@ao
     | false, Some(StateClause(TGlob, None, new_state)), true -> [StateClause(TGlob, Some(Ide("@created")), new_state)]@(remove_gstate ao)
@@ -239,11 +244,11 @@ let comp_escrow (len:int) : tealcmd =
   let check_txnappl i = OPSeq([OPLabel(Printf.sprintf "call_%d" i); OPBz(OPCbop(Eq, OPGtxn(i, TFTypeEnum), OPTypeEnum(TEAppl)), Printf.sprintf "call_%d" (i+1)); OPBnz(OPCbop(Eq, OPGtxn(i, TFApplicationID), OPELiteral("int <APP-ID>")), "app_called")]) in
   let app_called = OPSeq((List.map check_txnappl (0--len))@[OPLabel(Printf.sprintf "call_%d" len); OPErr]) in
   let check_rekey = OPAssert(OPCbop(Eq, OPTxn(TFRekeyTo), OPGlobal(GFZeroAddress))) in
-  let check_call = OPBz(OPCbop(Eq, OPTxn(TFTypeEnum), OPTypeEnum(TEPay)), "not_call") in
+  let check_call = OPBnz(OPCbop(Eq, OPTxn(TFTypeEnum), OPTypeEnum(TEAppl)), "not_call") in
   let check_callself = OPAssert(OPCbop(Neq, OPTxn(TFApplicationID), OPELiteral("int <APP-ID>"))) in
   let check_fee = OPAssert(OPCbop(Eq, OPTxn(TFFee), OPInt(0))) in
   let approve = OPReturn(OPInt(1)) in
-  OPSeq([app_called; OPLabel("app_called"); check_call; OPLabel("not_call"); check_callself; check_rekey; check_fee; approve])
+  OPSeq([app_called; OPLabel("app_called"); check_call; check_callself; OPLabel("not_call"); check_rekey; check_fee; approve])
     
 type comptype = CompToTeal | CompToPseudo
 
