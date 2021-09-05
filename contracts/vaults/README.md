@@ -182,8 +182,7 @@ We exploit the AlgoML compiler to refine the vault specification into a TEAL imp
 The TEAL code for the stateless escrow contract delegates the stateful contract for controlling the escrow spendings.
 
 The TEAL code of the stateful contract is split into blocks, one per each AlgoML function. 
-Each block consists of a dispatching preamble (which implements the AlgoML preconditions), 
-followed by the code that implements the state update (corresponding to the function body in AlgoML). 
+Each block consists of a dispatching preamble (which implements the AlgoML preconditions), followed by the code that implements the state update (corresponding to the function body in AlgoML). 
 
 The stateful contract starts by checking the preconditions of the first block: if some precondition is not met, the code jumps to the next block.
 If all the preconditions of a block are met, its body is executed before approving the transaction.
