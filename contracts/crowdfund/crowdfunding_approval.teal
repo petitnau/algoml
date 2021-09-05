@@ -61,11 +61,6 @@ int 100000
 ==
 bz aclause_2
 
-gtxn 0 Sender
-gtxn 0 Receiver
-!=
-bz aclause_2
-
 gtxn 0 CloseRemainderTo
 global ZeroAddress
 ==
@@ -180,22 +175,11 @@ byte "optin"
 ==
 bz aclause_4
 
-int 0
-byte "gstate"
-app_global_get_ex
-swap
-pop
-bz aclause_4
-
 byte "gstate"
 app_global_get
-byte "@created"
+substring 0 1
+byte "@"
 !=
-byte "gstate"
-app_global_get
-byte "@escrowinited"
-!=
-&&
 bz aclause_4
 
 //*******
@@ -237,22 +221,11 @@ byte "donate"
 ==
 bz aclause_5
 
-int 0
-byte "gstate"
-app_global_get_ex
-swap
-pop
-bz aclause_5
-
 byte "gstate"
 app_global_get
-byte "@created"
+substring 0 1
+byte "@"
 !=
-byte "gstate"
-app_global_get
-byte "@escrowinited"
-!=
-&&
 bz aclause_5
 
 int 0
@@ -278,13 +251,6 @@ byte "end_date"
 app_global_get
 <=
 &&
-bz aclause_5
-
-int 0
-byte "escrow"
-app_global_get_ex
-swap
-pop
 bz aclause_5
 
 gtxn 0 Sender
@@ -354,22 +320,11 @@ byte "reclaim"
 ==
 bz aclause_6
 
-int 0
-byte "gstate"
-app_global_get_ex
-swap
-pop
-bz aclause_6
-
 byte "gstate"
 app_global_get
-byte "@created"
+substring 0 1
+byte "@"
 !=
-byte "gstate"
-app_global_get
-byte "@escrowinited"
-!=
-&&
 bz aclause_6
 
 int 0
@@ -410,13 +365,6 @@ txn Sender
 int 0
 byte "donated_amount"
 app_local_get_ex
-swap
-pop
-bz aclause_6
-
-int 0
-byte "escrow"
-app_global_get_ex
 swap
 pop
 bz aclause_6
@@ -494,22 +442,11 @@ byte "claim"
 ==
 bz aclause_7
 
-int 0
-byte "gstate"
-app_global_get_ex
-swap
-pop
-bz aclause_7
-
 byte "gstate"
 app_global_get
-byte "@created"
+substring 0 1
+byte "@"
 !=
-byte "gstate"
-app_global_get
-byte "@escrowinited"
-!=
-&&
 bz aclause_7
 
 int 0
@@ -548,13 +485,6 @@ bz aclause_7
 
 int 0
 byte "total_funds"
-app_global_get_ex
-swap
-pop
-bz aclause_7
-
-int 0
-byte "escrow"
 app_global_get_ex
 swap
 pop
@@ -628,22 +558,11 @@ byte "delete"
 ==
 bz aclause_8
 
-int 0
-byte "gstate"
-app_global_get_ex
-swap
-pop
-bz aclause_8
-
 byte "gstate"
 app_global_get
-byte "@created"
+substring 0 1
+byte "@"
 !=
-byte "gstate"
-app_global_get
-byte "@escrowinited"
-!=
-&&
 bz aclause_8
 
 int 0
@@ -680,13 +599,6 @@ app_global_get
 >=
 bz aclause_8
 
-int 0
-byte "escrow"
-app_global_get_ex
-swap
-pop
-bz aclause_8
-
 gtxn 0 Amount
 int 0
 ==
@@ -718,8 +630,6 @@ return
 aclause_8:
 
 //*******
-
-fail:
 
 err
 
