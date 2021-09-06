@@ -1,8 +1,6 @@
 # Automatic Market Maker 
 
-This contract is an AlgoML version of the AMMs described in [this whitepaper](https://arxiv.org/pdf/2106.01870.pdf) by Massimo Bartoletti, James Hsin-yu Chiang and Alberto Lluch-Lafuente.
-
-Automated Market Makers are decentralized applications that allow digital assets to be traded in a permissionless way by using liquidity pools rather than traditional market of buyers and sellers.
+Automated Market Makers (AMMs) are decentralized applications that allow digital assets to be traded in a permissionless way by using liquidity pools rather than traditional market of buyers and sellers. We specify in AlgoML a constant-product AMM, as defined in [BCL21](BCL20).
 
 ## Contract state
 
@@ -156,6 +154,10 @@ get_t1() {
 
 Each of those functions checks if the caller is receiving a payment from the escrow of the reserved amount of that particular token.
 When called, the reserved amount of the chosen token is set to 0.
+
+# References
+
+<a name="BCL21">[BCL21]</a> Massimo Bartoletti, James Hsin-yu Chiang and Alberto Lluch-Lafuente. [Maximizing Extractable Value from Automated Market Makers](https://arxiv.org/pdf/2106.01870.pdf). arXiv 2106.01870 , 2021
 
 # Disclaimer
 
