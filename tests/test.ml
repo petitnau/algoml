@@ -15,12 +15,12 @@ let rec create_accs (s:state) (accnum:int) : state * address list =
   else
     (s, [])
 
-let setup (accnum:int) (pl:eval list) (code:string)  : state * address * address list = 
+let setup (accnum:int) (pl:eval list) (i:ide) (code:string)  : state * address * address list = 
   let contract = parse_string code in
   let s = State.empty in
   let s', addrl = create_accs s accnum in
   let s'' = (match addrl with
-    | creator::_ -> s' >=> [CreateTransaction(creator, contract, pl)]
+    | creator::_ -> s' >=> [CreateTransaction(creator, contract, i, pl)]
     | [] -> failwith "Must create at least one account") in
   let cx = Address.latest() in
   (s'', cx, addrl)
@@ -60,7 +60,7 @@ let test_static_error (name:string) (ex:exn option) (code:string) =
  *
  * ? *)
 
-let s, xc, xl = setup 3 [] "
+let s, xc, xl = setup 3 [] (Ide "create") "
 glob int x
 glob int y
 glob mut int m
@@ -99,7 +99,7 @@ let testsuite1 = "test suite 1" >::: [
     "op1" [] (Some (CallFail "op1 not found."));
 
   test_call_raises "wrong parameter type" s x0 xc 
-    "op1" [VString("ok")] (Some TypeError);
+    "op1" [VString("ok")] (Some (ParameterTypeError));
   test_call_raises "get non initialized var" s x0 xc 
     "op2" [] (Some (InitError "Can't get x: ide not initialized"));
 
@@ -126,12 +126,12 @@ let testsuite1 = "test suite 1" >::: [
  *
  * MODULES UNIT TESTS *)
 
-let s, _, xl = setup 2 [] "Create create() {}";;
+let s, _, xl = setup 2 [] (Ide "create") "Create create() {}";;
 let xa, xb = (match xl with [xa;xb] -> xa, xb | _ -> failwith "2 Users required")
 let aa, ab = State.get_account_ex s xa, State.get_account_ex s xb
 let testsuite2 = "test suite 2" >::: [
   "get non-existent account" >:: (fun _ ->
-    assert_raises (Failure "Account does not exist") (fun _ ->
+    assert_raises (Failure "Account Addr(1337) does not exist") (fun _ ->
       State.get_account_ex s (Address 1337)));
 
   "opt into user account" >:: (fun _ ->
@@ -155,7 +155,7 @@ let testsuite2 = "test suite 2" >::: [
       Account.bind_globalenv_ex aa Env.empty));
 ]
 
-let s, xc, xl = setup 3 [] "
+let s, xc, xl = setup 3 [] (Ide "create") "
 glob mut int x
 loc mut int x
 
@@ -229,7 +229,7 @@ let testsuite4 = "test suite 1" >::: [
         s >=>! [CallTransaction(x0, xc, Delete, Ide("delete"), [])]
           >=>! [CallTransaction(x0, xc, NoOp, Ide("noop"), [])]
       end in ()
-    in assert_raises (Failure "Account does not exist") f);
+    in assert_raises (Failure "Account Addr(10) does not exist") f);
 ]
 
 (* TEST SUITE 3
@@ -237,53 +237,53 @@ let testsuite4 = "test suite 1" >::: [
  * TYPE CHECKS *)
 
 let testsuite3 = "test suite 3" >::: [
-  test_static_error "sum int string" (Some TypeError)  
+  test_static_error "sum int string" (Some (TypeError "e operands have type int,string, but should have type int,int."))  
     "glob int x\n Create fn(string y) { glob.x = glob.x + y }" ;
   test_static_error "sum int int" None
     "glob int x\n Create fn(int y) { glob.x = glob.x + y }";
 
-  test_static_error "negate string" (Some TypeError)  
+  test_static_error "negate string" (Some (TypeError "e operands have type string, but should have type bool."))  
     "glob bool x\n Create fn(string y) { glob.x = !y }" ;
   test_static_error "negate bool" None
     "glob bool x\n Create fn(bool y) { glob.x = !y }";
 
-  test_static_error "and bool string" (Some TypeError)  
+  test_static_error "and bool string" (Some (TypeError "e operands have type bool,string, but should have type bool,bool."))  
     "loc bool x\n Create fn(string y) { loc.x = loc.x && y }" ;
   test_static_error "and bool bool" None
     "loc bool x\n Create fn(bool y) { loc.x = loc.x && y }";
 
-  test_static_error "leq int string" (Some TypeError) 
+  test_static_error "leq int string" (Some (TypeError "e operands have type int,string, but should have type int,int.")) 
     "loc bool x\n Create fn(int y, string z) { loc.x = y <= z }" ;
   test_static_error "leq int int" None 
     "loc bool x\n Create fn(int y, int z) { loc.x = y <= z }";
 
-  test_static_error "if condition int" (Some TypeError)
+  test_static_error "if condition int" (Some (TypeError "c operands have type int, but should have type bool."))
     "loc bool x\n Create fn(int z) { if (z) {} }";
   test_static_error "if condition int" (None)
     "loc bool x\n Create fn(bool z) { if (z) {} }";
 
-  test_static_error "glob non-existent" (Some TypeError)
+  test_static_error "glob non-existent" (Some (TypeError "Var GlobVar(x) was not found"))
     "loc int x\n Create fn() { glob.x = 7 }";
   test_static_error "glob existent" (None)
     "glob int x\n Create fn() { glob.x = 7 }";
 
-  test_static_error "loc non-existent" (Some TypeError)
+  test_static_error "loc non-existent" (Some (TypeError "Var LocVar(x) was not found"))
     "glob int x\n Create fn() { loc.x = 7 }";
   test_static_error "loc existent" (None)
     "loc int x\n Create fn() { loc.x = 7 }";
 
-  test_static_error "norm non-existent" (Some TypeError)
+  test_static_error "norm non-existent" (Some (TypeError "Var NormVar(x) was not found"))
     "glob int x\n Create fn() { x = 7 }";
   test_static_error "norm existent" (None)
     "Create fn(int x) { x = 7 }";
 
   test_static_error "no create fun" (Some (Failure "Incorrect amount of create clauses"))
     "NoOp fn() { }";
-  test_static_error "no fun in aclause" (Some (Failure "Not all atomic clauses have a function clause"))
+  test_static_error "no fun in aclause" (Some (Failure "Not all atomic clauses have one function clause"))
     "@close * -> *\n\n Create create() {}";
-  test_static_error "duplicate glob ide" (Some (Failure "Duplicate glob ides or loc ides"))
+  test_static_error "duplicate glob ide" (Some (TypeError "Var GlobVar(x) is duplicate"))
     "glob int x\n glob string x\n Create create() {}";
-  test_static_error "duplicate loc ide" (Some (Failure "Duplicate glob ides or loc ides"))
+  test_static_error "duplicate loc ide" (Some (TypeError "Var LocVar(z) is duplicate"))
     "loc int z\n loc int z\n Create create() {}";
 
   test_static_error "reachable states" None

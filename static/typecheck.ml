@@ -15,7 +15,7 @@ let raise_var_mistype c t1 t2 : 'a =
 let raise_operand_type s atl ftl : 'a = 
   let ft_str = String.concat "," (List.map (string_of_vartype) ftl) in
   let at_str = String.concat "," (List.map (string_of_vartype) atl) in
-  raise(TypeError(Printf.sprintf "%s operands have type %s, but should have type %s." s ft_str at_str))
+  raise(TypeError(Printf.sprintf "%s operands have type %s, but should have type %s." s at_str ft_str))
 
 let raise_operand_difftype s at1 at2 : 'a = 
   let at_str = String.concat "," (List.map (string_of_vartype) [at1;at2]) in

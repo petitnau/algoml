@@ -5,7 +5,7 @@ open Amlprinter
 open Batteries
 open! Comp
 
-let script = parse_file "contracts/crowdfunding.aml";;
+let script = parse_file "contracts/crowdfund/crowdfunding.aml";;
 
 (* ;;failwith "end";; *)
 
@@ -41,16 +41,16 @@ let s =
 s >=>! [CallTransaction(address_a, address_cf, OptIn, Ide("optin"), [])]
   >=>! [CallTransaction(address_b, address_cf, OptIn, Ide("optin"), [])]
   >=>! [CallTransaction(address_c, address_cf, OptIn, Ide("optin"), [])]
-  >:> (1, start_date + 5)
+  >:> (start_date + 5, 0)
   (* >?> "Address(0).balance[algo] = 0" *)
   >=>! [PayTransaction(90, Algo, address_a, address_cf);
         CallTransaction(address_a, address_cf, NoOp, Ide("donate"), []);]
   >=>! [PayTransaction(80, Algo, address_b, address_cf);
         CallTransaction(address_b, address_cf, NoOp, Ide("donate"), []);]
-  >:> (2, end_date + 5)
+  >:> (end_date + 5, 0)
   >=>! [PayTransaction(170, Algo, address_cf, address_c);
         CallTransaction(address_c, address_cf, NoOp, Ide("claim"), []);]
-  >:> (3, fund_close_date + 5)
+  >:> (fund_close_date + 5, 0)
 ;;
 
 print_endline (string_of_state s);
