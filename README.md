@@ -4,7 +4,12 @@ AlgoML (after *Algorand Modelling Language*) is a DSL for specifying Algorand sm
 
 ## Use cases
 
-Some use cases can be found [here](contracts).
+We illustrate the usage of AlgoML on some relevant use cases:
+- [Automated Market Makers](contracts/amm)
+- [Crowdfunding](contracts/crowdfund)
+- [King of the Algo Throne](contracts/kotat)
+- [Vaults](contracts/vaults)
+- [Voting](contracts/voting)
 
 ## Compiler usage
 
