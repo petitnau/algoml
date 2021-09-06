@@ -9,13 +9,13 @@ The contract state is stored in the following variables:
 Global variables:
 
 * `t0` and `t1` are the two tokens traded in the AMM
-* `ro` and `r1` are the amount of `t0` and `t1` stored in the AMM
+* `r0` and `r1` are the amounts of `t0` and `t1` stored in the AMM
 * `minted_t` is the token minted by the contract
 * `minted_supply` is the circulating amount of `minted_t` (the minted units not held by the AMM)
 
 Local variables:
 
-* `t0_reserved` and `t1_reserved` are the amount of `t0`/`t1` that can be redeemed by the user
+* `t0_reserved` and `t1_reserved` are the amounts of `t0`/`t1` that can be redeemed by the user
 * `minted_reserved` is the amount of `minted_t` that can be redeemed by the user
 
 ## Escrow account 
@@ -27,7 +27,7 @@ The escrow account used by the AMM is a stateless contract that releases assets 
 
 ## Creating the AMM
 
-Any user can create an AMM by providing the two tokens (namely t0 and t1) that are going to be traded, while also sending some amount of both. The creator in return, will receive a certain amount of minted tokens.
+Any user can create an AMM by providing the two tokens (namely, `t0` and `t1`) that are going to be traded, while also sending some amount of both. The creator  will receive a certain amount of minted tokens in return.
 
 ```java
 @pay $v0 of t0 : caller -> escrow
