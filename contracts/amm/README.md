@@ -82,7 +82,7 @@ dep(int lowb) {
 }
 ```
 
-The `dep` function has a single parameter: the lower bound on how many minted_token they can receive.
+The `dep` function has a single parameter, i.e. the lower bound on the amount of units of minted token they will receive.
 To call this function, the user must send two payments to the escrow: one of the token `t0`, and one of the token `t1` (much alike the create function). When these tokens are added to the escrow account, the ratio between the tokens `t0` and `t1` must not change, and therefore, the ratio between the amount of tokens `t0` sent, and the amount of tokens `t1` sent, must be the same as the ratio between `r0` and `r1`. 
 The function, also checks that the lower bound of received minted tokens is respected (`v0 / glob.r0 * glob.minted_supply >= lowb`). If this check fails, the function is not executed.
 
