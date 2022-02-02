@@ -117,13 +117,13 @@ reclaim() {
 }
 ```
 
-The reclaim function can be called by anyone who has opted into the contract, as long as the donate round window is closed and the donation goal has not been reached (and thus, as long as the funds do not belong to the `receiver`). 
+The `reclaim` function can be called by anyone who has opted into the contract, as long as the donation period is closed, and the donation goal has not been reached (and thus, as long as the funds do not belong to the `receiver`). 
 
-The body of the function decreases the amount donated by the user and the `total_funds` by the reclaimed amount (so that the user cannot reclaim more funds than donated).
+The function body decreases the amount donated by the user and the `total_funds` by the reclaimed amount. As a consequence, the user cannot reclaim more funds than donated.
 
 ### Claiming the funds
 
-If the crowdfunding is succesful, the receiver can claim all the funds that were donated.
+If the crowdfunding is successful, the receiver can claim all the funds that were donated.
 
 ```java
 @gstate -> claimed
