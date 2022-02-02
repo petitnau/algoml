@@ -1,32 +1,30 @@
 # Voting
 
-This contract is inspired by [this contract](https://developer.algorand.org/solutions/example-permissioned-voting-stateful-smart-contract-application/) by Jason Weathersby, with however, noticeable differences.
-
-This contract is composed of two phases:
-- a candidating phase, in which any user can apply as a candidate
-- a voting phase, in which users that have received (off contract) a particular voting token, can spend units of those tokens to vote the previously applied candidates
+This contract is inspired by [this contract](https://developer.algorand.org/solutions/example-permissioned-voting-stateful-smart-contract-application/) by Jason Weathersby. The contract consists of two phases:
+- an application phase, where users can apply as a candidate
+- a voting phase, in which users that have received (off contract) a voting token, can spend units of those tokens to vote the candidates
 
 ## Contract state
 
 The contract state is stored in the following variables:
 
 Global variables:
-- `candidate_begin` is the first round in which users can candidate
-- `candidate_end` is the last users in which users can candidate
-- `vote_begin` is the first round in which users can vote candidates
-- `vote_end` is the last round in which users can vote candidates
-- `vote_token` is the token that users need to vote
+- `candidate_begin` is the first round in which users can apply
+- `candidate_end` is the last round in which users can apply
+- `vote_begin` is the first round in which users can vote
+- `vote_end` is the last round in which users can vote
+- `vote_token` is the token that users spend in order to vote
 
 Local variables:
 - `votes` is the number of votes of the user
 
-All the variables but `votes` do not change throughout the life of the contract.
+All the variables but `votes` are immutable throughout the contract lifetime.
 
 ## Creating the poll
 
-When a user wants to cerate a ballot, they must provide the round window in which users can candidate, the round window in which users can vote, and the id of the token that users must use to cast their vote. 
+Any user can crete a poll, by providing the application round period, the voting round period, and the identifier of the token that must be spent to cast vote. 
 
-```algoml
+```java
 Create ballot(int candidate_begin, int candidate_end, int vote_begin, int vote_end, token vote_token) {
 	glob.candidate_begin = candidate_begin
 	glob.candidate_end = candidate_end
@@ -36,26 +34,26 @@ Create ballot(int candidate_begin, int candidate_end, int vote_begin, int vote_e
 }
 ```
 
-The `ballot` function has five parameters, one per global variable. When called, the contract and all the global state variables are initialized.
+When the `ballot` function is called, the contract and all the global state variables are initialized to the corresponding actual parameters.
 
-## Candidating
+## Application
 
-Users that want to candidate can do so within the candidate round window. To apply, they must opt into the contract in order to allocate the space on their account required to save how many users have voted for them. 
+To apply, users must opt into the contract, by invoking the `candidate` function.
 
-```algoml
+```java
 @round (glob.candidate_begin, glob.candidate_end)
 OptIn candidate() {
 	loc.votes = 0
 }
 ```
 
-The candidate function can only be called between the round `candidate_begin` and the round `candidate_end`. When a user calls this function, they opt into the contract, and their local variable `votes` is initialized to 0.
+The `@round` clause ensures that the function can only be called in the application round period. When a user calls the function, they opt into the contract, and their local variable `votes` is initialized to 0.
 
 ## Voting
 
-After the candidate phase has ended and the vote phase has begun, users that own units of the vote_token can cast their vote. To do so, they can send one unit of the vote token to the contract, while also indicating which account their vote is directed to.
+After the application phase has ended and the vote phase has started, users that own units of the `vote_token` can cast their vote. To do so, they send one token unit to the contract, specifying the account they want to vote.
 
-```algoml
+```java
 @round (glob.vote_begin, glob.vote_end)
 @pay 1 of glob.vote_token : caller -> escrow
 vote(address candidate) {
@@ -63,13 +61,13 @@ vote(address candidate) {
 }
 ```
 
-The vote function can be called in the rounds between `vote_begin` and `vote_end`. To call the function, users must send one `vote_token` to the escrow, and pass as an argument the address of the `candidate` that they are voting for. When called, the `votes` variable of that `candidate` is incremented.
+The `@round` clause ensures that the `vote` function can be called only in the voting period. The `@pay$ clause ensures that, to call the function, users must spend one token, transferring it to the escrow. The voted `candidate` is passed as an argument to the function. When the function is called, the `votes` variable of that `candidate` is incremented.
 
 ## Deleting the contract
 
 After the voting phase has ended and the votes are checked, the contract can be deleted by the creator, retrieving the funds used to initialize the contract, and all the tokens that were sent to cast a vote.
 
-```algoml
+```java
 @round (glob.vote_end, )
 @from creator
 @close glob.vote_token : escrow -> creator
