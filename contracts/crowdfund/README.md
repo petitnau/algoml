@@ -5,9 +5,9 @@ This contract is an AlgoML version of the [crowdfunding contract](https://develo
 Crowdfunding applications are a great way to gain some money for a project.
 A typical crowdfunding application is based on three actors: 
 
-- the *project creator*, which defines the project, the amount of funds needed and a time window, 
-- the *donators*, who donate money to the project,
-- a *middle man*, which holds the donated funds until the time window defined by the project creator ends. 
+- the *project creator*, which defines the project, the amount of funds needed and a time window
+- the *donators*, who donate money to the project
+- a *middle man*, which holds the donated funds until the time window defined by the project creator ends.
   
 Often, crowdfunding applications work with a model called all-or-nothing, which means that if the goal is not reached in time, the project creator does not receive the donated funds, and instead the donators can claim their money back.
 
@@ -22,28 +22,30 @@ The contract state is stored in the following variables:
 Global variables:
 
 * `start_date` is the first round in which users can donate
-* `end_date` is the last round in which users can donate, after which donators can reclaim their donations, or the receiver can claim all the donations
-* `fund_close_date` is the first round in which the creator can delete the contract (as long as the receiver has claimed the donations, if the goal was met)
-* `goal` is the amount of ALGOs that must be donated for the crowdfunding to be succesful. If it is reached, the receiver can claim the funds, otherwise the donators can reclaim their donations. 
-* `receiver` is the receiver of the crowdfunding. If the goal is reached, they will get all the donations
-* `total_funds` is the amount of funds currently in the escrow (those that have been donated but have not been claimed/reclaimed)
+* `end_date` is the last round in which users can donate, after which donors can reclaim their donations, or the receiver can claim all the donations
+* `fund_close_date` is the first round in which the creator can delete the contract
+* `goal` is the amount of ALGOs that must be donated for the crowdfunding to be succesful. If the goal is reached, the receiver can claim the funds, otherwise the donors can reclaim their donations
+* `receiver` is the receiver of the donated funds. If the goal is reached, then `receiver` get all the donations
+* `total_funds` is the amount of funds currently in the escrow (those that have been donated but have not been claimed/reclaimed).
 
 Local variables:
 
 * `donated_amount` is the amount that has been donated by the user
 
-The variables `total_funds` and `donated_amount` change during the life of the contract, while the others are parameters of the contract and do not change.
+The variables `total_funds` and `donated_amount` change during the contract lifetime, while the others are parameters of the contract and are immutable.
 
 ## AlgoML implementation
+
 ### Escrow account 
 
-The escrow account used by the crowdfunding contract is a stateless contract that releases funds provided that:
+The crowdfunding contract relies on an escrow account (a stateless contract) to release funds whenever:
 1. the stateful contract participates in the transaction group
 2. the escrow does not pay any transaction fees
 3. the escrow does not send a rekey transaction
-### Creating the fundraiser
 
-Any user can create the crowdfunding contract, providing the receiver, the goal of the crowdfunding, the donate round window in which users can donate funds, and the round after which the contract can be deleted.
+### Creating the contract
+
+Any user can create the crowdfunding contract, providing as parameters the `receiver`, the `goal`, the round window in which users can donate funds (`start_date`  and `end_date`), and the round after which the contract can be deleted (`fund_close_date`).
 
 ```java
 Create crowdfund(int start_date, int end_date, int fund_close_date, int goal, address receiver) {
@@ -56,34 +58,26 @@ Create crowdfund(int start_date, int end_date, int fund_close_date, int goal, ad
 }
 ```
 
-The function has five parameters:
+The constructor initializes `total_funds` to 0, and the rest of the global variables to the corresponding actual parameters.
 
-* `start_date`: the first round in which users can donate
-* `end_date`: the last round in which users can donate, after which users can claim / reclaim the funds
-* `fund_close_date`: the first round in which the creator can close the contract and collect all the non-reclaimed funds if the goal was not reached
-* `goal`: the goal that must be reached for the `receiver` to collect the donated funds
-* `receiver`: the receiver of the donated funds (if the goal is reached)
-
-The function initializes `total_funds` to 0 and the rest of the global state with its parameters.
-
-The `Create` modifier implies that this function constructs the contract, and thus, can be called only from the creator of the contract.
+The `Create` modifier means that the function constructs the contract, and thus can be called only from the contract creator.
 
 ### Opting in
 
-Before users can donate, they must first opt into the contract. When users opt into a contract the local variables are allocated in the user account, so that the contract can maintain how much every single user donates.
+Before users can donate, they must opt into the contract. When users opt into a contract, the local variables are allocated in the user account, so that the contract can record the amount of individual donations.
 
 ```java
 OptIn optin() {
 	loc.donated_amount = 0
 }
 ```
-The optin function takes no parameters and initializes the amount donated by the caller to 0.
+The `optin` function takes no parameters, and initializes the amount donated by the caller to 0.
 
-The `OptIn` modifier allocates space on the caller account for the local state variables. 
+The `OptIn` modifier means that space for the local state variables is allocated on the caller account. 
 
 ### Donating funds
 
-Users that have opted into the contract must be able to donate funds during the donate round window, while being sure that, if the goal is not reached, they will be able to get their donated funds back.
+Users that have opted into the contract must be able to donate funds during the donate round window, while being sure that, if the goal is not reached, they will be able to get their funds back.
 
 ```java
 @round (glob.start_date, glob.end_date)
