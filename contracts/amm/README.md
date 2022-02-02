@@ -4,12 +4,12 @@ Automated Market Makers (AMMs) are decentralized applications that allow digital
 
 ## Contract state
 
-The contract state is stored in the following variables:
+The contract state consists of the following variables:
 
 Global variables:
 
 * `t0` and `t1` are the two tokens traded in the AMM
-* `r0` and `r1` are the amounts of `t0` and `t1` stored in the AMM
+* `r0` and `r1` are the reserves of `t0` and `t1` stored in the AMM
 * `minted_t` is the token minted by the contract
 * `minted_supply` is the circulating amount of `minted_t` (the minted units not held by the AMM)
 
@@ -27,7 +27,7 @@ The escrow account used by the AMM is a stateless contract that releases assets 
 
 ## Creating the AMM
 
-Any user can create an AMM by providing the two tokens (namely, `t0` and `t1`) that are going to be traded, while also sending some amount of both. The creator  will receive a certain amount of minted tokens in return.
+Any user can create an AMM by providing the two tokens types `t0` and `t1` that are going to be traded, while also providing their initial reserves. The creator will receive a certain amount of minted tokens in return.
 
 ```java
 @pay $v0 of t0 : caller -> escrow
@@ -62,13 +62,13 @@ OptIn optin() {
 }
 ```
 
-This function gives any user the possibility of opting in. When called, it initializes all the local variables of the caller to zero.
+When called, this function initializes all the local variables of the caller to zero.
 
-## Depositing assets
+## Deposit
 
 Users can deposit tokens into the AMM as long as doing so preserves the ratio of the token holdings in the AMM. In return, they will receive a certain amount of minted tokens, equal to the ratio between the deposited amount and the *redeem rate* (the ratio between `r0` and the `minted_supply`)
 
-Users must also be able to set a lower bound on how many minted tokens they can receive, so as to mitigate problems in case that the amount of minted tokens they would receive varies widely from round to round.
+Users must set a lower bound on the amount of minted tokens they will receive upon a deposit. This is to mitigate problems related to transactions reordering.
 
 This function can be written as:
 ```java
@@ -90,11 +90,9 @@ When the function is called succesfully, the `minted_supply` gets increased by t
 
 It is up to the caller to actually redeem the reserved tokens with a later call to `get_minted_t`.
 
-## Swapping assets
+## Swap
 
-If a user is in possess of some amount of `t0` but wants to trade them with some amount of `t1`, they can do so by using the swap operation. The same holds in the opposite direction, and its implementation is dual. 
-
-Here, we will cover `swap0`: the operation that swaps units of `t0` on the caller account, for units of `t1` in the AMM.
+The function `swap0` allows users to swap units of `t0` in their wallet for units of `t1` in the AMM. Swap in the opposite direction are achieved by the function `swap1`. 
 
 ```java
 @pay $v0 of glob.t0 : * -> escrow
@@ -106,13 +104,13 @@ swap0 (int lowb) {
 }
 ```
 
-The function has a single parameter: the lower bound on how many units of `t1` they can receive. To call this function the caller must send a payment to the escrow of the token `t0`. The contract checks if the amount of tokens that they would reserve (equal to `(glob.r1 * v0) / (glob.r0 + v0)`) is higher than the lower bound `lowb`. If this check fails, the function won't be called.
+The function has a single parameter: the lower bound on how many units of `t1` they can receive. To call this function the caller must send a payment to the escrow of the token `t0`. The `@assert` clause requires that the amount of reserved tokens (equal to `(glob.r1 * v0) / (glob.r0 + v0)`) is greater than the lower bound `lowb`.
 
 When called succesfully, `r0` is increased by `v0` (since the user sent `v0` tokens to the AMM), `t1_reserved` is increased by the reserved amount (giving the user the ability to redeem the reserved units of `t1`), and `r1` is decreased by the same amount (since the AMM no longer owns those units).
 
-## Redeeming assets
+## Redeem
 
-Users can exchange the minted token with units of `t0` and `t1`. 
+Users can redeem units of the minted token for units of the underlying tokens `t0` and `t1`. 
 
 ```java
 @pay $v of glob.minted_t : * -> escrow
@@ -157,7 +155,7 @@ When called, the reserved amount of the chosen token is set to 0.
 
 # References
 
-- **[BCL21]** Massimo Bartoletti, James Hsin-yu Chiang and Alberto Lluch-Lafuente. [Maximizing Extractable Value from Automated Market Makers](https://arxiv.org/pdf/2106.01870.pdf). arXiv 2106.01870, 2021
+- **[BCL21]** Massimo Bartoletti, James Hsin-yu Chiang and Alberto Lluch-Lafuente. [Maximizing Extractable Value from Automated Market Makers](https://arxiv.org/pdf/2106.01870.pdf). Financial Cryptography, 2022
 
 # Disclaimer
 
