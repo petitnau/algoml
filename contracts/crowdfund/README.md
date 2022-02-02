@@ -88,18 +88,18 @@ donate() {
 }
 ```
 
-The donate function can be called by anyone that has opted into the contract, as long as the other preconditions are satisfied.
+The `donate` function can be called by anyone who has opted into the contract, as long as the other clauses are satisfied.
 
 In particular, the clause
 ```java
 @round (glob.start_date, glob.end_date)
 ```
-asserts that the contract is called while in a round between `start_date` and `end_date`;
+ensures that the function can be called only in a round between `start_date` and `end_date`;
 
 ```java
 @pay $donated of ALGO : * -> escrow
 ```
-checks that the user is sending a pay transaction to the escrow, and binds the amount of ALGOs sent to the variable `donated`.
+checks that the user is sending a pay transaction to the escrow, and records the paid amount of ALGOs in the variable `donated`.
 
 The body of the function increases the amount donated by the caller and the `total_funds`, by `donated` ALGOs.
 
@@ -117,7 +117,7 @@ reclaim() {
 }
 ```
 
-The reclaim function can be called by anyone that has opted into the contract, as long as the donate round window is closed and the donation goal has not been reached (and thus, as long as the funds do not belong to the `receiver`). 
+The reclaim function can be called by anyone who has opted into the contract, as long as the donate round window is closed and the donation goal has not been reached (and thus, as long as the funds do not belong to the `receiver`). 
 
 The body of the function decreases the amount donated by the user and the `total_funds` by the reclaimed amount (so that the user cannot reclaim more funds than donated).
 
