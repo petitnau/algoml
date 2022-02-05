@@ -7,6 +7,9 @@ glob token vote_token
 
 loc mut int votes
 
+@assert candidate_begin < candidate_end
+@assert candidate_end < vote_begin
+@assert vote_begin < vote_end
 Create ballot(int candidate_begin, int candidate_end, int vote_begin, int vote_end, token vote_token) {
 	glob.candidate_begin = candidate_begin
 	glob.candidate_end = candidate_end

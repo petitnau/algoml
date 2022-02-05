@@ -25,6 +25,9 @@ All the variables but `votes` are immutable throughout the contract lifetime.
 Any user can crete a poll, by providing the application round period, the voting round period, and the identifier of the token that must be spent to cast vote. 
 
 ```java
+@assert candidate_begin < candidate_end
+@assert candidate_end < vote_begin
+@assert vote_begin < vote_end
 Create ballot(int candidate_begin, int candidate_end, int vote_begin, int vote_end, token vote_token) {
 	glob.candidate_begin = candidate_begin
 	glob.candidate_end = candidate_end
@@ -61,7 +64,7 @@ vote(address candidate) {
 }
 ```
 
-The `@round` clause ensures that the `vote` function can be called only in the voting period. The `@pay$ clause ensures that, to call the function, users must spend one token, transferring it to the escrow. The voted `candidate` is passed as an argument to the function. When the function is called, the `votes` variable of that `candidate` is incremented.
+The `@round` clause ensures that the `vote` function can be called only in the voting period. The `@pay` clause ensures that, to call the function, users must spend one token, transferring it to the escrow. The voted `candidate` is passed as an argument to the function. When the function is called, the `votes` variable of that `candidate` is incremented.
 
 ## Deleting the contract
 
