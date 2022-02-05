@@ -35,6 +35,10 @@ caml.exe /path/to/input.aml [-o outprefix]
 
 Syntax highlighting is supported on [vscode](https://marketplace.visualstudio.com/items?itemName=RobertoPettinau.algoml-lang) 
 
+# Disclaimer
+
+The project is not audited and should not be used in a production environment.
+
 ## Credits
 
 AlgoML has been designed by Roberto Pettinau and Massimo Bartoletti from the University of Cagliari, Italy.
