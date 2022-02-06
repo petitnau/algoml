@@ -1,0 +1,46 @@
+glob address player1
+glob address player2
+glob int end_commit
+glob int end_reveal
+
+loc string commitment
+loc string original
+
+Create lottery(address player1, address player2, int end_commit, int end_reveal) {
+    glob.player1 = player1
+    glob.player2 = player2
+    glob.end_commit = end_commit
+    glob.end_reveal = end_reveal
+}
+
+@lstate -> committed
+@pay 1 of ALGO : caller -> escrow
+OptIn join(string commitment) {
+    loc.commitment = commitment
+}
+
+@lstate committed -> revelead
+@assert sha256(original) == loc.commitment
+reveal(string original) {
+    loc.original = original
+}
+
+@lstate[glob.player1] revelead
+@lstate[glob.player2] revelead
+@assert (len(glob.player1.original) + len(glob.player2.original)) % 2 == 0
+@close ALGO : escrow -> glob.player1 
+redeem() {}
+
+@lstate[glob.player1] revelead
+@lstate[glob.player2] revelead
+@assert (len(glob.player1.original) + len(glob.player2.original)) % 2 == 1
+@close ALGO : escrow -> glob.player2
+redeem() {}
+
+@lstate[glob.player1] committed
+@close ALGO : escrow -> glob.player2
+claim_forfeit() {}
+
+@lstate[glob.player2] committed
+@close ALGO : escrow -> glob.player1
+claim_forfeit() {}
