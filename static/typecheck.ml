@@ -89,6 +89,9 @@ and eval_type (td:typeenv) (e:exp) : vartype = match e with
     TInt
   | CBop(Eq,e1,e2) ->
     check_exp_same_type td e e1 e2;
+    TBool  
+  | CBop(Neq,e1,e2) ->
+    check_exp_same_type td e e1 e2;
     TBool    
   | CBop(_,e1,e2) ->
     check_exp_operand_type td e [e1;e2] [TInt;TInt];
