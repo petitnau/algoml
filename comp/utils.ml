@@ -39,7 +39,7 @@ let any_clause_check fe fc fp fo (o:clause) =
   | AssertClause(e1) -> any_exp_check e1
   | FunctionClause(_,_,_,cl) -> List.exists any_cmd_check cl
   | NewtokClause(p1,_,p2) -> List.exists any_pattern_check [p1;p2]
-  | StateClause(_,_,_) -> false)
+  | GStateClause(_,_) | LStateClause(_,_,_) -> false)
 let any_aclause_check fe fc fp fo fao (ao:aclause) = 
   let any_clause_check = any_clause_check fe fc fp fo in
   (match fao with Some(fao) -> fao ao | None -> false) 
@@ -208,17 +208,17 @@ let get_init_state (p:contract) =
     List.find (List.exists (function FunctionClause(Create,_,_,_) -> true | _ -> false)) aol
   in 
   let ao = get_create_aclause p in
-  let gs = List.find_opt (function StateClause(TGlob, None, Some(_)) -> true | _ -> false) ao in
+  let gs = List.find_opt (function GStateClause(None, Some(_)) -> true | _ -> false) ao in
   match gs with
-  | Some(StateClause(TGlob, None, Some(i))) -> Some i
+  | Some(GStateClause(None, Some(i))) -> Some i
   | _ -> None
 
 let change_init_state (Contract(dl,aol):contract) (i:ide) : contract =
   let change_aclause (ao:aclause) = 
     if List.exists (function FunctionClause(Create,_,_,_) -> true | _ -> false) ao then
-      if List.exists (function StateClause(TGlob, None, Some(_)) -> true | _ -> false) ao
-        then List.map (function StateClause(TGlob, None, Some(_)) -> StateClause(TGlob, None, Some(i)) | o -> o) ao
-      else if List.exists (function StateClause(TGlob, _, _) -> true | _ -> false) ao
+      if List.exists (function GStateClause(None, Some(_)) -> true | _ -> false) ao
+        then List.map (function GStateClause(None, Some(_)) -> GStateClause(None, Some(i)) | o -> o) ao
+      else if List.exists (function GStateClause(_, _) -> true | _ -> false) ao
         then failwith "Create can only have init state"
       else ao
     else ao
@@ -254,7 +254,7 @@ let has_token_transfers (p:contract) : bool =
   (List.length ol) > 0
 
 let get_gstate ao = 
-  let _, _, _, ol = filter_aclause None None None (Some (function StateClause(TGlob, _, _) -> true | _ -> false)) ao in
+  let _, _, _, ol = filter_aclause None None None (Some (function GStateClause(_, _) -> true | _ -> false)) ao in
   match ol with
   | [s] -> Some s
   | [] -> None
@@ -262,4 +262,4 @@ let get_gstate ao =
 
 let is_create_aclause ao = List.exists (function FunctionClause(Create,_,_,_) -> true | _ -> false) ao
 
-let remove_gstate ao = List.filter (function StateClause(TGlob,_,_) -> false | _ -> true) ao
+let remove_gstate ao = List.filter (function GStateClause(_,_) -> false | _ -> true) ao

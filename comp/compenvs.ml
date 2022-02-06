@@ -53,7 +53,7 @@ module NormEnv = struct
         let nd = bind_params nd pl in
         bind_aclause_aux aotl acid (txnid+1) nd
         
-      | AssertClause(_)::aotl | StateClause(_,_,_)::aotl -> 
+      | AssertClause(_)::aotl | GStateClause(_,_)::aotl | LStateClause(_,_,_)::aotl -> 
         bind_aclause_aux aotl acid txnid nd
 
       | NewtokClause(amt,i,xto)::aotl ->

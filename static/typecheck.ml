@@ -99,6 +99,12 @@ and eval_type (td:typeenv) (e:exp) : vartype = match e with
   | Not(e1) ->
     check_exp_operand_type td e [e1] [TBool];
     TBool
+  | Len(e1) ->
+    check_exp_operand_type td e [e1] [TString];
+    TInt 
+  | Sha256(e1) ->
+    check_exp_operand_type td e [e1] [TString];
+    TString 
   | Substring(e1,_,_) ->
     check_exp_operand_type td e [e1] [TString];
     TString
@@ -209,7 +215,7 @@ let rec bind_aclause td ao =
       let td = TypeEnv.bind td (NormVar i) TToken in
       TypeEnv.bind_pattern td TAddress xto_p
         
-    | AssertClause(_) | StateClause(_,_,_) -> td
+    | AssertClause(_) | GStateClause(_,_) | LStateClause(_,_,_) -> td
 
   in match ao with
   | aohd::aotl -> 
@@ -250,7 +256,7 @@ let check_aclause td ao =
     | FunctionClause(_, _, _, cl) ->
       check_cmdl td cl
 
-    | StateClause(_,_,_) -> ()
+    | GStateClause(_,_) | LStateClause(_,_,_) -> ()
     
     | NewtokClause(amt_p, _, xto_p) -> 
       check_pattern td TInt amt_p;

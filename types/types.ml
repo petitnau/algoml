@@ -23,7 +23,8 @@ and clause =
 | FromClause of pattern
 | AssertClause of exp
 | FunctionClause of oncomplete * ide * parameter list * cmd list 
-| StateClause of statetype * ide option * ide option
+| GStateClause of ide option * ide option
+| LStateClause of exp option * ide option * ide option
 | NewtokClause of pattern * ide * pattern
 and exp = 
 | EInt of int
@@ -36,6 +37,8 @@ and exp =
 | LBop of lbop * exp * exp
 | CBop of cbop * exp * exp
 | Not of exp
+| Len of exp
+| Sha256 of exp
 | Substring of exp * int * int 
 | Creator
 | Caller

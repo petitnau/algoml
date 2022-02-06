@@ -67,6 +67,9 @@ let rec eval_exp (s:state) (d:env) (ci:callinfo) (e:exp) : eval =
       | Neq -> VBool(v1 <> v2))
     | _, _ -> raise (ErrDynamic "Compare operators can only operate on integers"))
 
+  | Len(_) -> raise (ErrDynamic "Not implemented")
+  | Sha256(_) -> raise (ErrDynamic "Not implemented")
+
   | Substring(e1, n1, n2) ->
     let v1 = eval_exp s d ci e1 in
     (match v1 with
@@ -220,7 +223,8 @@ let rec bind_aclause (s:state) (d:env) (ao:aclause) (ci:callinfo) (txnl:transact
   
   | NewtokClause(_, _, _)::_, _ -> None
 
-  | AssertClause(_)::aotl, _  | StateClause(_,_,_)::aotl, _->  bind_aclause s d aotl ci txnl
+  | AssertClause(_)::aotl, _  | GStateClause(_,_)::aotl, _
+  | LStateClause(_,_,_)::aotl, _->  bind_aclause s d aotl ci txnl
       
   | [], [] -> Some(d)
   | [], _ -> None
@@ -288,12 +292,10 @@ let run_aclause (s:state) (d:env) (ao:aclause) (ci:callinfo) (txnl:transaction l
 
     | NewtokClause(_, _, _)::_, _ -> None
 
-    | StateClause(stype, fromstate, tostate)::aotl, _ -> 
+    | GStateClause(fromstate, tostate)::aotl, _ -> 
       let b = (match fromstate with
       | Some(Ide(fromstate)) -> 
-        let fromstate' = 
-          (if stype = TGlob then State.get_globalv_ex s ci.called (Ide "gstate") 
-          else State.get_localv_ex s ci.caller ci.called (Ide "lstate")) in
+        let fromstate' = State.get_globalv_ex s ci.called (Ide "gstate") in
         (match fromstate' with
         | VString(fromstate') when fromstate = fromstate' -> true
         | VString(_) -> false
@@ -302,9 +304,23 @@ let run_aclause (s:state) (d:env) (ao:aclause) (ci:callinfo) (txnl:transaction l
       if not(b) then None
       else 
         let s' = (match tostate with
-          | Some(Ide(tostate)) ->
-            if stype = TGlob then State.set_globalv_ex s ci.called (Ide "gstate") (VString tostate)
-            else State.set_localv_ex s ci.caller ci.called (Ide "lstate") (VString tostate)
+          | Some(Ide(tostate)) -> State.set_globalv_ex s ci.called (Ide "gstate") (VString tostate)
+          | None -> s) in
+          run_aclause_aux s' d aotl ci txnl
+
+    | LStateClause(_, fromstate, tostate)::aotl, _ -> 
+      let b = (match fromstate with
+      | Some(Ide(fromstate)) -> 
+        let fromstate' =  State.get_localv_ex s ci.caller ci.called (Ide "lstate") in
+        (match fromstate' with
+        | VString(fromstate') when fromstate = fromstate' -> true
+        | VString(_) -> false
+        | _ -> raise(ErrDynamic("state should contain strings")))
+      | None -> true) in
+      if not(b) then None
+      else 
+        let s' = (match tostate with
+          | Some(Ide(tostate)) -> State.set_localv_ex s ci.caller ci.called (Ide "lstate") (VString tostate)
           | None -> s) in
           run_aclause_aux s' d aotl ci txnl
         

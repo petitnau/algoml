@@ -47,7 +47,7 @@ let check_duplicates (Contract(dl,_):contract) : bool =
   not(has_duplicates globs) && not(has_duplicates locs)
 
 let get_contract_transitions (Contract(_,cl):contract) : (statetype * ide option * ide option) list = 
-   List.flatten (clause_filter_map (function StateClause(s,sfr,sto) -> Some(s,sfr,sto) | _ -> None) cl)
+   List.flatten (clause_filter_map (function GStateClause(sfr,sto) -> Some(TGlob,sfr,sto) | LStateClause(_,sfr,sto) -> Some(TLoc,sfr,sto) | _ -> None) cl)
 
 let check_reachable_states (p:contract) : bool = 
   let rec initial_states l = match l with

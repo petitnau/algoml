@@ -19,6 +19,8 @@ let rec comp_exp (e:exp) (sd:stateenv) (nd:normenv) : tealexp =
   | IBop(op,e1,e2) -> OPIbop(op, comp_exp e1 sd nd, comp_exp e2 sd nd)
   | LBop(op,e1,e2) -> OPLbop(op, comp_exp e1 sd nd, comp_exp e2 sd nd)
   | CBop(op,e1,e2) -> OPCbop(op, comp_exp e1 sd nd, comp_exp e2 sd nd)
+  | Len(e) -> OPLen(comp_exp e sd nd)
+  | Sha256(e) -> OPSha256(comp_exp e sd nd)
   | Substring(e1,n1,n2) -> OPSubstring(comp_exp e1 sd nd, n1, n2)
   | Not(e) -> OPLNot(comp_exp e sd nd)
   | Creator -> OPGlobal(GFCreatorAddress)
@@ -121,18 +123,22 @@ let comp_clause (o:clause) (txnid:int) (_:int) (sd:stateenv) (nd:normenv) : teal
     let check_condition = OPAssertSkip(comp_exp e sd nd) in
     [], [check_condition], []
 
-  | StateClause(stype,sfr,sto) -> 
+  | GStateClause(sfr,sto) -> 
     let check_state = (match sfr with
-      | Some(Ide(s)) -> 
-        if stype = TGlob 
-        then OPAssertSkip(OPCbop(Eq, OPGlobalGet(OPByte("gstate")), OPByte(s)))
-        else OPAssertSkip(OPCbop(Eq, OPLocalGet(OPTxn(TFSender), OPByte("lstate")), OPByte(s)))
+      | Some(Ide(s)) -> OPAssertSkip(OPCbop(Eq, OPGlobalGet(OPByte("gstate")), OPByte(s)))
       | None -> OPNoop) in
     let set_state = (match sto with
-      | Some(Ide(s)) ->
-        if stype = TGlob 
-        then OPGlobalPut(OPByte("gstate"), OPByte(s))
-        else OPLocalPut(OPTxn(TFSender), OPByte("lstate"), OPByte(s))
+      | Some(Ide(s)) -> OPGlobalPut(OPByte("gstate"), OPByte(s))
+      | None -> OPNoop) in
+    [], [check_state], [set_state]
+
+  | LStateClause(eacc,sfr,sto) -> 
+    let acc = (match eacc with None -> OPTxn(TFSender) | Some(eacc) -> comp_exp eacc sd nd) in
+    let check_state = (match sfr with
+      | Some(Ide(s)) -> OPAssertSkip(OPCbop(Eq, OPLocalGet(acc, OPByte("lstate")), OPByte(s)))
+      | None -> OPNoop) in
+    let set_state = (match sto with
+      | Some(Ide(s)) -> OPLocalPut(acc, OPByte("lstate"), OPByte(s))
       | None -> OPNoop) in
     [], [check_state], [set_state]
 
@@ -210,18 +216,18 @@ let precomp (p:contract) (sd:stateenv) : contract * stateenv =
   let p' = map_contract None None None None (Some (fun ao ->
     match is_escrow_used p, get_gstate ao, is_create_aclause ao with
     | _, None, false -> [AssertClause(CBop(Neq, Substring(Val(GlobVar(Ide("gstate"))),0,1), EString("@")))]@ao
-    | false, None, true -> [StateClause(TGlob, Some(Ide("@created")), Some(Ide("@inited")))]@ao
-    | true, None, true -> [StateClause(TGlob, Some(Ide("@escrowinited")), Some(Ide("@inited")))]@ao
-    | false, Some(StateClause(TGlob, None, new_state)), true -> [StateClause(TGlob, Some(Ide("@created")), new_state)]@(remove_gstate ao)
-    | true, Some(StateClause(TGlob, None, new_state)), true -> [StateClause(TGlob, Some(Ide("@escrowinited")), new_state)]@(remove_gstate ao)
-    | _, Some(StateClause(TLoc,_,_)), _ -> failwith "get_gstate returned an lstate"
+    | false, None, true -> [GStateClause(Some(Ide("@created")), Some(Ide("@inited")))]@ao
+    | true, None, true -> [GStateClause(Some(Ide("@escrowinited")), Some(Ide("@inited")))]@ao
+    | false, Some(GStateClause(None, new_state)), true -> [GStateClause(Some(Ide("@created")), new_state)]@(remove_gstate ao)
+    | true, Some(GStateClause(None, new_state)), true -> [GStateClause(Some(Ide("@escrowinited")), new_state)]@(remove_gstate ao)
+    | _, Some(LStateClause(_,_,_)), _ -> failwith "get_gstate returned an lstate"
     | _, _, _ -> ao
   )) p in
   let p'' = if not(is_escrow_used p) then p' else 
     let Contract(dl,aol) = p' in
     let p = Contract(dl,[[
       FromClause(FixedPattern(Creator, None));
-      StateClause(TGlob, Some(Ide("@created")), Some(Ide("@escrowinited")));
+      GStateClause(Some(Ide("@created")), Some(Ide("@escrowinited")));
       PayClause(FixedPattern(EInt(100000), None), FixedPattern(EToken(Algo), None), AnyPattern(None), AnyPattern(Some(Ide "escrow")));
       FunctionClause(NoOp, Ide("init_escrow"), [], [
         Assign(GlobVar(Ide("escrow")), Val(NormVar(Ide("escrow"))))

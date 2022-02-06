@@ -38,6 +38,7 @@ and tealexp_to_str (e:tealexp) : string = match e with
   | OPItob(e1) -> tealexp_concat [e1] "itob"
   | OPBtoi(e1) -> tealexp_concat [e1] "btoi"
 
+  | OPSha256(e1) -> tealexp_concat [e1] "sha256"
   | OPSubstring(e1, n1, n2) -> tealexp_concat [e1] (Printf.sprintf "substring %d %d" n1 n2)
 
   | OPTxn(tf) -> 

@@ -26,6 +26,7 @@
 %token MINUS
 %token TIMES
 %token DIV
+%token MOD
 %token AT
 %token DOLLAR
 %token ARROW
@@ -40,6 +41,9 @@
 %token COLON
 %token COMMA
 %token DOT
+
+%token LEN
+%token SHA256
 
 %token TRUE
 %token FALSE
@@ -92,6 +96,7 @@
 %left GEQ GT LEQ LT EQ NEQ
 %left PLUS MINUS 
 %left TIMES DIV
+%left MOD
 %right NOT
 
 
@@ -138,8 +143,9 @@ aclause:
 | cl = optterm_nonempty_list(SEOL+, clause) { cl }
 
 clause:
-| AT; s=state; sf=option(ide); ARROW; st=option(ide) { StateClause(s, sf, st) }
-| AT; s=state; TIMES { StateClause(s, None, None) }
+| AT; GSTATE; sf=option(ide); st=endstate { GStateClause(sf, st) }
+| AT; LSTATE; sf=option(ide); st=endstate { LStateClause(None, sf, st) }
+| AT; LSTATE; LBRACK; e=exp; RBRACK; sf=option(ide); st=endstate { LStateClause(Some(e), sf, st) }
 | AT; PAY; amt_p=pattern; OF; tkn_p=pattern; COLON; xfr_p=pattern; ARROW; xto_p=pattern; { PayClause(amt_p, tkn_p, xfr_p, xto_p) }
 | AT; PAY; amt_p=pattern; OF; ALGO; COLON; xfr_p=pattern; ARROW; xto_p=pattern; { PayClause(amt_p, FixedPattern(EToken(Algo), None), xfr_p, xto_p) }
 | AT; PAY; amt_p=pattern; COLON; xfr_p=pattern; ARROW; xto_p=pattern; { PayClause(amt_p, FixedPattern(EToken(Algo), None), xfr_p, xto_p) }
@@ -154,6 +160,10 @@ clause:
 | AT; NEWTOK; amt_p=pattern; OF; DOLLAR; i=ide; ARROW; xto_p=pattern; { NewtokClause(amt_p, i, xto_p) }
 | AT; NEWTOK; DOLLAR; i=ide; ARROW; xto_p=pattern; { NewtokClause(FixedPattern(EInt(max_int), None), i, xto_p) }
 | fc=functionclause; { fc }
+
+endstate:
+| ARROW; st=option(ide) { st }
+| (* epsilon *) { None }
 
 state:
 | GSTATE; { TGlob }
@@ -209,6 +219,8 @@ cmd:
 | IF; LPAREN; e=exp; RPAREN; c1=cmd; { Ifte(e, c1, None) }
 
 exp:
+| LEN; LPAREN; e=exp; RPAREN { Len(e) }
+| SHA256; LPAREN; e=exp; RPAREN { Sha256(e) }
 | LPAREN; e=exp; RPAREN { e }
 | n=INTEGER; { EInt(n) }
 | s=STR; { EString(s) }
@@ -221,6 +233,7 @@ exp:
 | e1=exp; MINUS; e2=exp; { IBop(Diff, e1, e2) }
 | e1=exp; TIMES; e2=exp; { IBop(Mul, e1, e2) }
 | e1=exp; DIV; e2=exp; { IBop(Div, e1, e2) }
+| e1=exp; MOD; e2=exp; { IBop(Mod, e1, e2) }
 | e1=exp; AND; e2=exp; { LBop(And, e1, e2) }
 | e1=exp; OR; e2=exp; { LBop(Or, e1, e2) }
 | e1=exp; GT; e2=exp; { CBop(Gt, e1, e2) }

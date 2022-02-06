@@ -50,6 +50,7 @@ and read =
     | "-" { MINUS }
     | "*" { TIMES }
     | "/" { DIV }
+    | "%" { MOD }
     | "&&" { AND }
     | "||" { OR }
     | "@" { AT }
@@ -66,6 +67,8 @@ and read =
     | ":" { COLON }
     | "," { COMMA }
     | "." { DOT }
+    | "len" { LEN }
+    | "sha256" { SHA256 }
     | "int" { TINT }
     | "string" { TSTRING }
     | "bool" { TBOOL }
@@ -92,7 +95,6 @@ and read =
 
     | "if" { IF }
     | "else" { ELSE }
-
     
     | "creator" { CREATOR }
     | "caller" { CALLER }
