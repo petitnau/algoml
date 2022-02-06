@@ -1,0 +1,55 @@
+glob token COUPON
+glob int interestRate
+glob int preSaleRate
+
+glob int preSale
+glob int sale
+glob int saleEnd
+glob int maturityDate
+
+glob mut int maxDeposit
+loc mut int preSaleAmt
+
+@newtok $budget of $COUPON -> escrow
+@assert preSale < sale 
+@assert sale < saleEnd 
+@assert saleEnd < maturityDate
+Create create(
+    int preSale, int sale, int saleEnd, int maturityDate,
+    int interestRate, int preSaleRate
+) {
+	glob.preSale = preSale
+	glob.sale = sale
+	glob.saleEnd = saleEnd
+	glob.maturityDate = maturityDate
+	glob.interestRate = interestRate
+	glob.preSaleRate = preSaleRate
+	glob.COUPON = COUPON
+	glob.maxDeposit = budget
+}
+
+OptIn optin() {
+	loc.preSaleAmt = 0
+}
+
+@round (glob.preSale, glob.sale)
+@pay $amt of ALGO : caller -> escrow
+@assert amt * glob.preSaleRate / 100 <= glob.maxDeposit
+preDeposit() {
+	loc.preSaleAmt += amt * glob.preSaleRate / 100
+	glob.maxDeposit -= amt * glob.preSaleRate / 100
+}
+
+@round (glob.sale, glob.saleEnd)
+@pay $inAmt of ALGO : caller -> escrow
+@pay $outAmt of glob.COUPON : escrow -> caller
+@assert inAmt + loc.preSaleAmt == outAmt
+deposit() {
+	loc.preSaleAmt = 0
+}
+
+@round (glob.maturityDate, )
+@pay $inAmt of glob.COUPON : caller -> escrow
+@pay $outAmt of ALGO : escrow -> caller
+@assert inAmt == outAmt * glob.interestRate / 100
+redeem() {}
