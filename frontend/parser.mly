@@ -185,7 +185,7 @@ ide:
 | i=IDE; { Ide(i) }
 
 parameter:
-| t=vartype; i=IDE; { Parameter(t,Ide(i)) }
+| eols?; t=vartype; i=IDE; eols?; { Parameter(t,Ide(i)) }
 
 funblock:
 | eols?; LBRACE; eols?; cl = optterm_list(eols, cmd); RBRACE; { cl }
