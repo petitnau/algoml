@@ -45,6 +45,6 @@ let info =
     `S Manpage.s_bugs;
     `P "Email bug reports to <roberto.pettinau99@gmail.com>." ]
   in
-  Term.info "caml" ~version:"%‌%VERSION%%" ~doc ~exits:Term.default_exits ~man
+  Term.info "amlc" ~version:"%‌%VERSION%%" ~doc ~exits:Term.default_exits ~man
 
 let () = Term.exit @@ Term.eval (caml_t, info)
