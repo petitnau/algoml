@@ -10,8 +10,9 @@ loc mut int minted_reserved
 
 @pay $v0 of t0 : caller -> escrow
 @pay $v1 of t1 : caller -> escrow
-@newtok 1000000 of $minted_t -> escrow  
+@newtok $minted_t -> escrow  
 @pay $minted_v of minted_t : escrow -> caller
+@assert t0 != t1
 Create amm(token t0, token t1) {
     glob.t0 = t0
     glob.t1 = t1
@@ -27,18 +28,29 @@ OptIn optin() {
     loc.minted_reserved = 0
 }
 
-@pay $v0 of glob.t0 : * -> escrow
-@pay $v1 of glob.t1 : * -> escrow
-@assert v0 / glob.r0 * glob.minted_supply >= lowb && lowb > 0
-@assert glob.r1 * v0 == glob.r0 * v1
-dep(int lowb) {
-    glob.minted_supply += v0 / glob.r0 * glob.minted_supply
-    loc.minted_reserved += v0 / glob.r0 * glob.minted_supply
+@pay $v0_highb of glob.t0 : * -> escrow
+@pay $v1_highb of glob.t1 : * -> escrow
+@assert v1_lowb <= v0_highb * glob.r1 / glob.r0 
+@assert v0_highb * glob.r1 / glob.r0 <= v1_highb 
+dep(int v0_lowb, int v1_lowb) {
+    loc.t0_reserved = v0_highb - (v0_highb * glob.r1 / glob.r0)
+    glob.minted_supply += v1_highb / glob.r1 * glob.minted_supply
+    loc.minted_reserved += v1_highb / glob.r1 * glob.minted_supply
+}
+
+@pay $v0_highb of glob.t0 : * -> escrow
+@pay $v1_highb of glob.t1 : * -> escrow
+@assert v0_lowb <= v1_highb * glob.r0 / glob.r1 
+@assert v1_highb * glob.r0 / glob.r1 <= v0_highb 
+dep(int v0_lowb, int v1_lowb) {
+    loc.t1_reserved = v1_highb - (v1_highb * glob.r0 / glob.r1)
+    glob.minted_supply += v0_highb / glob.r0 * glob.minted_supply
+    loc.minted_reserved += v0_highb / glob.r0 * glob.minted_supply
 }
 
 @pay $v0 of glob.t0 : * -> escrow
 @assert (glob.r1 * v0) / (glob.r0 + v0) >= lowb && lowb > 0
-swap0(int lowb) {
+swap(int lowb) {
 	loc.t1_reserved += (glob.r1 * v0) / (glob.r0 + v0)
 	glob.r1 -= (glob.r1 * v0) / (glob.r0 + v0)
 	glob.r0 += v0
@@ -46,7 +58,7 @@ swap0(int lowb) {
 
 @pay $v1 of glob.t1 : * -> escrow
 @assert (glob.r0 * v1) / (glob.r1 + v1) >= lowb && lowb > 0
-swap1(int lowb) {
+swap(int lowb) {
 	loc.t0_reserved += (glob.r0 * v1) / (glob.r1 + v1)
 	glob.r0 -= (glob.r0 * v1) / (glob.r1 + v1)
 	glob.r1 += v1
@@ -64,16 +76,16 @@ redeem(int v0_lowb, int v1_lowb) {
 }
 
 @pay loc.minted_reserved of glob.minted_t : escrow -> *   
-get_minted_t() {
+get_excess() {
     loc.minted_reserved = 0
 }
 
 @pay loc.t0_reserved of glob.t0 : escrow -> *
-get_t0() {
+get_excess() {
     loc.t0_reserved = 0
 }
 
 @pay loc.t1_reserved of glob.t1 : escrow -> *
-get_t1() {
+get_excess() {
     loc.t1_reserved = 0
 }
