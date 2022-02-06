@@ -152,6 +152,7 @@ clause:
 | AT; FROM; p=pattern; { FromClause(p) }
 | AT; ASSERT; e=exp; { AssertClause(e) }
 | AT; NEWTOK; amt_p=pattern; OF; DOLLAR; i=ide; ARROW; xto_p=pattern; { NewtokClause(amt_p, i, xto_p) }
+| AT; NEWTOK; DOLLAR; i=ide; ARROW; xto_p=pattern; { NewtokClause(FixedPattern(EInt(max_int), None), i, xto_p) }
 | fc=functionclause; { fc }
 
 state:
