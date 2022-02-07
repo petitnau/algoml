@@ -48,7 +48,7 @@ Holds when the current contract state is `oldstate`. After executing the functio
 
 ## AlgoML by examples: tinybond
 
-We illustrate some of the ALgoML features by applying it to implement a simple bond.
+We illustrate some of the AlgoML features by applying it to implement a simple bond.
 The contract issues bonds, in the form of ASAs, and allows users to redeem them with interests after a maturity date.
 Users can buy bonds in two time periods:
 * the standard sale period, where the bond value equals the amount of invested ALGOs (1 bond = 1 ALGO); 
