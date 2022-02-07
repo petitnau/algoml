@@ -51,7 +51,7 @@ Users can buy bonds in two time periods:
 * the presale period, where bonds are sold at a discounted price (1 bond = preSaleRate/100 ALGO).
 After the maturity date, users can redeem bonds for ALGOs, at the exchange rate 1 bond = interestRate/100 ALGO.
 
-The global state of the contract consists of the following variables. All of them are fixed at contract creation, with the only exception of `maxDeposit`, which is made mutable by the modifier `mut`:  
+The global state of the contract consists of the following variables. All of them are fixed at contract creation, with the only exception of `maxDep`, which is made mutable by the modifier `mut`:  
 ```java
 glob token COUPON	// the ASA used to represent the bond
 glob int interestRate   // interest rate (e.g., 150 means 1.5 multiplication factor, i.e. 50% interest rate)
@@ -104,7 +104,7 @@ local state of the investor. The actual transfer of tokens will be finalised in 
 @assert amt * glob.preSaleRate / 100 <= glob.maxDep
 deposit() {
 	loc.preSaleAmt += amt * glob.preSaleRate / 100
-	glob.maxDeposit -= amt * glob.preSaleRate / 100
+	glob.maxDep -= amt * glob.preSaleRate / 100
 }
 ```
 
