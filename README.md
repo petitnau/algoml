@@ -65,13 +65,14 @@ Create create(
 ```
 
 
-## More AlgoML use cases
+## AlgoML use cases
 
 We illustrate the usage of AlgoML on some relevant use cases:
 - [Automated Market Makers](contracts/amm)
 - [Crowdfunding](contracts/crowdfund)
 - [2-players lottery](contracts/lottery)
 - [King of the Algo Throne](contracts/kotat)
+- [Tinybond](contracts/tinybond)
 - [Vaults](contracts/vaults)
 - [Voting](contracts/voting)
 
@@ -95,18 +96,19 @@ opam install algoml --deps-only
 ```
 dune build
 ```
+6\. Create AlgoML contracts! Syntax highlighting is supported on [vscode](https://marketplace.visualstudio.com/items?itemName=RobertoPettinau.algoml-lang) 
 
-## Compiler usage
+
+## Using the AlgoML compiler
 
 To compile an AlgoML file into TEAL scripts, the following command can be used:
 ```console
 dune exec ./amlc.exe /path/to/input.aml [-o outprefix]
 ```
-The compiler will output three files: `output_approval.teal`, `output_clear.teal`, and `output_escrow.teal`.
-
-## Syntax highlighting
-
-Syntax highlighting is supported on [vscode](https://marketplace.visualstudio.com/items?itemName=RobertoPettinau.algoml-lang) 
+The compiler will output three files in the folder where the command is launched:
+* `output_approval.teal`, the TEAL code of the stateful contract;
+* `output_escrow.teal`, the TEAL code of the stateless contract used as escrow;
+* `output_clear.teal`, the TEAL code run upon a clearstate operation.
 
 ## Disclaimer
 
