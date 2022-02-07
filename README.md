@@ -37,9 +37,9 @@ This precondition holds only when the boolean expression `exp` evaluates to true
 Holds when a new token of amt units is minted, and all its units are stored in the contract. The variable `tok` is bound to the number to the token identifier.
 
 ```java
-@pay $amt of tok : caller -> escrow
+@pay (min,max)$amt of tok : sender -> receiver
 ``` 
-Holds when some units of token `tok` are transferred from the caller to the escrow. The variable `amt` is bound to the precise amount that is being sent. The token `tok` can be ALGO or an ASA.
+Holds when a number of units of token `tok` in the range `(min,max)` are transferred from `sender` to `receiver`. The variable `amt` is bound to the actual amount of transferred units. The token `tok` can be ALGO or an ASA. The parameters `sender` and `receiver` can be arbitrary accounts, or the special accounts `caller` (the account which is calling the function) and `escrow` (the escrow which is handling the contract funds).
 
 ```java
 @gstate oldstate -> newstate
