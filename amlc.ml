@@ -15,10 +15,13 @@ let compile infile outprefix mode =
   let ast = parse_file infile in
   let appr_prog, clear_prog, escrow_prog = comp_contract mode ast in
   write_to_file (outprefix^"_approval.teal") appr_prog;
+  Printf.printf "Approval program saved to %s_approval.teal\n" (outprefix);
   write_to_file (outprefix^"_clear.teal") clear_prog;
+  Printf.printf "Clear program saved to %s_clear.teal\n" (outprefix);
   match escrow_prog with
   | Some(escrow_prog) ->
-    write_to_file (outprefix^"_escrow.teal") escrow_prog
+    write_to_file (outprefix^"_escrow.teal") escrow_prog;
+    Printf.printf "Escrow contract saved to %s_escrow.teal\n" (outprefix)
   | None -> ()
 
 let outprefix =
