@@ -132,6 +132,9 @@ After the maturity date has passed, users that bought bonds in the sale/presale 
 redeem() {}
 ```
 
+To compile the tinybond contract, follow the instructions in the [Using the AlgoML compiler](./#using-the-algoml-compiler) section. 
+
+
 ## AlgoML use cases
 
 We illustrate the usage of AlgoML on some relevant use cases:
@@ -176,6 +179,11 @@ The compiler will output three files in the folder where the command is launched
 * `output_approval.teal`, the TEAL code of the stateful contract;
 * `output_escrow.teal`, the TEAL code of the stateless contract used as escrow;
 * `output_clear.teal`, the TEAL code run upon a clearstate operation.
+
+For example, to compile the tinybond contract, enter the following command from the algoml folder:
+```console
+dune exec ./amlc.exe contracts/tinybond/tinybond.aml
+```
 
 ## Disclaimer
 
