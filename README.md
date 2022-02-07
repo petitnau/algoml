@@ -94,6 +94,42 @@ Create create(
 }
 ```
 
+The following clause allow investors join the presale. This operation does not require to meet any preconditions. The `OptIn` modifier enables these users to have a local state in the contract. The function body initializes the `preSaleAmt` variable of the local state to zero.
+```java
+OptIn joinPresale() {
+	loc.preSaleAmt = 0
+}
+```
+
+The following clause allows users to buy bonds in the presale period. The effect of the function is just to set the number of bought units in the 
+local state of the investor. The actual transfer of tokens will be finalised in the sale period (see the next clause).
+```java
+@round (glob.preSale, glob.sale)	// presale period
+@pay $amt of ALGO : caller -> escrow	// transfer ALGOs to the contract to reserve bond units
+@assert amt * glob.preSaleRate / 100 <= glob.maxDep
+deposit() {
+	loc.preSaleAmt += amt * glob.preSaleRate / 100
+	glob.maxDeposit -= amt * glob.preSaleRate / 100
+}
+```
+
+```java
+@round (glob.sale, glob.saleEnd)
+@pay $inAmt of ALGO : caller -> escrow
+@pay $outAmt of glob.COUPON : escrow -> caller
+@assert inAmt + loc.preSaleAmt == outAmt
+deposit() {
+	loc.preSaleAmt = 0
+}
+```
+
+```java
+@round (glob.maturityDate, )
+@pay $inAmt of glob.COUPON : caller -> escrow
+@pay $outAmt of ALGO : escrow -> caller
+@assert inAmt == outAmt * glob.interestRate / 100
+redeem() {}
+```
 
 ## AlgoML use cases
 
