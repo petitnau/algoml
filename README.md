@@ -30,18 +30,13 @@ This precondition holds only when the boolean expression `exp` evaluates to true
 ```java
 @newtok $amt of $tok -> escrow
 ```
-Holds when a new token is minted, and all its units are stored them in the contract. The variables `$amt` and `$tok` are bound, respectively, to the number of minted units and to the token identifier.
+Holds when a new token is minted, and all its units are stored in the contract. The variables `amt` and `tok` are bound, respectively, to the number of minted units and to the token identifier.
 
 ```java
 @pay $amt of tok : caller -> escrow
 ``` 
-Holds when `$amt` units of token `tok` are transferred from the caller to the escrow. The token `tok` can be ALGO or an ASA.
+Holds when some units of token `tok` are transferred from the caller to the escrow. The variable `amt` is bound to the precise amount that is being sent. The token `tok` can be ALGO or an ASA.
 
-```java
-@pay $amt of tok : caller -> escrow
-```
-Holds when `$amt` units of token `tok` are transferred from the the escrow to the caller. The token `tok` can be ALGO or an ASA.
- 
 ```java
 @gstate oldstate -> newstate
 ```
@@ -73,7 +68,7 @@ Each account joining the contract has also a local state, composed by a single m
 loc mut int preSaleAmt
 ```
 
-Contract creation is modelled by the followin clause:
+Contract creation is modelled by the following clause:
 ```java
 @newtok $budget of $COUPON -> escrow	// creates a new token
 @assert preSale < sale 			// the presale period starts before the sale period
@@ -113,6 +108,7 @@ deposit() {
 }
 ```
 
+The following clause allows users to buy bonds in the regular sale period. If the user has previously bought some units in the presale, they will receive the bought amount here. 
 ```java
 @round (glob.sale, glob.saleEnd)
 @pay $inAmt of ALGO : caller -> escrow
@@ -123,6 +119,7 @@ deposit() {
 }
 ```
 
+After the maturity date has passed, users that bought bonds in the sale/presale period will be able to sell them at an interest rate of `glob.interestRate`/100. 
 ```java
 @round (glob.maturityDate, )
 @pay $inAmt of glob.COUPON : caller -> escrow
