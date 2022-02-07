@@ -28,9 +28,9 @@ This precondition holds when the function is called from round `from` (included)
 This precondition holds only when the boolean expression `exp` evaluates to true.
 
 ```java
-@newtok $amt of $tok -> escrow
+@newtok amt of $tok -> escrow
 ```
-Holds when a new token is minted, and all its units are stored in the contract. The variables `amt` and `tok` are bound, respectively, to the number of minted units and to the token identifier.
+Holds when a new token of amt units is minted, and all its units are stored in the contract. The variable `tok` is bound to the number to the token identifier.
 
 ```java
 @pay $amt of tok : caller -> escrow
