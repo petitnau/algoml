@@ -14,9 +14,40 @@ foo(x1,...,xn) {
 ```
 The intuition is that the function ``foo`` is enabled whenever all the preconditions are respected. Executing ``foo`` results in a state update, specified in the function body. Preconditions may have various forms: for instance, they can be predicates on the contract state, or checks that certain transactions belong to the group wherein the function is called.
 
-On a lower level, an AlgoML program models two contracts: a stateful application, and a stateless contract account. The stateful application is in charge of all of the high level logic of the contract, while the stateless contract's only duty is holding funds, delegating all spending logic to the stateful application.
+On a lower level, an AlgoML program models two contracts: a stateful application, and a stateless contract account. The stateful application is in charge of all of the contract logic, while the stateless contract acts as an escrow, which holds funds and releases them according to the logic of the stateful contract.
 
-## First example: Tinybond
+Examples of AlgoML preconditions are:
+```java
+@round (from,to)
+```
+This precondition holds when the function is called from round `from` (included) to round `to` (excluded).
+ 
+```java 
+@assert exp 
+```
+This precondition holds only when the boolean expression `exp` evaluates to true.
+
+```java
+@newtok $amt of $tok -> escrow
+```
+Holds when a new token is minted, and all its units are stored them in the contract. The variables `$amt` and `$tok` are bound, respectively, to the number of minted units and to the token identifier.
+
+```java
+@pay $amt of tok : caller -> escrow
+``` 
+Holds when `$amt` units of token `tok` are transferred from the caller to the escrow. The token `tok` can be ALGO or an ASA.
+
+```java
+@pay $amt of tok : caller -> escrow
+```
+Holds when `$amt` units of token `tok` are transferred from the the escrow to the caller. The token `tok` can be ALGO or an ASA.
+ 
+```java
+@gstate oldstate -> newstate
+```
+Holds when the current contract state is `oldstate`. After executing the function, the state takes a transition to `newstate`.
+
+## AlgoML by examples: tinybond
 
 We illustrate some of the ALgoML features by applying it to implement a simple bond.
 The contract issues bonds, in the form of ASAs, and allows users to redeem them with interests after a maturiry date.
