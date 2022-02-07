@@ -103,8 +103,8 @@ OptIn joinPresale() {
 The following clause allows users to buy bonds in the presale period. The effect of the function is just to set the number of bought units in the 
 local state of the investor. The actual transfer of tokens will be finalised in the sale period (see the next clause).
 ```java
-@round (glob.preSale, glob.sale)	// presale period
-@pay $amt of ALGO : caller -> escrow	// transfer ALGOs to the contract to reserve bond units
+@round (glob.preSale, glob.sale)		// presale period
+@pay $amt of ALGO : caller -> escrow		// transfer ALGOs to the contract to reserve bond units
 @assert amt * glob.preSaleRate / 100 <= glob.maxDep
 deposit() {
 	loc.preSaleAmt += amt * glob.preSaleRate / 100
@@ -114,10 +114,10 @@ deposit() {
 
 The following clause allows users to buy bonds in the regular sale period. If the user has previously bought some units in the presale, they will receive the bought amount here. 
 ```java
-@round (glob.sale, glob.saleEnd)
-@pay $inAmt of ALGO : caller -> escrow
-@pay $outAmt of glob.COUPON : escrow -> caller
-@assert inAmt + loc.preSaleAmt == outAmt
+@round (glob.sale, glob.saleEnd)		// sale period
+@pay $inAmt of ALGO : caller -> escrow		// transfer additional ALGOs to the contract to buy bond units
+@pay $outAmt of glob.COUPON : escrow -> caller	// transfer bond units from the contract to the caller
+@assert inAmt + loc.preSaleAmt == outAmt	// outAmt is the actual number of transferred bond units
 deposit() {
 	loc.preSaleAmt = 0
 }
@@ -125,9 +125,9 @@ deposit() {
 
 After the maturity date has passed, users that bought bonds in the sale/presale period will be able to sell them at an interest rate of `glob.interestRate`/100. 
 ```java
-@round (glob.maturityDate, )
-@pay $inAmt of glob.COUPON : caller -> escrow
-@pay $outAmt of ALGO : escrow -> caller
+@round (glob.maturityDate, )			
+@pay $inAmt of glob.COUPON : caller -> escrow	// the caller transfer bond units to the contract...
+@pay $outAmt of ALGO : escrow -> caller		// ... and redeems ALGOs with interests
 @assert inAmt == outAmt * glob.interestRate / 100
 redeem() {}
 ```
