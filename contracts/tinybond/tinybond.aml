@@ -28,14 +28,14 @@ Create create(
 	glob.maxDep = budget
 }
 
-OptIn optin() {
+OptIn joinPresale() {
 	loc.preSaleAmt = 0
 }
 
 @round (glob.preSale, glob.sale)
 @pay $amt of ALGO : caller -> escrow
 @assert amt * glob.preSaleRate / 100 <= glob.maxDep
-preDeposit() {
+deposit() {
 	loc.preSaleAmt += amt * glob.preSaleRate / 100
 	glob.maxDep -= amt * glob.preSaleRate / 100
 }
