@@ -7,7 +7,7 @@ glob int sale
 glob int saleEnd
 glob int maturityDate
 
-glob mut int maxDeposit
+glob mut int maxDep
 loc mut int preSaleAmt
 
 @newtok $budget of $COUPON -> escrow
@@ -25,7 +25,7 @@ Create create(
 	glob.interestRate = interestRate
 	glob.preSaleRate = preSaleRate
 	glob.COUPON = COUPON
-	glob.maxDeposit = budget
+	glob.maxDep = budget
 }
 
 OptIn optin() {
@@ -34,10 +34,10 @@ OptIn optin() {
 
 @round (glob.preSale, glob.sale)
 @pay $amt of ALGO : caller -> escrow
-@assert amt * glob.preSaleRate / 100 <= glob.maxDeposit
+@assert amt * glob.preSaleRate / 100 <= glob.maxDep
 preDeposit() {
 	loc.preSaleAmt += amt * glob.preSaleRate / 100
-	glob.maxDeposit -= amt * glob.preSaleRate / 100
+	glob.maxDep -= amt * glob.preSaleRate / 100
 }
 
 @round (glob.sale, glob.saleEnd)
