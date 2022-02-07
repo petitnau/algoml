@@ -20,7 +20,11 @@ Examples of AlgoML preconditions are:
 ```java
 @round (from,to)
 ```
-This precondition holds when the function is called from round `from` (included) to round `to` (excluded).
+This precondition holds when the function is called from round `from` (included) to round `to` (excluded). It is also possible, like in many other clauses, to not only check if the round is in a certain range, but also to bind a variable to the current round.
+```java
+@round (from,to)$curr_round
+```
+This precondition, for example, both checks that the current round is between the values `from` and `to`, and binds the `curr_round` variable to the current round. 
  
 ```java 
 @assert exp 
