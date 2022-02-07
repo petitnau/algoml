@@ -16,11 +16,61 @@ The intuition is that the function ``foo`` is enabled whenever all the precondit
 
 On a lower level, an AlgoML program models two contracts: a stateful application, and a stateless contract account. The stateful application is in charge of all of the high level logic of the contract, while the stateless contract's only duty is holding funds, delegating all spending logic to the stateful application.
 
-## Use cases
+## First example: Tinybond
+
+We illustrate some of the ALgoML features by applying it to implement a simple bond.
+The contract issues bonds, in the form of ASAs, and allows users to redeem them with interests after a maturiry date.
+Users can buy bonds in two time periods:
+* the standard sale period, where the bond value equals the amount of invested ALGOs (1 bound = 1 ALGO); 
+* the presale period, where bonds are sold at a discounted price (1 bond = preSaleRate/100 ALGO).
+After the maturity period, users can redeem bonds for ALGOs, at the exchange rate 1 bond = interestRate/100 ALGO.
+
+The global state of the contract consists of the following variables:
+```java
+glob token COUPON
+```
+The global state of the contract consists of the following variables. All of them are fixed at contract creation, with the only exception of `maxDeposit`, which is made mutable by the modifier `mut`:  
+```java
+glob int interestRate     // interest rate (e.g., 150 means 1.5 multiplication factor, i.e. 50% interest rate)
+glob int preSaleRate      // discount rate for the presale (e.g., 150 means that 100 ALGOs buy 150 bond units)
+glob int preSale
+glob int sale
+glob int saleEnd
+glob int maturityDate
+glob mut int maxDeposit
+```
+
+```java
+loc mut int preSaleAmt
+```
+
+```java
+@newtok $budget of $COUPON -> escrow
+@assert preSale < sale 
+@assert sale < saleEnd 
+@assert saleEnd < maturityDate
+Create create(
+    int preSale, int sale, int saleEnd, int maturityDate,
+    int interestRate, int preSaleRate
+) {
+	glob.preSale = preSale
+	glob.sale = sale
+	glob.saleEnd = saleEnd
+	glob.maturityDate = maturityDate
+	glob.interestRate = interestRate
+	glob.preSaleRate = preSaleRate
+	glob.COUPON = COUPON
+	glob.maxDeposit = budget
+}
+```
+
+
+## More AlgoML use cases
 
 We illustrate the usage of AlgoML on some relevant use cases:
 - [Automated Market Makers](contracts/amm)
 - [Crowdfunding](contracts/crowdfund)
+- [2-players lottery](contracts/lottery)
 - [King of the Algo Throne](contracts/kotat)
 - [Vaults](contracts/vaults)
 - [Voting](contracts/voting)
