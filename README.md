@@ -132,7 +132,7 @@ After the maturity date has passed, users that bought bonds in the sale/presale 
 redeem() {}
 ```
 
-To compile the tinybond contract, follow the instructions in the [Using the AlgoML compiler](./#using-the-algoml-compiler) section. 
+To compile the tinybond contract, follow the instructions in the [Using the AlgoML compiler](#using-the-algoml-compiler) section. 
 
 
 ## AlgoML use cases
