@@ -50,36 +50,35 @@ Holds when the current contract state is `oldstate`. After executing the functio
 ## AlgoML by examples: tinybond
 
 We illustrate some of the ALgoML features by applying it to implement a simple bond.
-The contract issues bonds, in the form of ASAs, and allows users to redeem them with interests after a maturiry date.
+The contract issues bonds, in the form of ASAs, and allows users to redeem them with interests after a maturity date.
 Users can buy bonds in two time periods:
-* the standard sale period, where the bond value equals the amount of invested ALGOs (1 bound = 1 ALGO); 
+* the standard sale period, where the bond value equals the amount of invested ALGOs (1 bond = 1 ALGO); 
 * the presale period, where bonds are sold at a discounted price (1 bond = preSaleRate/100 ALGO).
-After the maturity period, users can redeem bonds for ALGOs, at the exchange rate 1 bond = interestRate/100 ALGO.
+After the maturity date, users can redeem bonds for ALGOs, at the exchange rate 1 bond = interestRate/100 ALGO.
 
-The global state of the contract consists of the following variables:
-```java
-glob token COUPON
-```
 The global state of the contract consists of the following variables. All of them are fixed at contract creation, with the only exception of `maxDeposit`, which is made mutable by the modifier `mut`:  
 ```java
-glob int interestRate     // interest rate (e.g., 150 means 1.5 multiplication factor, i.e. 50% interest rate)
-glob int preSaleRate      // discount rate for the presale (e.g., 150 means that 100 ALGOs buy 150 bond units)
-glob int preSale
-glob int sale
-glob int saleEnd
-glob int maturityDate
-glob mut int maxDeposit
+glob token COUPON	// the ASA used to represent the bond
+glob int interestRate   // interest rate (e.g., 150 means 1.5 multiplication factor, i.e. 50% interest rate)
+glob int preSaleRate    // discount rate for the presale (e.g., 150 means that 100 ALGOs buy 150 bond units)
+glob int preSale	// start of the presale period
+glob int sale		// start of the sale period
+glob int saleEnd	// end of the sale period
+glob int maturityDate	// maturity date
+glob mut int maxDep	// upper bound to ALGOs that can be deposited to preserve liquidity
 ```
 
+Each account joining the contract has also a local state, composed by a single mutable variable:
 ```java
 loc mut int preSaleAmt
 ```
 
+Contract creation is modelled by the followin clause:
 ```java
-@newtok $budget of $COUPON -> escrow
-@assert preSale < sale 
-@assert sale < saleEnd 
-@assert saleEnd < maturityDate
+@newtok $budget of $COUPON -> escrow	// creates a new token
+@assert preSale < sale 			// the presale period starts before the sale period
+@assert sale < saleEnd 			// the sale period starts before it ends
+@assert saleEnd < maturityDate		// the maturity date happens after the sale period has ended
 Create create(
     int preSale, int sale, int saleEnd, int maturityDate,
     int interestRate, int preSaleRate
@@ -91,7 +90,7 @@ Create create(
 	glob.interestRate = interestRate
 	glob.preSaleRate = preSaleRate
 	glob.COUPON = COUPON
-	glob.maxDeposit = budget
+	glob.maxDep = budget
 }
 ```
 
