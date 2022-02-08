@@ -90,6 +90,6 @@ If less than `curse_duration` rounds have passed since the `curse_start`, users 
 
 Once called, similarly to the `take_power` function, the current user becomes king and the contract saves the round upon which the function was called, the address of the caller, the user's chosen name, and updates the claim_price, multiplying it by the `rate_percent` divided by 100.
 
-# Disclaimer
+## Disclaimer
 
 The project is not audited and should not be used in a production environment.
