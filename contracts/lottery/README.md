@@ -1,6 +1,6 @@
 # 2-players lottery
 
-We speficy a lottery where 2-players bet 1 ALGO each, and the winner redeems the whole pot. To achieve fairness, the lottery is structured in commit-reveal phases as follows:
+We specify a lottery where 2-players bet 1 ALGO each, and the winner redeems the whole pot. To achieve fairness, the lottery is structured in commit-reveal phases as follows:
 1. player1 joins the lottery by paying 1 ALGO and committing to a secret
 2. player2 joins the lottery by paying 1 ALGO committing to another secret
 3. player1 reveals the secret, or otherwise her bet can be redeemed by player2
