@@ -17,3 +17,19 @@ The contract state consists of the following global variables:
 * `hand_commit1`, `hand_commit2`: the hand commitments
 * `hand1`, `hand2`: the players' hands
 * `guess1`, `guess2`: the players' guesses
+
+## Creating the game
+
+The following clase is used to create the contract. The function body initialized the global state, setting `turn_started_at` at the current round, the `turns_to_play` to the value provided by the creator.
+
+```java
+@gstate -> joined0
+@round $r
+@assert turns_to_play > 0
+Create morra(int turns_to_play) {
+    glob.turns_to_play = turns_to_play
+    glob.turn_started_at = r
+    glob.score1 = 0
+    glob.score2 = 0
+}
+```
