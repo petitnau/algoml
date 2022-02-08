@@ -60,11 +60,79 @@ join(string commitment) {
 
 If, after the commit deadline, the second player has not joined, then player1 can redeem the bet:
 ```java
-@gstate joined1 -> end
+@gstate joined1 -> joined0
 @round (glob.end_commit,)
 @close ALGO : escrow -> glob.player1
 redeem() {}
 ```
+
+The following clause allows the creator to delete the contract if no one has joined within the commit deadline:
+```java
+@gstate joined0 -> end
+@round (glob.end_commit,)
+@from creator
+Delete delete() {}
+```
+
+## Revealing the secrets
+
+Once both players have joined the lottery, they must reveal their secrets one after the other. Revealing a secrets amounts to providing a value whose hash equals to the committed value. Player1 must reveal first.
+```java
+@gstate joined2 -> revealed1
+@round (glob.end_commit,glob.end_reveal)
+@assert sha256(secret) == glob.commitment1
+reveal(string secret) {
+    glob.secret1 = secret
+}
+```
+
+Player2 must reveal after player1. The deadline extension of 100 rounds is needed to avoid attacks where player1 reveals very close to the deadline, so preventing player2 to reveal by the deadline.
+```java
+@gstate revealed1 -> revealed2
+@round (glob.end_commit,glob.end_reveal+100)
+@assert sha256(secret) == glob.commitment2
+reveal(string secret) {
+    glob.secret2 = secret
+}
+```
+
+If player1 has not revealed by the deadline, player2 can redeem the whole pot:
+```java
+@gstate joined2 -> end
+@round (glob.end_reveal,)
+@close ALGO : escrow -> glob.player2
+redeem() {}
+```
+
+If player2 has not revealed by the (extended) deadline, player1 can redeem the whole pot:
+```java
+@gstate revealed1 -> end
+@round (glob.end_reveal+100,)
+@close ALGO : escrow -> glob.player1
+redeem() {}
+```
+
+## Winning the lottery
+
+Player1 wins the lottery when the sum of the secrets' lengths is even:
+```java
+@gstate revealed2 -> end
+@assert (len(glob.secret1) + len(glob.secret2)) % 2 == 0
+@close ALGO : escrow -> glob.player1 
+redeem() {}
+```
+
+Dually, player2 wins the lottery when the sum of the secrets' lengths is odd:
+```java
+@gstate revealed2 -> end
+@assert (len(glob.secret1) + len(glob.secret2)) % 2 == 1
+@close ALGO : escrow -> glob.player2
+redeem() {}
+```
+
+If no one reveals, then 2 ALGOs are frozen in the contract. This is not a problem, since we assume that a rational player will always reveal.  
+If desired, we can unfreeze the 2 ALGOs by allowing both players to redeem 1 ALGO after some time
+
 
 ## References
 
