@@ -12,12 +12,20 @@ This specification follows the protocol for zero-collateral lotteries defined in
 ## Contract state
 
 The contract state consists of the following global variables:
+* `end_commit`: last round to join
+* `end_reveal`: last round to reveal
+* `player1`: player1's address
+* `player2`: player2's address
+* `commitment1`: player1's commitment
+* `commitment2`: player2's commitment
+* `secret1`: player1's secret
+* `secret2`: player2's secret
 
 ## Creating the lottery
 
 Any user can create a lottery by providing the deadlines. The initial state of the contract is set to `joined0`:
 ```java
-@gstate -> joined0	// in state joined0, no player has joined yet
+@gstate -> joined0	            // in state joined0, no player has joined yet
 @assert end_commit < end_reveal
 Create lottery(int end_commit, int end_reveal) {
     glob.end_commit = end_commit
@@ -25,6 +33,6 @@ Create lottery(int end_commit, int end_reveal) {
 }
 ```
 
-### References
+## References
 
-**[BZ17]** Massimo Bartoletti, Roberto Zunino. Constant-Deposit Multiparty Lotteries on Bitcoin. Financial Cryptography Workshops 2017: 231-247
+- **[BZ17]** Massimo Bartoletti, Roberto Zunino. [Constant-Deposit Multiparty Lotteries on Bitcoin](https://eprint.iacr.org/2016/955). Financial Cryptography Workshops, 2017
