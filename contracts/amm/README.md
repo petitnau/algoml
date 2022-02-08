@@ -1,4 +1,4 @@
-# Automated Market Maker 
+# Automated Market Makers 
 
 Automated Market Makers (AMMs) are decentralized applications that allow digital assets to be traded in a permissionless way by using liquidity pools rather than traditional market of buyers and sellers. In this use case we specify in AlgoML a constant-product AMM, inspired by [Uniswap2](https://docs.uniswap.org/protocol/v2/introduction). Our specification follows closely the transition system defined in [[BCL21]](#references).
 
@@ -146,10 +146,10 @@ get_t1() {
 Each of those functions checks if the caller is receiving a payment from the escrow of the reserved amount of that particular token.
 When called, the reserved amount of the chosen token is set to 0.
 
-# References
+## References
 
 - **[BCL21]** Massimo Bartoletti, James Hsin-yu Chiang and Alberto Lluch-Lafuente. [Maximizing Extractable Value from Automated Market Makers](https://arxiv.org/pdf/2106.01870.pdf). Financial Cryptography, 2022
 
-# Disclaimer
+## Disclaimer
 
 The project is not audited and should not be used in a production environment.
