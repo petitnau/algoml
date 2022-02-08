@@ -39,8 +39,6 @@ join(string commitment) {
 @close ALGO : escrow -> glob.player1
 redeem() {}
 
-//////////////
-
 // delete the contract if no one has joined within the commit deadline
 @gstate joined0 -> end
 @round (glob.end_commit,)
@@ -54,8 +52,6 @@ Delete delete() {}
 reveal(string secret) {
     glob.secret1 = secret
 }
-
-////////////////
 
 // player2 must reveal after player1
 @gstate revealed1 -> revealed2
