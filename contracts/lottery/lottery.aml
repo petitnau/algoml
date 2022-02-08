@@ -1,46 +1,98 @@
 glob address player1
 glob address player2
-glob int end_commit
-glob int end_reveal
+glob int end_commit		// last round to join
+glob int end_reveal		// last round to reveal
 
-loc string commitment
-loc string original
+glob string commitment1
+glob string commitment2
+glob string secret1
+glob string secret2
 
-Create lottery(address player1, address player2, int end_commit, int end_reveal) {
-    glob.player1 = player1
-    glob.player2 = player2
+@gstate -> joined0	// in state joined0, no player has joined yet
+@assert end_commit < end_reveal
+Create lottery(int end_commit, int end_reveal) {
     glob.end_commit = end_commit
     glob.end_reveal = end_reveal
 }
 
-@lstate -> committed
+@gstate joined0 -> joined1 	// the first player who joins becomes player1
+@round (,glob.end_commit)
 @pay 1 of ALGO : caller -> escrow
-OptIn join(string commitment) {
-    loc.commitment = commitment
+join(string commitment) {
+    glob.player1 = caller
+    glob.commitment1 = commitment
 }
 
-@lstate committed -> revelead
-@assert sha256(original) == loc.commitment
-reveal(string original) {
-    loc.original = original
+@gstate joined1 -> joined2 // the second player who joins becomes player2
+@round (,glob.end_commit)
+@pay 1 of ALGO : caller -> escrow
+@assert glob.commitment1 != commitment // prevents from replay attacks on the commitment, also under transaction reorderings
+join(string commitment) {
+    glob.player2 = caller
+    glob.commitment2 = commitment
 }
 
-@lstate[glob.player1] revelead
-@lstate[glob.player2] revelead
-@assert (len(glob.player1.original) + len(glob.player2.original)) % 2 == 0
+// if, after the commit deadline, the second player has not joined,
+// then player1 can redeem the bet
+@gstate joined1 -> end
+@round (glob.end_commit,)
+@close ALGO : escrow -> glob.player1
+redeem() {}
+
+//////////////
+
+// delete the contract if no one has joined within the commit deadline
+@gstate joined0 -> end
+@round (glob.end_commit,)
+@from creator
+Delete delete() {}
+
+// player1 must reveal first
+@gstate joined2 -> revealed1
+@round (glob.end_commit,glob.end_reveal)
+@assert sha256(secret) == glob.commitment1
+reveal(string secret) {
+    glob.secret1 = secret
+}
+
+////////////////
+
+// player2 must reveal after player1
+@gstate revealed1 -> revealed2
+// the deadline extension +100 is needed to avoid attacks where 
+// player1 reveals close to the deadline, 
+@round (glob.end_commit,glob.end_reveal+100)
+@assert sha256(secret) == glob.commitment2
+reveal(string secret) {
+    glob.secret2 = secret
+}
+
+// if player1 has not revealed, player2 can redeem the pot
+@gstate joined2 -> end
+@round (glob.end_reveal,)
+@close ALGO : escrow -> glob.player2
+redeem() {}
+
+// if player2 has not revealed, player1 can redeem the pot
+@gstate revealed1 -> end
+@round (glob.end_reveal+100,)
+@close ALGO : escrow -> glob.player1
+redeem() {}
+
+// player1 wins the lottery
+@gstate revealed2 -> end
+@assert (len(glob.secret1) + len(glob.secret2)) % 2 == 0
 @close ALGO : escrow -> glob.player1 
 redeem() {}
 
-@lstate[glob.player1] revelead
-@lstate[glob.player2] revelead
-@assert (len(glob.player1.original) + len(glob.player2.original)) % 2 == 1
+// player2 wins the lottery
+@gstate revealed2 -> end
+@assert (len(glob.secret1) + len(glob.secret2)) % 2 == 1
 @close ALGO : escrow -> glob.player2
 redeem() {}
 
-@lstate[glob.player1] committed
-@close ALGO : escrow -> glob.player2
-claim_forfeit() {}
-
-@lstate[glob.player2] committed
-@close ALGO : escrow -> glob.player1
-claim_forfeit() {}
+// if no one reveals, then 2 ALGOs are frozen in the contract.
+// This is not a problem, since we assume that a rational player
+// will always reveal.
+// If desired, we can unfreeze the 2 ALGOs by allowing both players
+// to redeem 1 ALGO after some time
