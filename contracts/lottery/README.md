@@ -1,6 +1,7 @@
 # 2-players lottery
 
-We speficy a lottery where 2-players bet 1 ALGO each, and the winner redeems the whole pot. To achieve fairness, the lottery is structured in commit-reveal phases as follows:
+We speficy a lottery where 2-players bet 1 ALGO each, and the winner redeems the whole pot. 
+To achieve fairness, the lottery is structured in commit-reveal phases as follows:
 1. player1 joins the lottery by paying 1 ALGO and committing to a secret
 2. player2 joins the lottery by payin 1 ALGO committing to another secret
 3. player1 reveals the secret, or otherwise her bet can be redeemed by player2
@@ -69,7 +70,7 @@ redeem() {}
 
 ## Revealing the secrets
 
-Once both players have joined the lottery, they must reveal their secrets one after the other. Revealing a secrets amounts to providing a value whose hash equals to the committed value. Player1 must reveal first.
+Once both players have joined the lottery, they must reveal their secrets one after the other. Revealing a secret amounts to providing a value whose hash equals to the committed value. Player1 must reveal first.
 ```java
 @gstate joined2 -> revealed1
 @round (glob.end_commit,glob.end_reveal)
