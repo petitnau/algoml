@@ -1,4 +1,10 @@
 #pragma version 4
 
-// reject any transaction
+aclause_0:
+
+//*******
+
 err
+
+int 1
+return
