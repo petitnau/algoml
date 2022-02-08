@@ -45,11 +45,13 @@ join(string commitment) {
 }
 ```
 
+Similarly, the following clause allows the second player to join the lottery.
+The `@assert` precondition ensures that the commitments of the two players (and so, their secrets) are different. This is needed to thwart attacks where an adversary replays the commitment of the other player in order to win.
 ```java
-@gstate joined1 -> joined2 // the second player who joins becomes player2
+@gstate joined1 -> joined2
 @round (,glob.end_commit)
 @pay 1 of ALGO : caller -> escrow
-@assert glob.commitment1 != commitment // prevents from replay attacks on the commitment, also under transaction reorderings
+@assert glob.commitment1 != commitment 
 join(string commitment) {
     glob.player2 = caller
     glob.commitment2 = commitment
