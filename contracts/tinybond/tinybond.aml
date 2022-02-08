@@ -14,7 +14,7 @@ loc mut int preSaleAmt
 @assert preSale < sale 
 @assert sale < saleEnd 
 @assert saleEnd < maturityDate
-Create create(
+Create tinybond(
     int preSale, int sale, int saleEnd, int maturityDate,
     int interestRate, int preSaleRate
 ) {
