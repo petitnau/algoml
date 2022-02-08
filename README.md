@@ -42,6 +42,7 @@ This precondition holds when a number of units of token `tok` in the range `(min
 ```
 This holds when the current contract state is `oldstate`. After executing the function, the state takes a transition to `newstate`.
 
+
 ## AlgoML by examples: tinybond
 
 We illustrate some of the AlgoML features by applying it to implement a simple bond.
@@ -74,10 +75,7 @@ Contract creation is modelled by the following clause:
 @assert preSale < sale 			// the presale period starts before the sale period
 @assert sale < saleEnd 			// the sale period starts before it ends
 @assert saleEnd < maturityDate		// the maturity date happens after the sale period has ended
-Create create(
-    int preSale, int sale, int saleEnd, int maturityDate,
-    int interestRate, int preSaleRate
-) {
+Create tinybond(int preSale, int sale, int saleEnd, int maturityDate,int interestRate, int preSaleRate) {
 	glob.preSale = preSale
 	glob.sale = sale
 	glob.saleEnd = saleEnd
@@ -88,6 +86,7 @@ Create create(
 	glob.maxDep = budget
 }
 ```
+The function body just initializes the variables in the global state with the actual parameters. The `Create` modifier means that the effect of the clause is to create and initialize the contract.
 
 The following clause allow investors join the presale. This operation does not require to meet any preconditions. The `OptIn` modifier enables these users to have a local state in the contract. The function body initializes the `preSaleAmt` variable of the local state to zero.
 ```java
