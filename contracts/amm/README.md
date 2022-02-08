@@ -18,13 +18,6 @@ Local variables:
 * `t0_reserved` and `t1_reserved` are the amounts of `t0`/`t1` that can be redeemed by the user
 * `minted_reserved` is the amount of `minted_t` that can be redeemed by the user
 
-## Escrow account 
-
-The escrow account used by the AMM is a stateless contract that releases assets provided that:
-1. the stateful contract participates in the transaction group
-2. the escrow does not pay any transaction fees
-3. the escrow does not send a rekey transaction
-
 ## Creating the AMM
 
 Any user can create an AMM by providing the two tokens types `t0` and `t1` that are going to be traded, while also providing their initial reserves. The creator will receive a certain amount of minted tokens in return.
