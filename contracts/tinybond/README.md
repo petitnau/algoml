@@ -9,16 +9,14 @@ After the maturity date, users can redeem bonds for ALGOs, at the exchange rate 
 ## Contract state
 
 The global state of the contract consists of the following variables. All of them are fixed at contract creation, with the only exception of `maxDep`, which is made mutable by the modifier `mut`:  
-```java
-glob token COUPON	// the ASA used to represent the bond
-glob int interestRate   // interest rate (e.g., 150 means 1.5 multiplication factor, i.e. 50% interest rate)
-glob int preSaleRate    // discount rate for the presale (e.g., 150 means that 100 ALGOs buy 150 bond units)
-glob int preSale	// start of the presale period
-glob int sale		// start of the sale period
-glob int saleEnd	// end of the sale period
-glob int maturityDate	// maturity date
-glob mut int maxDep	// upper bound to ALGOs that can be deposited to preserve liquidity
-```
+* `COUPON`: the ASA used to represent the bond
+* `interestRate`: the interest rate (e.g., 150 means 1.5 multiplication factor, i.e. 50% interest rate)
+* `preSaleRate`: the discount rate for the presale (e.g., 150 means that 100 ALGOs buy 150 bond units)
+* `preSale`: start of the presale period
+* `sale`: start of the sale period
+* `saleEnd`: end of the sale period
+* `maturityDate`: maturity date
+*  `maxDep`: (mutable) upper bound to ALGOs that can be deposited to preserve liquidity.
 
 Each account joining the contract has also a local state, composed by a single mutable variable:
 ```java
