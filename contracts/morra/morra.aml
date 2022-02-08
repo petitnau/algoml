@@ -8,6 +8,8 @@ glob string hand_commit1
 glob string hand_commit2
 glob int hand1
 glob int hand2
+glob string guess_commit1
+glob string guess_commit2
 glob int guess1
 glob int guess2
 
@@ -58,19 +60,20 @@ redeem() {}
 @gstate turn1 -> turn2
 @round (glob.turn_started_at,glob.turn_started_at+100)$r
 @assert glob.turns_to_play > 0
-hand(string hand_commit, int guess) {
+hand(string hand_commit, string guess_commit) {
     glob.turns_to_play = glob.turns_to_play - 1
     glob.hand_commit1 = hand_commit
-    glob.guess1 = guess
+    glob.guess_commit1 = guess_commit
     glob.turn_started_at = r
 }
 
 @gstate turn2 -> reveal1
 @round (glob.turn_started_at,glob.turn_started_at+100)$r
 @assert glob.hand_commit1 != hand_commit
-hand(string hand_commit, int guess) {
+@assert glob.guess_commit1 != guess_commit
+hand(string hand_commit, string guess_commit) {
     glob.hand_commit2 = hand_commit
-    glob.guess2 = guess
+    glob.guess_commit2 = guess_commit
     glob.turn_started_at = r
 }
 
@@ -84,8 +87,10 @@ hand(string hand_commit, int guess) {
 @round (glob.turn_started_at,glob.turn_started_at+100)$r
 @assert 0 <= len(hand) - 32 && len(hand) - 32 <= 5
 @assert sha256(hand) == glob.hand_commit1
-reveal(string hand) {
+@assert sha256(guess) == glob.guess_commit1
+reveal(string hand, string guess) {
     glob.hand1 = len(hand) - 32
+    glob.guess1 = len(guess) - 32
     glob.turn_started_at = r
 }
 
@@ -94,8 +99,10 @@ reveal(string hand) {
 @round (glob.turn_started_at,glob.turn_started_at+100)$r
 @assert 0 <= len(hand) - 32 && len(hand) - 32 <= 5
 @assert sha256(hand) == glob.hand_commit2
-reveal(string hand) {
+@assert sha256(guess) == glob.guess_commit2
+reveal(string hand, string guess) {
     glob.hand2 = len(hand) - 32
+    glob.guess2 = len(guess) - 32
     glob.turn_started_at = r
 }
 
@@ -177,6 +184,12 @@ win() {}
 @assert glob.score2 > glob.score1
 win() {}
 
+@gstate turn1 -> end
+@assert glob.turns_to_play == 0
+@assert glob.score1 == glob.score2
+@pay 1 of ALGO : escrow -> glob.player1 
+@pay 1 of ALGO : escrow -> glob.player2
+win() {}
 
 /******************************
  Deleting the contract
