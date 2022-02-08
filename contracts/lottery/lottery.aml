@@ -34,7 +34,7 @@ join(string commitment) {
 
 // if, after the commit deadline, the second player has not joined,
 // then player1 can redeem the bet
-@gstate joined1 -> end
+@gstate joined1 -> joined0
 @round (glob.end_commit,)
 @close ALGO : escrow -> glob.player1
 redeem() {}
