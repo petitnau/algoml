@@ -33,6 +33,7 @@ Create lottery(int end_commit, int end_reveal) {
 ## Joining the lottery
 
 The following clause allows the first player to join the lottery. To do so, the player must pay 1 ALGO as a bet, and provide a commitment. 
+The commitment is the sha256 hash of the player's secret, which is a long enough string (32 bytes or more).
 The clause must be executed from state `joined0`, and once it is finalised the state takes a transition to `joined1`. 
 In this way we ensure that at most 2 players will join the lottery.
 ```java
