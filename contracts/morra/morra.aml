@@ -47,10 +47,14 @@ join() {
     glob.turn_started_at = r
 }
 
+@gstate joined0 -> end
+@round (glob.turn_started_at+200,)
+endgame() {}
+
 @gstate joined1 -> end
 @round (glob.turn_started_at+200,)
 @close ALGO : escrow -> glob.player1
-redeem() {}
+endgame() {}
 
 
 /******************************
@@ -135,7 +139,7 @@ newturn() {
     glob.turn_started_at = r
 }
 
-// if player2 has not revealed, player1 can redeem the pot
+// player2 has not revealed in time
 @gstate reveal2 -> turn1
 @round (glob.turn_started_at+100,)$r
 newturn() {
@@ -148,8 +152,8 @@ newturn() {
 @round (glob.turn_started_at,glob.turn_started_at+100)$r
 @assert glob.guess1 == glob.hand1 + glob.hand2
 newturn() {
-    glob.turn_started_at = r
     glob.score1 = glob.score1 + 1
+    glob.turn_started_at = r
 }
 
 // player2 wins the turn
@@ -176,20 +180,20 @@ newturn() {
 @assert glob.turns_to_play == 0
 @close ALGO : escrow -> glob.player1 
 @assert glob.score1 > glob.score2
-win() {}
+endgame() {}
 
 @gstate turn1 -> end
 @assert glob.turns_to_play == 0
 @close ALGO : escrow -> glob.player2
 @assert glob.score2 > glob.score1
-win() {}
+endgame() {}
 
 @gstate turn1 -> end
 @assert glob.turns_to_play == 0
 @assert glob.score1 == glob.score2
 @pay 1 of ALGO : escrow -> glob.player1 
 @pay 1 of ALGO : escrow -> glob.player2
-win() {}
+endgame() {}
 
 /******************************
  Deleting the contract
