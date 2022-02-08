@@ -14,7 +14,6 @@ The purpose of this tutorial is to create a **decentralized** vault as an Algora
   - [Table of contents](#table-of-contents)
   - [Contract state](#contract-state)
   - [Creating the vault](#creating-the-vault)
-  - [Initializing the escrow](#initializing-the-escrow)
   - [Depositing funds](#depositing-funds)
   - [Requesting a withdrawal](#requesting-a-withdrawal)
   - [Finalizing a request](#finalizing-a-request)
@@ -28,16 +27,14 @@ The contract state is stored in the following variables:
 
 * `wait_time` is the withdrawal wait time, i.e. the number of rounds that must pass between a withdrawal request and its finalization
 * `recovery` is the address from which the cancel action must originate
-* `vault` is the address of the escrow account where the deposited funds are stored
 * `request_time` is the round at which the withdrawal request has been submitted
 * `amount` is the amount of algos to be withdrawn
 * `receiver` is the address which can withdraw the algos
 * `gstate` is the contract state: 
-  * `init_escrow`: the contract is waiting for escrow initialization
   * `waiting`: there is no pending withdrawal request
   * `requested`: there is a pending withdrawal request
 
-The variables `wait_time`, `recovery` and `vault` are initialized at contract creation, and they remain constant throughout the contract lifetime. Instead, the other variables are updated upon each withdrawal request.
+The variables `wait_time`, `recovery` are initialized at contract creation, and they remain constant throughout the contract lifetime. Instead, the other variables are updated upon each withdrawal request.
 
 ## Creating the vault
 
@@ -45,7 +42,7 @@ Any user can create a vault, providing the recovery address and the withdrawal w
 
 We specify the behaviour of this action in AlgoML as follows:
 ```java
-@gstate ->init_escrow
+@gstate ->waiting
 Create vault(address recovery, int wait_time) {
     glob.recovery = recovery
     glob.wait_time = wait_time
@@ -54,28 +51,9 @@ Create vault(address recovery, int wait_time) {
 The `Create` modifier implies that this function actually constructs the contract. The function has two parameters: the `recovery` address, and the withdrawal `wait_time`. The body of the function just initializes the two global state variables `recovery` and `wait_time`.
 The clause 
 ```java
-@gstate ->init_escrow
+@gstate ->waiting
 ```
-means that after the action is performed, the new state of the contract is `init_escrow`. 
-
-## Initializing the escrow 
-
-Once the vault has been created, the creator must invoke the `set_escrow` function to connect it with an escrow account. The escrow will store all the algos deposited in the vault.
-To call `set_escrow`, the contract must be in the `init_escrow` state, and must be called from the vault creator. The application call must be bundled with a pay transaction, with an amount of 100'000 micro-algos (the amount needed to initialize an account). When called, the escrow address is saved into the global state, and the contract state is set to `waiting` (waiting for a withdrawal request).
-This is specified in AlgoML as follows: 
-```java
-@gstate init_escrow->waiting
-@from creator
-@pay 100000 : * -> vault
-set_escrow(address vault) {
-    glob.vault = vault
-}
-```
-
-The three preconditions have the following meaning: 
-* `@gstate init_escrow->waiting`: the current contract state must be `init_escrow` (the next state will be `waiting`)
-* `@from creator`: only the vault creator can call this function.
-* `@pay 100000 : * -> vault`: 100'000 micro-algos must be deposited in the contract, and this can be done by *any* user. 
+means that after the action is performed, the new state of the contract is `waiting`.
 
 ## Depositing funds 
 
@@ -105,13 +83,13 @@ After the withdrawal wait period has passed, the vault creator can finalize the 
 @gstate requested->waiting
 @round (glob.request_time + glob.wait_time,)
 @from creator
-@pay glob.amount : glob.vault -> glob.receiver
+@pay glob.amount : escrow -> glob.receiver
 finalize() { }
 ```
 
 The `finalize` function can only be called by the vault creator, provided that the current state is `requested` and `wait_time` rounds have passed since the `requested_time`. Further, the precondition:
 ```java
-@pay glob.amount : glob.vault -> glob.receiver
+@pay glob.amount : escrow -> glob.receiver
 ```
 requires that the function call is bundled with a pay transaction that transfers the amount of algos specified in the request from the vault to the declared receiver. After the function call, the contract state is set to `waiting`.
 
