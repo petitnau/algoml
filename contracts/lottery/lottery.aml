@@ -8,12 +8,20 @@ glob string commitment2
 glob string secret1
 glob string secret2
 
+/******************************
+ Contract creation
+ ******************************/
+
 @gstate -> joined0	// in state joined0, no player has joined yet
 @assert end_commit < end_reveal
 Create lottery(int end_commit, int end_reveal) {
     glob.end_commit = end_commit
     glob.end_reveal = end_reveal
 }
+
+/******************************
+ Joining the lottery
+ ******************************/
 
 @gstate joined0 -> joined1 	// the first player who joins becomes player1
 @round (,glob.end_commit)
@@ -34,16 +42,15 @@ join(string commitment) {
 
 // if, after the commit deadline, the second player has not joined,
 // then player1 can redeem the bet
-@gstate joined1 -> joined0
+@gstate joined1 -> end
 @round (glob.end_commit,)
 @close ALGO : escrow -> glob.player1
 redeem() {}
 
-// delete the contract if no one has joined within the commit deadline
-@gstate joined0 -> end
-@round (glob.end_commit,)
-@from creator
-Delete delete() {}
+
+/******************************
+ Revealing the secrets
+ ******************************/
 
 // player1 must reveal first
 @gstate joined2 -> revealed1
@@ -86,6 +93,16 @@ redeem() {}
 @assert (len(glob.secret1) + len(glob.secret2)) % 2 == 1
 @close ALGO : escrow -> glob.player2
 redeem() {}
+
+/******************************
+ Deleting the contract
+ ******************************/
+
+// delete the contract if no one has joined within the commit deadline
+@gstate end -> 
+@round (glob.end_commit,)
+@from creator
+Delete delete() {}
 
 // if no one reveals, then 2 ALGOs are frozen in the contract.
 // This is not a problem, since we assume that a rational player
