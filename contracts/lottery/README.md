@@ -14,12 +14,9 @@ This specification follows the protocol for zero-collateral lotteries defined in
 The contract state consists of the following global variables:
 * `end_commit`: last round to join
 * `end_reveal`: last round to reveal
-* `player1`: player1's address
-* `player2`: player2's address
-* `commitment1`: player1's commitment
-* `commitment2`: player2's commitment
-* `secret1`: player1's secret
-* `secret2`: player2's secret
+* `player1`,`player2`: the players' addresses
+* `commitment1`,`commitment2`: the players' commitments
+* `secret1`, `secret2`: the players' secrets
 
 ## Creating the lottery
 
@@ -31,6 +28,37 @@ Create lottery(int end_commit, int end_reveal) {
     glob.end_commit = end_commit
     glob.end_reveal = end_reveal
 }
+```
+
+## Joining the lottery
+
+```java
+@gstate joined0 -> joined1 
+@round (,glob.end_commit)
+@pay 1 of ALGO : caller -> escrow
+join(string commitment) {
+    glob.player1 = caller
+    glob.commitment1 = commitment
+}
+```
+
+```java
+@gstate joined1 -> joined2 // the second player who joins becomes player2
+@round (,glob.end_commit)
+@pay 1 of ALGO : caller -> escrow
+@assert glob.commitment1 != commitment // prevents from replay attacks on the commitment, also under transaction reorderings
+join(string commitment) {
+    glob.player2 = caller
+    glob.commitment2 = commitment
+}
+```
+
+If, after the commit deadline, the second player has not joined, then player1 can redeem the bet:
+```java
+@gstate joined1 -> end
+@round (glob.end_commit,)
+@close ALGO : escrow -> glob.player1
+redeem() {}
 ```
 
 ## References
