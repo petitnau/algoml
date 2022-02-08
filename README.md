@@ -137,6 +137,7 @@ Further AlgoML use cases are presented in the [contracts](contracts) folder:
 - [Crowdfunding](contracts/crowdfund)
 - [2-players lottery](contracts/lottery)
 - [King of the Algo Throne](contracts/kotat)
+- [Morra game](contracts/morra)
 - [Tinybond](contracts/tinybond)
 - [Vaults](contracts/vaults)
 - [Voting](contracts/voting)
