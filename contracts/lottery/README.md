@@ -36,3 +36,8 @@ Create lottery(int end_commit, int end_reveal) {
 ## References
 
 - **[BZ17]** Massimo Bartoletti, Roberto Zunino. [Constant-Deposit Multiparty Lotteries on Bitcoin](https://eprint.iacr.org/2016/955). Financial Cryptography Workshops, 2017
+
+## Disclaimer
+
+The project is not audited and should not be used in a production environment.
+
