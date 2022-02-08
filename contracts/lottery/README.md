@@ -2,7 +2,7 @@
 
 We speficy a lottery where 2-players bet 1 ALGO each, and the winner redeems the whole pot. To achieve fairness, the lottery is structured in commit-reveal phases as follows:
 1. player1 joins the lottery by paying 1 ALGO and committing to a secret
-2. player2 joins the lottery by payin 1 ALGO committing to another secret
+2. player2 joins the lottery by paying 1 ALGO committing to another secret
 3. player1 reveals the secret, or otherwise her bet can be redeemed by player2
 4. player2 reveals the secret, or otherwise her bet can be redeemed by player1
 5. the winner, who is determined as a function of the two revealed secrets, can redeem the whole pot.
@@ -61,18 +61,10 @@ join(string commitment) {
 
 If, after the commit deadline, the second player has not joined, then player1 can redeem the bet:
 ```java
-@gstate joined1 -> joined0
+@gstate joined1 -> end
 @round (glob.end_commit,)
 @close ALGO : escrow -> glob.player1
 redeem() {}
-```
-
-The following clause allows the creator to delete the contract if no one has joined within the commit deadline:
-```java
-@gstate joined0 -> end
-@round (glob.end_commit,)
-@from creator
-Delete delete() {}
 ```
 
 ## Revealing the secrets
@@ -131,8 +123,19 @@ Dually, player2 wins the lottery when the sum of the secrets' lengths is odd:
 redeem() {}
 ```
 
-If no one reveals, then 2 ALGOs are frozen in the contract. This is not a problem, since we assume that a rational player will always reveal.  
-If desired, we can unfreeze the 2 ALGOs by allowing both players to redeem 1 ALGO after some time
+## Deleting the contract
+
+The following clause allows the creator to delete a terminated contract:
+```java
+@gstate end -> 
+@round (glob.end_commit,)
+@from creator
+Delete delete() {}
+```
+
+Note that if no one reveals, then the pot will be redeemed by the contract creator, rather than the players. 
+This is not a problem, since we assume that a rational player will always reveal.  
+If desired, we can allow both players to redeem 1 ALGO some time after the contract has reached the `end` state.
 
 
 ## References

@@ -1,242 +1,243 @@
 #pragma version 4
 
-//**************************
-//*   Creating the vault   *
-//**************************
+aclause_0:
 
-//* Check if we're calling the create function *//
-
-// check if there are no other transactions in this atomic group
-global GroupSize
-int 1
-==
-bz not_create
-
-// check if the application is being created with this transaction
 txn ApplicationID
 int 0
 ==
-bz not_create
+bz aclause_1
 
-// check if the call has 3 arguments ("vault" + the two actual arguments: recovery account and wait_time)
+//*******
+
+byte "gstate"
+byte "@created"
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_1:
+
+global GroupSize
+int 2
+==
+bz aclause_2
+
+gtxn 0 TypeEnum
+int pay
+==
+bz aclause_2
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_2
+
+txn NumAppArgs
+int 1
+==
+bz aclause_2
+
+txna ApplicationArgs 0
+byte "init_escrow"
+==
+bz aclause_2
+
+txn Sender
+global CreatorAddress
+==
+bz aclause_2
+
+byte "gstate"
+app_global_get
+byte "@created"
+==
+bz aclause_2
+
+gtxn 0 Amount
+int 100000
+==
+bz aclause_2
+
+gtxn 0 CloseRemainderTo
+global ZeroAddress
+==
+bz aclause_2
+
+//*******
+
+byte "gstate"
+byte "@escrowinited"
+app_global_put
+
+byte "escrow"
+gtxn 0 Receiver
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_2:
+
+global GroupSize
+int 1
+==
+bz aclause_3
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_3
+
 txn NumAppArgs
 int 3
 ==
-bz not_create
+bz aclause_3
 
 txna ApplicationArgs 0
 byte "vault"
 ==
-bz not_create
+bz aclause_3
 
-//* Change the contract state *//
-
-// set the contract state to init_escrow (waiting for escrow initialization)
 byte "gstate"
-byte "init_escrow"
+app_global_get
+byte "@escrowinited"
+==
+bz aclause_3
+
+txn Sender
+global CreatorAddress
+==
+bz aclause_3
+
+//*******
+
+byte "gstate"
+byte "waiting"
 app_global_put
 
-// save the first argument (the address of the recovery account) into the global variable "recovery"
 byte "recovery"
 txna ApplicationArgs 1
 app_global_put
 
-// save the second argument (the time that must pass between withdrawal request and finalization) into the global variable "wait_time"
 byte "wait_time"
 txna ApplicationArgs 2
 btoi
 app_global_put
 
-b approve
+int 1
+return
 
-//*******************************
-//*   Initializing the escrow   *
-//*******************************
+//--------------------------------
 
-not_create:
+aclause_3:
 
-//* Check if we're calling the set_escrow function *//
-
-// check if there is one other transactions in this atomic group: the payment transaction needed to initialize the escrow account
-global GroupSize
-int 2
-==
-bz not_setescrow
-
-// check if the application is currently waiting to initialize the escrow
-byte "gstate"
-app_global_get
-byte "init_escrow"
-==
-bz not_setescrow
-
-// check if the application call has a NoOp oncompletion
-txn OnCompletion
-int NoOp
-==
-bz not_setescrow
-
-// check if the application call has 2 arguments: the byte string "set_escrow" and the vault address
-txn NumAppArgs
-int 2
-== 
-bz not_setescrow
-
-txna ApplicationArgs 0
-byte "set_escrow"
-==
-bz not_setescrow
-
-// check if this transaction is sent by the contract creator
-txn Sender
-global CreatorAddress
-==
-bz not_setescrow
-
-// check if the other transaction is a pay transaction of 100'000 micro-algos (the amount required to initialize an account) to the vault
-gtxn 0 TypeEnum
-int pay
-==
-bz not_setescrow
-
-gtxn 0 Amount
-int 100000
-==
-bz not_setescrow
-
-gtxn 0 Receiver
-txna ApplicationArgs 1
-==
-bz not_setescrow
-
-// check if the other transaction is not a closing transaction
-gtxn 0 CloseRemainderTo
-global ZeroAddress
-==
-bz not_setescrow
-
-//* Change the contract state *//
-
-// set the contract state to waiting (waiting for a withdrawal request)
-byte "gstate"
-byte "waiting"
-app_global_put
-
-// save the vault address into the global state
-byte "vault"
-txna ApplicationArgs 1
-app_global_put
-
-b approve
-
-//*******************************
-//*   Requesting a withdrawal   *
-//*******************************
-
-not_setescrow:
-
-//* Check if we're calling the withdraw function *//
-
-// check if there are no other transactions in this atomic group
 global GroupSize
 int 1
 ==
-bz not_withdraw
+bz aclause_4
 
-// check if the contract is in the waiting state (waiting for a withdrawal request)
-byte "gstate"
-app_global_get
-byte "waiting"
-==
-bz not_withdraw
-
-// check if the application call has a NoOp oncompletion
 txn OnCompletion
 int NoOp
 ==
-bz not_withdraw
+bz aclause_4
 
-// check if the call has 3 arguments ("withdraw" and the two actual arguments: amount and receiver)
 txn NumAppArgs
 int 3
 ==
-bz not_withdraw
+bz aclause_4
 
 txna ApplicationArgs 0
 byte "withdraw"
 ==
-bz not_withdraw
+bz aclause_4
 
-// check if this transaction is sent by the contract creator
+byte "gstate"
+app_global_get
+byte "waiting"
+==
+bz aclause_4
+
 txn Sender
 global CreatorAddress
 ==
-bz not_withdraw
+bz aclause_4
 
-//* Change the contract state *//
+//*******
 
-// set the contract state to requested (withdrawal request ongoing)
 byte "gstate"
-byte "requested"
+byte "requesting"
 app_global_put
 
-// save the first argument (the amount that the user is requesting) into global amount
 byte "amount"
 txna ApplicationArgs 1
 btoi
 app_global_put
 
-// save the second argument (the receiver of the withdrawal) into global receiver
 byte "receiver"
 txna ApplicationArgs 2
 app_global_put
 
-// save the current round into global request_time (so that the request can only be finalized wait_time rounds after)
 byte "request_time"
 global Round
 app_global_put
 
-b approve
+int 1
+return
 
-//*******************************
-//*   Finalizing a withdrawal   *
-//*******************************
+//--------------------------------
 
-not_withdraw:
+aclause_4:
 
-//* Check if we're calling the finalize function *//
-
-// check if the application call transactions is bundled with a pay transaction (the withdrawal)
 global GroupSize
 int 2
 ==
-bz not_finalize
+bz aclause_5
 
-// check if the contract is in the requested state (a withdrawal has been requested)
-byte "gstate"
-app_global_get
-byte "requested"
+gtxn 0 TypeEnum
+int pay
 ==
-bz not_finalize
+bz aclause_5
 
-// check if the application call has a NoOp oncompletion
 txn OnCompletion
 int NoOp
 ==
-bz not_finalize
+bz aclause_5
 
-// Check if the call has 1 argument ("finalize")
 txn NumAppArgs
 int 1
 ==
-bz not_finalize
+bz aclause_5
 
 txna ApplicationArgs 0
 byte "finalize"
 ==
-bz not_finalize
+bz aclause_5
 
-// check if the withdrawal wait time has passed since the withdraw request
+byte "gstate"
+app_global_get
+byte "requesting"
+==
+bz aclause_5
+
+int 0
+byte "request_time"
+app_global_get_ex
+swap
+pop
+bz aclause_5
+
+int 0
+byte "wait_time"
+app_global_get_ex
+swap
+pop
+bz aclause_5
+
 global Round
 byte "request_time"
 app_global_get
@@ -244,113 +245,118 @@ byte "wait_time"
 app_global_get
 +
 >=
-bz not_finalize
+bz aclause_5
 
-// check if this transaction is sent by the contract creator
 txn Sender
 global CreatorAddress
 ==
-bz not_finalize
+bz aclause_5
 
-// check if the other transaction is a pay transaction from the escrow account to the requested receiver of the amount previously requested 
-gtxn 0 TypeEnum
-int pay
-==
-bz not_finalize
+int 0
+byte "amount"
+app_global_get_ex
+swap
+pop
+bz aclause_5
+
+int 0
+byte "receiver"
+app_global_get_ex
+swap
+pop
+bz aclause_5
 
 gtxn 0 Amount
 byte "amount"
 app_global_get
 ==
-bz not_finalize
+bz aclause_5
 
 gtxn 0 Sender
-byte "vault"
+byte "escrow"
 app_global_get
 ==
-bz not_finalize
+bz aclause_5
 
 gtxn 0 Receiver
 byte "receiver"
 app_global_get
 ==
-bz not_finalize
+bz aclause_5
 
-// check if the pay transaction is non-closing
 gtxn 0 CloseRemainderTo
 global ZeroAddress
 ==
-bz not_finalize
+bz aclause_5
 
-//* Change the cntract state *//
+//*******
 
-// set the contract state back to waiting (waiting for a withdrawal request to be made)
 byte "gstate"
 byte "waiting"
 app_global_put
 
-b approve
+int 1
+return
 
-//*******************************
-//*   Cancelling a withdrawal   *
-//*******************************
+//--------------------------------
 
-not_finalize:
+aclause_5:
 
-//* Check if we're calling the cancel function *//
-
-// check if there aren't other transactions in this atomic group
 global GroupSize
 int 1
 ==
-bz not_cancel
+bz aclause_6
 
-// check if the contract is in state requested (withdrawal request ongoing)
-byte "gstate"
-app_global_get
-byte "requested"
-==
-bz not_cancel
-
-// check if the application call has a NoOp oncompletion
 txn OnCompletion
 int NoOp
 ==
-bz not_cancel
+bz aclause_6
 
-// check if the application call has 1 argument ("cancel")
 txn NumAppArgs
 int 1
 ==
-bz not_cancel
+bz aclause_6
 
 txna ApplicationArgs 0
 byte "cancel"
 ==
-bz not_cancel
+bz aclause_6
 
-// check if this transaction is sent by the recovery account
+byte "gstate"
+app_global_get
+byte "requesting"
+==
+bz aclause_6
+
+int 0
+byte "recovery"
+app_global_get_ex
+swap
+pop
+bz aclause_6
+
 txn Sender
 byte "recovery"
 app_global_get
 ==
-bz not_cancel
+bz aclause_6
 
-//* Change the contract state *//
+//*******
 
-// set the contract state back to waiting (waiting for a withdrawal request)
 byte "gstate"
 byte "waiting"
 app_global_put
 
-b approve
+int 1
+return
 
-//****************************************
-//*   Function end / No function found   *
-//****************************************
+//--------------------------------
 
-not_cancel:
+aclause_6:
+
+//*******
+
 err
 
-approve:
 int 1
+return
