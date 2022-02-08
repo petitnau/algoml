@@ -1,15 +1,15 @@
-glob address player1
-glob address player2
-
 glob int hands_to_play
 glob int turn_started_at
+glob address player1
+glob address player2
 glob int score1
 glob int score2
-
+glob string move_commit1
+glob string move_commit2
 glob string move1
 glob string move2
-glob string guess1
-glob string guess2
+glob int guess1
+glob int guess2
 
 /******************************
  Contract creation
@@ -45,8 +45,6 @@ join() {
     glob.turn_started_at = r
 }
 
-// if, after the commit deadline, the second player has not joined,
-// then player1 can redeem the bet
 @gstate joined1 -> end
 @round (glob.turn_started_at+200,)
 @close ALGO : escrow -> glob.player1
@@ -60,7 +58,7 @@ redeem() {}
 @gstate hand1 -> hand2
 @round (glob.turn_started_at,glob.turn_started_at+100)$r
 @assert glob.hands_to_play > 0
-move(string move_commit, string guess) {
+move(string move_commit, int guess) {
     glob.hands_to_play = glob.hands_to_play - 1
     glob.move_commit1 = move_commit
     glob.guess1 = guess
@@ -69,8 +67,8 @@ move(string move_commit, string guess) {
 
 @gstate hand2 -> reveal1
 @round (glob.turn_started_at,glob.turn_started_at+100)$r
-@assert glob.move_commit != move_commit
-move(string move_commit, string guess) {
+@assert glob.move_commit1 != move_commit
+move(string move_commit, int guess) {
     glob.move_commit2 = move_commit
     glob.guess2 = guess
     glob.turn_started_at = r
@@ -81,7 +79,7 @@ move(string move_commit, string guess) {
  Opening the commitments
  ******************************/
 
-// player1 must reveal first
+// player1 must reveal the move first
 @gstate reveal1 -> reveal2
 @round (glob.turn_started_at,glob.turn_started_at+100)$r
 @assert sha256(move) == glob.move_commit1
@@ -90,10 +88,8 @@ reveal(string move) {
     glob.turn_started_at = r
 }
 
-// player2 must reveal after player1
-@gstate reveal2 -> newhand
-// the deadline extension +100 is needed to avoid attacks where 
-// player1 reveals close to the deadline, 
+// player2 must reveal the move after player1
+@gstate reveal2 -> winhand
 @round (glob.turn_started_at,glob.turn_started_at+100)$r
 @assert sha256(move) == glob.move_commit2
 reveal(string move) {
@@ -101,52 +97,80 @@ reveal(string move) {
     glob.turn_started_at = r
 }
 
-// if player1 has not revealed, player2 can redeem the pot
-@gstate reveal1 -> newhand
-@round (glob.turn_started_at+100,)
-@close ALGO : escrow -> glob.player2
-redeem() {}
-
-// if player2 has not revealed, player1 can redeem the pot
-@gstate reveal2 -> newhand
-@round (glob.turn_started_at+100,)
-@close ALGO : escrow -> glob.player1
-redeem() {}
-
 
 /******************************
  Scoring the hand
  ******************************/
 
+// player1 does not commit in time
+@gstate hand1 -> hand1
+@round (glob.turn_started_at+100,)$r
+newhand() {
+    glob.score2 = glob.score2 + 1
+    glob.turn_started_at = r
+}
+
+// player2 does not commit in time
+@gstate hand2 -> hand1
+@round (glob.turn_started_at+100,)$r
+newhand() {
+    glob.score1 = glob.score1 + 1
+    glob.turn_started_at = r
+}
+
+// player1 does not reveal in time
+@gstate reveal1 -> hand1
+@round (glob.turn_started_at+100,)$r
+newhand() {
+    glob.score1 = glob.score1 + 1
+    glob.turn_started_at = r
+}
+
+// if player2 has not revealed, player1 can redeem the pot
+@gstate reveal2 -> hand1
+@round (glob.turn_started_at+100,)$r
+newhand() {
+    glob.score1 = glob.score1 + 1
+    glob.turn_started_at = r
+}
+
 // player1 wins the hand
-@gstate newhand -> hand1
+@gstate winhand -> hand1
 @round (glob.turn_started_at,glob.turn_started_at+100)$r
-@assert glob.guess1 = len(glob.move1) + len(glob.move2)
-redeem() {
+@assert glob.guess1 == len(glob.move1) + len(glob.move2)
+newhand() {
     glob.turn_started_at = r
     glob.score1 = glob.score1 + 1
 }
 
 // player2 wins the hand
-@gstate newhand -> hand2
+@gstate winhand -> hand1
 @round (glob.turn_started_at,glob.turn_started_at+100)$r
-@assert glob.guess2 = len(glob.move1) + len(glob.move2)
-redeem() {
+@assert glob.guess2 == len(glob.move1) + len(glob.move2)
+newhand() {
     glob.score2 = glob.score2 + 1
     glob.turn_started_at = r
 }
 
+// no one wins the hand, or no one claims the point
+@gstate winhand -> hand1
+@round (glob.turn_started_at+100)$r
+newhand() {
+    glob.turn_started_at = r
+}
 
 /******************************
  Closing the game
  ******************************/
 
-@gstate win -> end
+@gstate hand1 -> end
+@assert glob.hands_to_play == 0
 @close ALGO : escrow -> glob.player1 
 @assert glob.score1 > glob.score2
 win() {}
 
-@gstate win -> end
+@gstate hand1 -> end
+@assert glob.hands_to_play == 0
 @close ALGO : escrow -> glob.player2
 @assert glob.score2 > glob.score1
 win() {}
@@ -156,14 +180,7 @@ win() {}
  Deleting the contract
  ******************************/
 
-// delete the contract if no one has joined within the commit deadline
+// delete a termibated contract
 @gstate end -> 
-@round (glob.end_commit,)
 @from creator
 Delete delete() {}
-
-// if no one reveals, then 2 ALGOs are frozen in the contract.
-// This is not a problem, since we assume that a rational player
-// will always reveal.
-// If desired, we can unfreeze the 2 ALGOs by allowing both players
-// to redeem 1 ALGO after some time

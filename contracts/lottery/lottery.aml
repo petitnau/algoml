@@ -98,7 +98,7 @@ redeem() {}
  Deleting the contract
  ******************************/
 
-// delete the contract if no one has joined within the commit deadline
+// delete a termibated contract
 @gstate end -> 
 @round (glob.end_commit,)
 @from creator
