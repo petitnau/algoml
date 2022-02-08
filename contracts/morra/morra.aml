@@ -1,13 +1,13 @@
-glob int hands_to_play
+glob int turns_to_play
 glob int turn_started_at
 glob address player1
 glob address player2
 glob int score1
 glob int score2
-glob string move_commit1
-glob string move_commit2
-glob string move1
-glob string move2
+glob string hand_commit1
+glob string hand_commit2
+glob int hand1
+glob int hand2
 glob int guess1
 glob int guess2
 
@@ -17,9 +17,9 @@ glob int guess2
 
 @gstate -> joined0
 @round $r
-@assert hands_to_play > 0
-Create morra(int hands_to_play) {
-    glob.hands_to_play = hands_to_play
+@assert turns_to_play > 0
+Create morra(int turns_to_play) {
+    glob.turns_to_play = turns_to_play
     glob.turn_started_at = r
     glob.score1 = 0
     glob.score2 = 0
@@ -37,7 +37,7 @@ join() {
     glob.turn_started_at = r
 }
 
-@gstate joined1 -> hand1
+@gstate joined1 -> turn1
 @round (glob.turn_started_at,glob.turn_started_at+100)$r
 @pay 1 of ALGO : caller -> escrow
 join() {
@@ -52,24 +52,24 @@ redeem() {}
 
 
 /******************************
- Playing a hand
+ Playing a turn
  ******************************/
 
-@gstate hand1 -> hand2
+@gstate turn1 -> turn2
 @round (glob.turn_started_at,glob.turn_started_at+100)$r
-@assert glob.hands_to_play > 0
-move(string move_commit, int guess) {
-    glob.hands_to_play = glob.hands_to_play - 1
-    glob.move_commit1 = move_commit
+@assert glob.turns_to_play > 0
+hand(string hand_commit, int guess) {
+    glob.turns_to_play = glob.turns_to_play - 1
+    glob.hand_commit1 = hand_commit
     glob.guess1 = guess
     glob.turn_started_at = r
 }
 
-@gstate hand2 -> reveal1
+@gstate turn2 -> reveal1
 @round (glob.turn_started_at,glob.turn_started_at+100)$r
-@assert glob.move_commit1 != move_commit
-move(string move_commit, int guess) {
-    glob.move_commit2 = move_commit
+@assert glob.hand_commit1 != hand_commit
+hand(string hand_commit, int guess) {
+    glob.hand_commit2 = hand_commit
     glob.guess2 = guess
     glob.turn_started_at = r
 }
@@ -79,83 +79,85 @@ move(string move_commit, int guess) {
  Opening the commitments
  ******************************/
 
-// player1 must reveal the move first
+// player1 must reveal the hand first
 @gstate reveal1 -> reveal2
 @round (glob.turn_started_at,glob.turn_started_at+100)$r
-@assert sha256(move) == glob.move_commit1
-reveal(string move) {
-    glob.move1 = move
+@assert 0 <= len(hand) - 32 && len(hand) - 32 <= 5
+@assert sha256(hand) == glob.hand_commit1
+reveal(string hand) {
+    glob.hand1 = len(hand) - 32
     glob.turn_started_at = r
 }
 
-// player2 must reveal the move after player1
-@gstate reveal2 -> winhand
+// player2 must reveal the hand after player1
+@gstate reveal2 -> winturn
 @round (glob.turn_started_at,glob.turn_started_at+100)$r
-@assert sha256(move) == glob.move_commit2
-reveal(string move) {
-    glob.move2 = move
+@assert 0 <= len(hand) - 32 && len(hand) - 32 <= 5
+@assert sha256(hand) == glob.hand_commit2
+reveal(string hand) {
+    glob.hand2 = len(hand) - 32
     glob.turn_started_at = r
 }
 
 
 /******************************
- Scoring the hand
+ Scoring the turn
  ******************************/
 
 // player1 does not commit in time
-@gstate hand1 -> hand1
+@gstate turn1 -> turn1
 @round (glob.turn_started_at+100,)$r
-newhand() {
+newturn() {
     glob.score2 = glob.score2 + 1
     glob.turn_started_at = r
 }
 
 // player2 does not commit in time
-@gstate hand2 -> hand1
+@gstate turn2 -> turn1
 @round (glob.turn_started_at+100,)$r
-newhand() {
+newturn() {
     glob.score1 = glob.score1 + 1
     glob.turn_started_at = r
 }
 
 // player1 does not reveal in time
-@gstate reveal1 -> hand1
+@gstate reveal1 -> turn1
 @round (glob.turn_started_at+100,)$r
-newhand() {
+newturn() {
     glob.score1 = glob.score1 + 1
     glob.turn_started_at = r
 }
 
 // if player2 has not revealed, player1 can redeem the pot
-@gstate reveal2 -> hand1
+@gstate reveal2 -> turn1
 @round (glob.turn_started_at+100,)$r
-newhand() {
+newturn() {
     glob.score1 = glob.score1 + 1
     glob.turn_started_at = r
 }
 
-// player1 wins the hand
-@gstate winhand -> hand1
+// player1 wins the turn
+@gstate winturn -> turn1
 @round (glob.turn_started_at,glob.turn_started_at+100)$r
-@assert glob.guess1 == len(glob.move1) + len(glob.move2)
-newhand() {
+@assert glob.guess1 == glob.hand1 + glob.hand2
+newturn() {
     glob.turn_started_at = r
     glob.score1 = glob.score1 + 1
 }
 
-// player2 wins the hand
-@gstate winhand -> hand1
+// player2 wins the turn
+@gstate winturn -> turn1
 @round (glob.turn_started_at,glob.turn_started_at+100)$r
-@assert glob.guess2 == len(glob.move1) + len(glob.move2)
-newhand() {
+@assert glob.guess2 == glob.hand1 + glob.hand2
+newturn() {
     glob.score2 = glob.score2 + 1
     glob.turn_started_at = r
 }
 
-// no one wins the hand, or no one claims the point
-@gstate winhand -> hand1
+// no one wins the turn, or no one claims the point
+@gstate winturn -> turn1
 @round (glob.turn_started_at+100)$r
-newhand() {
+newturn() {
     glob.turn_started_at = r
 }
 
@@ -163,14 +165,14 @@ newhand() {
  Closing the game
  ******************************/
 
-@gstate hand1 -> end
-@assert glob.hands_to_play == 0
+@gstate turn1 -> end
+@assert glob.turns_to_play == 0
 @close ALGO : escrow -> glob.player1 
 @assert glob.score1 > glob.score2
 win() {}
 
-@gstate hand1 -> end
-@assert glob.hands_to_play == 0
+@gstate turn1 -> end
+@assert glob.turns_to_play == 0
 @close ALGO : escrow -> glob.player2
 @assert glob.score2 > glob.score1
 win() {}
