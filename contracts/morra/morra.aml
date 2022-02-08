@@ -1,0 +1,169 @@
+glob address player1
+glob address player2
+
+glob int hands_to_play
+glob int turn_started_at
+glob int score1
+glob int score2
+
+glob string move1
+glob string move2
+glob string guess1
+glob string guess2
+
+/******************************
+ Contract creation
+ ******************************/
+
+@gstate -> joined0
+@round $r
+@assert hands_to_play > 0
+Create morra(int hands_to_play) {
+    glob.hands_to_play = hands_to_play
+    glob.turn_started_at = r
+    glob.score1 = 0
+    glob.score2 = 0
+}
+
+/******************************
+ Joining the game
+ ******************************/
+
+@gstate joined0 -> joined1
+@round (glob.turn_started_at,glob.turn_started_at+100)$r
+@pay 1 of ALGO : caller -> escrow
+join() {
+    glob.player1 = caller
+    glob.turn_started_at = r
+}
+
+@gstate joined1 -> hand1
+@round (glob.turn_started_at,glob.turn_started_at+100)$r
+@pay 1 of ALGO : caller -> escrow
+join() {
+    glob.player2 = caller
+    glob.turn_started_at = r
+}
+
+// if, after the commit deadline, the second player has not joined,
+// then player1 can redeem the bet
+@gstate joined1 -> end
+@round (glob.turn_started_at+200,)
+@close ALGO : escrow -> glob.player1
+redeem() {}
+
+
+/******************************
+ Playing a hand
+ ******************************/
+
+@gstate hand1 -> hand2
+@round (glob.turn_started_at,glob.turn_started_at+100)$r
+@assert glob.hands_to_play > 0
+move(string move_commit, string guess) {
+    glob.hands_to_play = glob.hands_to_play - 1
+    glob.move_commit1 = move_commit
+    glob.guess1 = guess
+    glob.turn_started_at = r
+}
+
+@gstate hand2 -> reveal1
+@round (glob.turn_started_at,glob.turn_started_at+100)$r
+@assert glob.move_commit != move_commit
+move(string move_commit, string guess) {
+    glob.move_commit2 = move_commit
+    glob.guess2 = guess
+    glob.turn_started_at = r
+}
+
+
+/******************************
+ Opening the commitments
+ ******************************/
+
+// player1 must reveal first
+@gstate reveal1 -> reveal2
+@round (glob.turn_started_at,glob.turn_started_at+100)$r
+@assert sha256(move) == glob.move_commit1
+reveal(string move) {
+    glob.move1 = move
+    glob.turn_started_at = r
+}
+
+// player2 must reveal after player1
+@gstate reveal2 -> newhand
+// the deadline extension +100 is needed to avoid attacks where 
+// player1 reveals close to the deadline, 
+@round (glob.turn_started_at,glob.turn_started_at+100)$r
+@assert sha256(move) == glob.move_commit2
+reveal(string move) {
+    glob.move2 = move
+    glob.turn_started_at = r
+}
+
+// if player1 has not revealed, player2 can redeem the pot
+@gstate reveal1 -> newhand
+@round (glob.turn_started_at+100,)
+@close ALGO : escrow -> glob.player2
+redeem() {}
+
+// if player2 has not revealed, player1 can redeem the pot
+@gstate reveal2 -> newhand
+@round (glob.turn_started_at+100,)
+@close ALGO : escrow -> glob.player1
+redeem() {}
+
+
+/******************************
+ Scoring the hand
+ ******************************/
+
+// player1 wins the hand
+@gstate newhand -> hand1
+@round (glob.turn_started_at,glob.turn_started_at+100)$r
+@assert glob.guess1 = len(glob.move1) + len(glob.move2)
+redeem() {
+    glob.turn_started_at = r
+    glob.score1 = glob.score1 + 1
+}
+
+// player2 wins the hand
+@gstate newhand -> hand2
+@round (glob.turn_started_at,glob.turn_started_at+100)$r
+@assert glob.guess2 = len(glob.move1) + len(glob.move2)
+redeem() {
+    glob.score2 = glob.score2 + 1
+    glob.turn_started_at = r
+}
+
+
+/******************************
+ Closing the game
+ ******************************/
+
+@gstate win -> end
+@close ALGO : escrow -> glob.player1 
+@assert glob.score1 > glob.score2
+win() {}
+
+@gstate win -> end
+@close ALGO : escrow -> glob.player2
+@assert glob.score2 > glob.score1
+win() {}
+
+
+/******************************
+ Deleting the contract
+ ******************************/
+
+// delete the contract if no one has joined within the commit deadline
+@gstate end -> 
+@round (glob.end_commit,)
+@from creator
+Delete delete() {}
+
+// if no one reveals, then 2 ALGOs are frozen in the contract.
+// This is not a problem, since we assume that a rational player
+// will always reveal.
+// If desired, we can unfreeze the 2 ALGOs by allowing both players
+// to redeem 1 ALGO after some time
