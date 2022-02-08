@@ -105,10 +105,6 @@ cancel() { }
 
 The preconditions ensure that the function is called from the recovery address, and only when the contract is in the `requested` state. After the call, the contract will return to the `waiting` state, thus disabling the `finalize` function.
 
-# Disclaimer
+## Disclaimer
 
 The project is not audited and should not be used in a production environment.
-
-# Credits
-
-This tutorial has been realised by Roberto Pettinau and Massimo Bartoletti from the University of Cagliari, Italy.
