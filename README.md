@@ -17,34 +17,30 @@ The intuition is that the function ``foo`` is enabled whenever all the precondit
 On a lower level, an AlgoML program models two contracts: a stateful application, and a stateless contract account. The stateful application is in charge of all of the contract logic, while the stateless contract acts as an escrow, which holds funds and releases them according to the logic of the stateful contract.
 
 Examples of AlgoML preconditions are:
-```java
-@round (from,to)
-```
-This precondition holds when the function is called from round `from` (included) to round `to` (excluded). It is also possible, like in many other clauses, to not only check if the round is in a certain range, but also to bind a variable to the current round.
-```java
-@round (from,to)$curr_round
-```
-This precondition, for example, both checks that the current round is between the values `from` and `to`, and binds the `curr_round` variable to the current round. 
- 
 ```java 
 @assert exp 
 ```
 This precondition holds only when the boolean expression `exp` evaluates to true.
 
 ```java
+@round (from,to)$curr_round
+```
+This precondition holds when the function is called from round `from` (included) to round `to` (excluded). The optional part `$curr_round` binds the variable `curr_round` to the actal round where the clause is executed.
+
+```java
 @newtok amt of $tok -> escrow
 ```
-Holds when a new token of amt units is minted, and all its units are stored in the contract. The variable `tok` is bound to the number to the token identifier.
+This precondition holds when a new token of `amt` units is minted, and all its units are stored in the contract. The variable `tok` is bound to the token identifier.
 
 ```java
 @pay (min,max)$amt of tok : sender -> receiver
 ``` 
-Holds when a number of units of token `tok` in the range `(min,max)` are transferred from `sender` to `receiver`. The variable `amt` is bound to the actual amount of transferred units. The token `tok` can be ALGO or an ASA. The parameters `sender` and `receiver` can be arbitrary accounts, or the special accounts `caller` (the account which is calling the function) and `escrow` (the escrow which is handling the contract funds).
+This precondition holds when a number of units of token `tok` in the range `(min,max)` are transferred from `sender` to `receiver`. The variable `amt` is bound to the actual amount of transferred units. The token `tok` can be ALGO or an ASA. The parameters `sender` and `receiver` can be arbitrary accounts, or the special accounts `caller` (the account which is calling the function) and `escrow` (the escrow which is handling the contract funds).
 
 ```java
 @gstate oldstate -> newstate
 ```
-Holds when the current contract state is `oldstate`. After executing the function, the state takes a transition to `newstate`.
+This holds when the current contract state is `oldstate`. After executing the function, the state takes a transition to `newstate`.
 
 ## AlgoML by examples: tinybond
 
@@ -137,7 +133,7 @@ To compile the tinybond contract, follow the instructions in the [Using the Algo
 
 ## AlgoML use cases
 
-We illustrate the usage of AlgoML on some relevant use cases:
+Further AlgoML use cases are presented in the [contracts](contracts) folder:
 - [Automated Market Makers](contracts/amm)
 - [Crowdfunding](contracts/crowdfund)
 - [2-players lottery](contracts/lottery)
