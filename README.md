@@ -1,6 +1,6 @@
 # AlgoML
 
-AlgoML (after *Algorand Modelling Language*) is a DSL for specifying Algorand smart contracts, which compiles into TEAL scripts.
+AlgoML (*Algorand Modelling Language*) is a DSL for specifying Algorand smart contracts, which compiles into TEAL scripts.
 
 Roughly, an AlgoML specification is a sequence of clauses of the form:
 ```java
@@ -180,6 +180,15 @@ For example, to compile the tinybond contract, enter the following command from 
 ```console
 dune exec ./amlc.exe contracts/tinybond/tinybond.aml
 ```
+
+## Future developments
+
+AlgoML is a work in progress towards safer programming of smart contracts in Algorand.
+Possible future developments include:
+* an executable formal specification of AlgoML semantics;
+* a client-side DSL to program the behaviour of users interacting with AlgoML contracts. Static cross-checks on the client and contract code could ensure that the client enjoys desirable behavioural properties, like e.g. deadlock-freedom and wealth preservation;
+* a verification tool to check relevant properties of AlgoML contracts. For instance, we would like to ensure that a contract has always at least one enabled clause, that no assets are frozen forever, and so on;
+* a proof of correctness of the AlgoML compiler, showing that all the possible executions of the TEAL code produced by the compiler are coherent with the behaviour of the source AlgoML specification.
 
 ## Disclaimer
 
