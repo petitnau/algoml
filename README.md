@@ -196,4 +196,4 @@ The project is not audited and should not be used in a production environment.
 
 ## Credits
 
-AlgoML has been designed by Roberto Pettinau and Massimo Bartoletti from the University of Cagliari, Italy.
+AlgoML has been designed by Roberto Pettinau and [Massimo Bartoletti](https://blockchain.unica.it/) from the University of Cagliari, Italy.
