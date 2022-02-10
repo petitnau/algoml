@@ -28,7 +28,7 @@ Create tinybond(
 	glob.maxDep = budget
 }
 
-OptIn joinPresale() {
+OptIn joinSale() {
 	loc.preSaleAmt = 0
 }
 

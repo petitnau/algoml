@@ -45,7 +45,7 @@ The function body just initializes the variables in the global state with the ac
 
 The following clause allow investors join the presale. This operation does not require to meet any preconditions. The `OptIn` modifier enables these users to have a local state in the contract. The function body initializes the `preSaleAmt` variable of the local state to zero.
 ```java
-OptIn joinPresale() {
+OptIn joinSale() {
 	loc.preSaleAmt = 0
 }
 ```
