@@ -44,6 +44,8 @@
 
 %token LEN
 %token SHA256
+%token GETINT
+%token SUBSTRING
 
 %token TRUE
 %token FALSE
@@ -221,6 +223,8 @@ cmd:
 exp:
 | LEN; LPAREN; e=exp; RPAREN { Len(e) }
 | SHA256; LPAREN; e=exp; RPAREN { Sha256(e) }
+| GETINT; LPAREN; e=exp; RPAREN { GetInt(e) }
+| SUBSTRING; LPAREN; e=exp; COMMA; f=INTEGER; COMMA; t=INTEGER; RPAREN { Substring(e, f, t) }
 | LPAREN; e=exp; RPAREN { e }
 | n=INTEGER; { EInt(n) }
 | s=STR; { EString(s) }

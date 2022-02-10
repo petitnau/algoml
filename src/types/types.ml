@@ -39,6 +39,7 @@ and exp =
 | Not of exp
 | Len of exp
 | Sha256 of exp
+| GetInt of exp
 | Substring of exp * int * int 
 | Creator
 | Caller

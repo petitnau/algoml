@@ -107,7 +107,10 @@ and eval_type (td:typeenv) (e:exp) : vartype = match e with
     TInt 
   | Sha256(e1) ->
     check_exp_operand_type td e [e1] [TString];
-    TString 
+    TString
+  | GetInt(e1) ->
+    check_exp_operand_type td e [e1] [TString];
+    TInt
   | Substring(e1,_,_) ->
     check_exp_operand_type td e [e1] [TString];
     TString

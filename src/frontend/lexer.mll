@@ -69,6 +69,8 @@ and read =
     | "." { DOT }
     | "len" { LEN }
     | "sha256" { SHA256 }
+    | "substring" { SUBSTRING }
+    | "get_int" { GETINT }
     | "int" { TINT }
     | "string" { TSTRING }
     | "bool" { TBOOL }

@@ -21,6 +21,7 @@ let rec comp_exp (e:exp) (sd:stateenv) (nd:normenv) : tealexp =
   | CBop(op,e1,e2) -> OPCbop(op, comp_exp e1 sd nd, comp_exp e2 sd nd)
   | Len(e) -> OPLen(comp_exp e sd nd)
   | Sha256(e) -> OPSha256(comp_exp e sd nd)
+  | GetInt(e) -> OPBtoi(comp_exp e sd nd)
   | Substring(e1,n1,n2) -> OPSubstring(comp_exp e1 sd nd, n1, n2)
   | Not(e) -> OPLNot(comp_exp e sd nd)
   | Creator -> OPGlobal(GFCreatorAddress)
@@ -95,7 +96,7 @@ let comp_clause (o:clause) (txnid:int) (_:int) (sd:stateenv) (nd:normenv) : teal
     let check_txntype = OPAssertSkip(OPCbop(Eq, OPGtxn(txnid, TFTypeEnum), OPTypeEnum(TEAxfer))) in
     let check_amount = comp_pattern amt (OPGtxn(txnid, TFAssetAmount)) sd nd in
     let check_token = comp_pattern tkn (OPGtxn(txnid, TFXferAsset)) sd nd in
-    let check_sender = comp_pattern xfr (OPGtxn(txnid, TFAssetSender)) sd nd ~anydiff:(Some (OPGlobalGet(OPByte("escrow")))) in
+    let check_sender = comp_pattern xfr (OPGtxn(txnid, TFSender)) sd nd ~anydiff:(Some (OPGlobalGet(OPByte("escrow")))) in
     let check_receiver = comp_pattern xto (OPGtxn(txnid, TFAssetReceiver)) sd nd in
     let check_remainder = OPAssertSkip(OPCbop(Eq, OPGtxn(txnid, TFAssetCloseTo), OPGlobal(GFZeroAddress))) in
     [check_txntype], [check_amount; check_token; check_sender; check_receiver; check_remainder], []

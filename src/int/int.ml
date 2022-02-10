@@ -69,6 +69,7 @@ let rec eval_exp (s:state) (d:env) (ci:callinfo) (e:exp) : eval =
 
   | Len(_) -> raise (ErrDynamic "Not implemented")
   | Sha256(_) -> raise (ErrDynamic "Not implemented")
+  | GetInt(_) -> raise (ErrDynamic "Not implemented")
 
   | Substring(e1, n1, n2) ->
     let v1 = eval_exp s d ci e1 in
