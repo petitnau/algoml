@@ -55,7 +55,7 @@ reveal(string bid) {
 @round (glob.end_bidding,glob.end_reveal)
 @assert sha256(bid) == caller.sealed_bid
 @assert len(bid) == 32 + 2
-@assert get_int(substring(bid,32,34)) < glob.highest_bid
+@assert get_int(substring(bid,32,34)) <= glob.highest_bid
 @assert get_int(substring(bid,32,34)) <= caller.deposit
 reveal(string bid) {
     loc.can_redeem = true
@@ -92,6 +92,6 @@ redeem() {
 
 @round (glob.end_redeem,)
 @from creator
-@close ALGO : escrow -> creator
 @close glob.NFT : escrow -> creator
+@close ALGO : escrow -> creator
 Delete delete() {}
