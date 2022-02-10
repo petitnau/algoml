@@ -62,11 +62,6 @@ In return, they will receive a certain amount of minted tokens, equal to the rat
 Since the ratio between the token reserves can change unpredictably upon swap operations, specifying an exact amount of units of `t0` and `t1` to deposit could make the deposit operation never enabled.
 To overcome this issue, the `deposit` clause allows users to specify a *lower bound* on the amount of `t0` and `t1` in the function parameters, 
 and to actually deposit an *upper bound* through the `@pay` preconditions.
-
-The difference between the paid upper bounds and the actual units that will be deposited in the AMM is recorded in the local state
-(in variables `t0_reserved` and `t0_reserved`), and can be redeemed later on through the `get_excess` clauses.
-The same holds for the units of minted tokens obtained upon the deposit, which are recorded in the local variable `minted_reserved`.
-
 ```java
 @pay $v0_highb of glob.t0 : * -> escrow
 @pay $v1_highb of glob.t1 : * -> escrow
@@ -91,28 +86,60 @@ dep(int v0_lowb, int v1_lowb) {
 }
 ```
 
+The difference between the paid upper bounds and the actual units that will be deposited in the AMM is recorded in the local state
+(in variables `t0_reserved` and `t0_reserved`), and can be redeemed later on through the `get_excess` clauses.
+The same holds for the units of minted tokens obtained upon the deposit, which are recorded in the local variable `minted_reserved`.
+```java
+@pay loc.minted_reserved of glob.minted_t : escrow -> *   
+get_excess() {
+    loc.minted_reserved = 0
+}
+
+@pay loc.t0_reserved of glob.t0 : escrow -> *
+get_excess() {
+    loc.t0_reserved = 0
+}
+
+@pay loc.t1_reserved of glob.t1 : escrow -> *
+get_excess() {
+    loc.t1_reserved = 0
+}
+```
+Each of those clauses requires that the caller is receiving a payment from the contract of the reserved amount of that chosen token.
+When called, the reserved amount of the token is set to 0.
+
 ## Swap
 
-The function `swap0` allows users to swap units of `t0` in their wallet for units of `t1` in the AMM. Swap in the opposite direction are achieved by the function `swap1`. 
-
+The following clause allows users to swap units of `t0` in their wallet for units of `t1` in the AMM.
+Our AMM adopts the the constant-product swap rate function implemented by Uniswap2, 
+which requires the product of reserves of `t0` and `t1` in the AMM to be preserved by swaps.
+The parameter `lowb` is a lower bound on the amount of units of `t1` they aim to receive. 
+The `@assert` clause ensures that the amount of output tokens of `t1` exceeds this lower bound.
 ```java
 @pay $v0 of glob.t0 : * -> escrow
 @assert (glob.r1 * v0) / (glob.r0 + v0) >= lowb && lowb > 0
-swap0 (int lowb) {
+swap(int lowb) {
 	loc.t1_reserved += (glob.r1 * v0) / (glob.r0 + v0)
 	glob.r1 -= (glob.r1 * v0) / (glob.r0 + v0)
 	glob.r0 += v0
 }
 ```
+The reserved output tokens can be redeemed by executing the clause `get_excess` shown before.
 
-The function has a single parameter: the lower bound on how many units of `t1` they can receive. To call this function the caller must send a payment to the escrow of the token `t0`. The `@assert` clause requires that the amount of reserved tokens (equal to `(glob.r1 * v0) / (glob.r0 + v0)`) is greater than the lower bound `lowb`.
-
-When called succesfully, `r0` is increased by `v0` (since the user sent `v0` tokens to the AMM), `t1_reserved` is increased by the reserved amount (giving the user the ability to redeem the reserved units of `t1`), and `r1` is decreased by the same amount (since the AMM no longer owns those units).
+Swaps in the opposite direction are achieved through the following clause: 
+```java
+@pay $v1 of glob.t1 : * -> escrow
+@assert (glob.r0 * v1) / (glob.r1 + v1) >= lowb && lowb > 0
+swap(int lowb) {
+	loc.t0_reserved += (glob.r0 * v1) / (glob.r1 + v1)
+	glob.r0 -= (glob.r0 * v1) / (glob.r1 + v1)
+	glob.r1 += v1
+}
+```
 
 ## Redeem
 
-Users can redeem units of the minted token for units of the underlying tokens `t0` and `t1`. 
-
+Users can redeem units of the minted token for units of the underlying tokens `t0` and `t1` through the following clause: 
 ```java
 @pay $v of glob.minted_t : * -> escrow
 @assert v * glob.r0 / glob.minted_supply >= v0_lowb && v0_lowb > 0
@@ -126,33 +153,11 @@ redeem(int v0_lowb, int v1_lowb) {
 }
 ```
 
-To call the redeem function, the user must send some amount of `minted_t` tokens to the escrow account. The user must also pass two parameters: the lower bound of the token `t0`, and the lower bound of the token `t1`. When called, those two lower bounds must be respected: the amount of units of `t0` reserved must be at least `v0_lowb`, and the amount of units of `t1` must be at least `v1_owb`. 
+The `redeem` function is parameterized over the lower bounds of the units of tokens `t0` and `t1` that the user wants to obtain upon the redeem. 
+The `@assert` preconditions ensure that these two lower are must be respected. 
+The reserved output tokens can be redeemed by executing the clause `get_excess` shown before.
+Upon execution, the clause decreases the `minted_supply`, to correctly keep track of the amount units of the minted tokens circulating among users.
 
-When all these preconditions are met, the function body updates `r0` and `r1` (removing the reserved tokens from the AMM balance), `t0_reserved` and `t1_reserved` (adding the reserved tokens), and `minted_supply` (removing the tokens sent to the escrow, as they do not circulate anymore).
-
-## Redeeming the reserved tokens
-
-After calling `dep`, `swap` and `redeem`, the caller will have some amount of `t0`, `t1`, or `minted_t` reserved (or some combination of those). To redeem these tokens, users can call the functions:
-
-```java
-@pay loc.minted_reserved of glob.minted_t : escrow -> *   
-get_minted_t() {
-    loc.minted_reserved = 0
-}
-
-@pay loc.t0_reserved of glob.t0 : escrow -> *
-get_t0() {
-    loc.t0_reserved = 0
-}
-
-@pay loc.t1_reserved of glob.t1 : escrow -> *
-get_t1() {
-    loc.t1_reserved = 0
-}
-```
-
-Each of those functions checks if the caller is receiving a payment from the escrow of the reserved amount of that particular token.
-When called, the reserved amount of the chosen token is set to 0.
 
 ## References
 
