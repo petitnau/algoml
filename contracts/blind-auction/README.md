@@ -76,6 +76,40 @@ reveal(string bid) {
 }
 ```
 
+## Redeeming the NFT and the deposits
+
+The winner can redeem the NFT and the difference between the deposit and the bid amount through the following clause:
+```java
+@round (glob.end_reveal,glob.end_redeem)
+@pay caller.deposit - glob.highest_bid of ALGO : escrow -> glob.winner
+@pay 1 of NFT : escrow -> glob.winner
+redeem() { 
+    caller.deposit = 0
+}
+```
+
+The other bidders who have revealed can redeem their deposits:
+```java
+@round (glob.end_reveal,glob.end_redeem)
+@assert caller.can_redeem
+@pay caller.deposit of ALGO : escrow -> caller
+redeem() {
+    caller.deposit = 0
+    caller.can_redeem = false
+}
+```
+
+## Deleting the contract
+
+The following clause allows the creator to delete a terminated auction, and to redeem all the assets contained therein:
+```java
+@round (glob.end_redeem,)
+@from creator
+@close ALGO : escrow -> creator
+@close NFT : escrow -> creator
+Delete delete() {}
+```
+
 ## Disclaimer
 
 The project is not audited and should not be used in a production environment.
