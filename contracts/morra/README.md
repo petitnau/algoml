@@ -152,7 +152,7 @@ The first clause deals with the case where player1 does not commit in time:
 @gstate turn1 -> turn1
 @round (glob.turn_started_at+100,)$r
 newturn() {
-    glob.score2 = glob.score2 + 1
+    glob.score2 += 1
     glob.turn_started_at = r
 }
 ```
@@ -162,7 +162,7 @@ Similarly, here player2 does not commit in time:
 @gstate turn2 -> turn1
 @round (glob.turn_started_at+100,)$r
 newturn() {
-    glob.score1 = glob.score1 + 1
+    glob.score1 += 1
     glob.turn_started_at = r
 }
 ```
@@ -172,7 +172,7 @@ The first clause deals with the case where player1 does not reveal in time:
 @gstate reveal1 -> turn1
 @round (glob.turn_started_at+100,)$r
 newturn() {
-    glob.score1 = glob.score1 + 1
+    glob.score1 += 1
     glob.turn_started_at = r
 }
 ```
@@ -182,7 +182,7 @@ Similarly, here player2 does not commit in time:
 @gstate reveal2 -> turn1
 @round (glob.turn_started_at+100,)$r
 newturn() {
-    glob.score1 = glob.score1 + 1
+    glob.score1 += 1
     glob.turn_started_at = r
 }
 ```
@@ -193,7 +193,7 @@ The following clause deals with the case where player1 wins the turn: this happe
 @round (glob.turn_started_at,glob.turn_started_at+100)$r
 @assert glob.guess1 == glob.hand1 + glob.hand2
 newturn() {
-    glob.score1 = glob.score1 + 1
+    glob.score1 += 1
     glob.turn_started_at = r
 }
 ```
@@ -204,7 +204,7 @@ Similarly, here player2 wins the turn:
 @round (glob.turn_started_at,glob.turn_started_at+100)$r
 @assert glob.guess2 == glob.hand1 + glob.hand2
 newturn() {
-    glob.score2 = glob.score2 + 1
+    glob.score2 += 1
     glob.turn_started_at = r
 }
 ```
