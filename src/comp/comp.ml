@@ -217,8 +217,8 @@ let precomp (p:contract) (sd:stateenv) : contract * stateenv =
   let p' = map_contract None None None None (Some (fun ao ->
     match is_escrow_used p, get_gstate ao, is_create_aclause ao with
     | _, None, false -> [AssertClause(CBop(Neq, Substring(Val(GlobVar(Ide("gstate"))),0,1), EString("@")))]@ao
-    | false, None, true -> [GStateClause(Some(Ide("@created")), Some(Ide("@inited")))]@ao
-    | true, None, true -> [GStateClause(Some(Ide("@escrowinited")), Some(Ide("@inited")))]@ao
+    | false, None, true -> [GStateClause(Some(Ide("@created")), Some(Ide("#inited")))]@ao
+    | true, None, true -> [GStateClause(Some(Ide("@escrowinited")), Some(Ide("#inited")))]@ao
     | false, Some(GStateClause(None, new_state)), true -> [GStateClause(Some(Ide("@created")), new_state)]@(remove_gstate ao)
     | true, Some(GStateClause(None, new_state)), true -> [GStateClause(Some(Ide("@escrowinited")), new_state)]@(remove_gstate ao)
     | _, Some(LStateClause(_,_,_)), _ -> failwith "get_gstate returned an lstate"
