@@ -1,5 +1,11 @@
 # Blind auction
 
+We implement a blind auction where users place their bids to buy an NFT. The winner is the user which places the highest bid. 
+The auction is split in three phases:
+* in the **bid phase**, users place their sealed bids, and guarantee them by a deposit in ALGO. The deposit must cover the bid amount, and can be redeemed by non-winning users in the third phase;
+* in the **reveal phase**, users reveal their bids. While doing so, the winner and her bid are updated.
+* in the **redeem phase**, the winner can withdraw the NFT, and the difference between the deposit and the bid.
+
 ## Contract state
 The contract state is stored in the following variables:
 
