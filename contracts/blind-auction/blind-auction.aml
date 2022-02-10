@@ -1,0 +1,78 @@
+glob int end_bidding     // end of the bidding period
+glob int end_reveal      // end of the reveal period
+glob int end_redeem      // end of the redeem period
+
+glob int highest_bid
+glob address winner
+
+loc string sealed_bid
+loc int deposit
+loc int bid
+
+/******************************
+ Contract creation
+ ******************************/
+
+@assert end_bidding < end_reveal
+@assert end_reveal < end_redeem
+@newtok 1 of NFT -> escrow
+Create auction(int end_bidding, int end_reveal, int end_redeem) {
+    glob.highest_bid = 0
+    glob.end_bidding = end_bidding
+    glob.end_reveal = end_reveal
+    glob.end_redeem = end_redeem
+}
+
+/******************************
+ Bidding
+ ******************************/
+
+@round (,glob.end_bidding)
+@pay $v of ALGO : caller -> escrow
+Optin bid(string sealed_bid) {
+    loc.sealed_bid = sealed_bid
+    loc.deposit = v
+}
+
+/******************************
+ Revealing the bids
+ ******************************/
+
+@round (glob.end_bidding,glob.end_reveal)
+@assert sha256(bid) == caller.sealed_bid
+@assert int_of_string(substring(bid,32,33)) > glob.highest_bid
+@assert int_of_string(substring(bid,32,33)) <= caller.deposit
+reveal(string bid) {
+    glob.highest_bid = int_of_string(substring(bid,32,33))
+    glob.winner = caller
+}
+
+/******************************
+ Redeeming the NFT 
+ ******************************/
+
+@round (glob.end_reveal,glob.end_redeem)
+@pay caller.deposit - glob.highest_bid of ALGO : escrow -> glob.winner
+@pay 1 of NFT : escrow -> glob.winner
+redeem() {
+    caller.deposit = 0
+}
+
+/******************************
+ Redeeming the deposits
+ ******************************/
+
+@round (glob.end_reveal,glob.end_redeem)
+@assert caller != glob.winner
+@pay caller.deposit of ALGO : escrow -> caller
+redeem() {
+    caller.deposit = 0
+}
+
+/******************************
+ Deleting the contract
+ ******************************/
+
+@round (glob.end_redeem,)
+@from creator
+Delete delete() {}
