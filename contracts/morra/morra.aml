@@ -119,7 +119,7 @@ reveal(string hand, string guess) {
 @gstate turn1 -> turn1
 @round (glob.turn_started_at+100,)$r
 newturn() {
-    glob.score2 = glob.score2 + 1
+    glob.score2 += 1
     glob.turn_started_at = r
 }
 
@@ -127,7 +127,7 @@ newturn() {
 @gstate turn2 -> turn1
 @round (glob.turn_started_at+100,)$r
 newturn() {
-    glob.score1 = glob.score1 + 1
+    glob.score1 += 1
     glob.turn_started_at = r
 }
 
@@ -135,7 +135,7 @@ newturn() {
 @gstate reveal1 -> turn1
 @round (glob.turn_started_at+100,)$r
 newturn() {
-    glob.score1 = glob.score1 + 1
+    glob.score1 += 1
     glob.turn_started_at = r
 }
 
@@ -143,7 +143,7 @@ newturn() {
 @gstate reveal2 -> turn1
 @round (glob.turn_started_at+100,)$r
 newturn() {
-    glob.score1 = glob.score1 + 1
+    glob.score1 += 1
     glob.turn_started_at = r
 }
 
@@ -152,7 +152,7 @@ newturn() {
 @round (glob.turn_started_at,glob.turn_started_at+100)$r
 @assert glob.guess1 == glob.hand1 + glob.hand2
 newturn() {
-    glob.score1 = glob.score1 + 1
+    glob.score1 += 1
     glob.turn_started_at = r
 }
 
@@ -161,7 +161,7 @@ newturn() {
 @round (glob.turn_started_at,glob.turn_started_at+100)$r
 @assert glob.guess2 == glob.hand1 + glob.hand2
 newturn() {
-    glob.score2 = glob.score2 + 1
+    glob.score2 += 1
     glob.turn_started_at = r
 }
 
