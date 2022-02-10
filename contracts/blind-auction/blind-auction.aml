@@ -40,10 +40,10 @@ Optin bid(string sealed_bid) {
 
 @round (glob.end_bidding,glob.end_reveal)
 @assert sha256(bid) == caller.sealed_bid
-@assert int_of_string(substring(bid,32,33)) > glob.highest_bid
-@assert int_of_string(substring(bid,32,33)) <= caller.deposit
+@assert get_int(substring(bid,32,33)) > glob.highest_bid
+@assert get_int(substring(bid,32,33)) <= caller.deposit
 reveal(string bid) {
-    glob.highest_bid = int_of_string(substring(bid,32,33))
+    glob.highest_bid = get_int(substring(bid,32,33))
     glob.winner = caller
 }
 
