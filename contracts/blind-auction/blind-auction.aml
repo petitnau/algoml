@@ -8,6 +8,7 @@ glob address winner
 loc string sealed_bid
 loc int deposit
 loc int bid
+loc bool can_redeem
 
 /******************************
  Contract creation
@@ -32,6 +33,7 @@ Create auction(int end_bidding, int end_reveal, int end_redeem) {
 Optin bid(string sealed_bid) {
     loc.sealed_bid = sealed_bid
     loc.deposit = v
+    loc.can_redeem = false
 }
 
 /******************************
@@ -45,6 +47,14 @@ Optin bid(string sealed_bid) {
 reveal(string bid) {
     glob.highest_bid = get_int(substring(bid,32,33))
     glob.winner = caller
+}
+
+@round (glob.end_bidding,glob.end_reveal)
+@assert sha256(bid) == caller.sealed_bid
+@assert get_int(substring(bid,32,33)) < glob.highest_bid
+@assert get_int(substring(bid,32,33)) <= caller.deposit
+reveal(string bid) {
+    loc.can_redeem = true
 }
 
 /******************************
@@ -63,10 +73,11 @@ redeem() {
  ******************************/
 
 @round (glob.end_reveal,glob.end_redeem)
-@assert caller != glob.winner
+@assert caller.can_redeem
 @pay caller.deposit of ALGO : escrow -> caller
 redeem() {
     caller.deposit = 0
+    caller.can_redeem = false
 }
 
 /******************************
@@ -75,4 +86,6 @@ redeem() {
 
 @round (glob.end_redeem,)
 @from creator
+@close ALGO : escrow -> creator
+@close NFT : escrow -> creator
 Delete delete() {}
