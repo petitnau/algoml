@@ -42,17 +42,19 @@ Optin bid(string sealed_bid) {
 
 @round (glob.end_bidding,glob.end_reveal)
 @assert sha256(bid) == caller.sealed_bid
-@assert get_int(substring(bid,32,33)) > glob.highest_bid
-@assert get_int(substring(bid,32,33)) <= caller.deposit
+@assert len(bid) = 32 + 2
+@assert get_int(substring(bid,32,34)) > glob.highest_bid
+@assert get_int(substring(bid,32,34)) <= caller.deposit
 reveal(string bid) {
-    glob.highest_bid = get_int(substring(bid,32,33))
+    glob.highest_bid = get_int(substring(bid,32,34))
     glob.winner = caller
 }
 
 @round (glob.end_bidding,glob.end_reveal)
 @assert sha256(bid) == caller.sealed_bid
-@assert get_int(substring(bid,32,33)) < glob.highest_bid
-@assert get_int(substring(bid,32,33)) <= caller.deposit
+@assert len(bid) = 32 + 2
+@assert get_int(substring(bid,32,34)) < glob.highest_bid
+@assert get_int(substring(bid,32,34)) <= caller.deposit
 reveal(string bid) {
     loc.can_redeem = true
 }
@@ -64,9 +66,10 @@ reveal(string bid) {
 @round (glob.end_reveal,glob.end_redeem)
 @pay caller.deposit - glob.highest_bid of ALGO : escrow -> glob.winner
 @pay 1 of NFT : escrow -> glob.winner
-redeem() {
+redeem() { 
     caller.deposit = 0
 }
+
 
 /******************************
  Redeeming the deposits
@@ -79,6 +82,7 @@ redeem() {
     caller.deposit = 0
     caller.can_redeem = false
 }
+
 
 /******************************
  Deleting the contract
