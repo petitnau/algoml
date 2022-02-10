@@ -8,11 +8,11 @@ Each block consists of a dispatching preamble, followed by the code that impleme
 
 In the rest of this document we will consider the tinybond contract, seeing how the various clauses are compiled. For simplicity, we will look at the compiled code as if it was written in a pseudo-code version of TEAL.
 
-# Creation of the contract
+## Creation of the contract
 
 The creation of the contract is split into three phases. 
 
-## Deploying the contract
+### Deploying the contract
 
 In the first phase, the application must be deployed on the blockchain with an ApplicationCreate transaction. The block that manages this operation is the following: 
 
@@ -29,7 +29,7 @@ return 1
 
 The state @created, indicates that the contract has been created, but has not yet been initialized.
 
-## Connecting the escrow
+### Connecting the escrow
 
 After the contract has been deployed, the creator of the contract will need to connect the escrow account to the stateful application. This is done by calling the generated function "init_escrow" from the creator of the contract, while also sending 0.1 ALGOs to the escrow account, with a transaction group that follows the form:
 ```
@@ -71,7 +71,7 @@ return 1
 
 When succesfully called, the contract will save the receiver of the 0.1 ALGOs as the escrow account, and will go into state "@escrowinited" (contract created, escrow connected, but contract not fully initialized).
 
-## Initializing the contract
+### Initializing the contract
 
 After running the previous two blocks, a third transaction group must be submitted to fully initialize the escrow. This block corresponds to the `Create tinybond` atomic clause. In addition to the indicated clauses, some other checks area added:
 * `@from creator`: All Create clauses can only be run by the creator
@@ -134,7 +134,7 @@ global_state["maxDep"] = txn[1],config_asset_total()
 return 1
 ```
 
-# Opting into the pre-sale
+## Opting into the pre-sale
 
 After being created, users that want to buy bonds will need to opt into the contract. This action is managed by the following block:
 
@@ -162,9 +162,9 @@ local_state["preSaleAmt"] = 0
 return 1
 ```
 
-# Deposit
+## Deposit
 
-## On presale
+### On presale
 
 After opting into the contract, users that want to join the presale will be able to do so by calling the deposit function during the preSale period.
 
@@ -203,7 +203,7 @@ local_state["maxDep"] = local_state["maxDep"] - txn[0].Amount *  global_state["p
 return 1
 ```
 
-## On regular sale
+### On regular sale
 
 During the sale period, users that have opted into the contract will be able to call the deposit function, which is managed by the following block: 
 
