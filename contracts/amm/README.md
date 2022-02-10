@@ -21,12 +21,12 @@ Local variables:
 ## Creating the AMM
 
 Any user can create an AMM by providing the two tokens types `t0` and `t1` that are going to be traded, while also providing their initial reserves. The creator will receive a certain amount of minted tokens in return.
-
 ```java
 @pay $v0 of t0 : caller -> escrow
 @pay $v1 of t1 : caller -> escrow
-@newtok 1000000 of $minted_t -> escrow  
+@newtok $minted_t -> escrow  
 @pay $minted_v of minted_t : escrow -> caller
+@assert t0 != t1
 Create amm(token t0, token t1) {
     glob.t0 = t0
     glob.t1 = t1
@@ -37,16 +37,15 @@ Create amm(token t0, token t1) {
 }
 ```
 
-The function has two parameters, the two tokens that will be traded: `t0` and `t1`.
-
-To call the function, the creator must send two pay transactions of the assets `t0` and `t1` from them to the escrow. 
-
-The creator must also create a new token with 1'000'000 units (ideally we would want to create an infinite number of tokens, but since this is not possible, we have to choose a big enough value), which will be stored in the escrow account. They must also receive some amount of `minted_t` from the escrow. The amount of `minted_t` units received is irrelevant, so the creator is free to choose any amount.
+To call the function, the creator must deposit seme amount of `t0` and `t1` to the contract. 
+Further, the creator must create a new token (with the highest possible amount of units), which will be stored in the contract. 
+In return, the creator receives some amount of the minted token `minted_t` from the contract. 
+The actual amount of `minted_t` units received is irrelevant, so the creator is free to choose any amount.
 
 ## Opting in
 
-Since the local state is needed to complete any operation, before any user can interact with the AMM, they must first opt into the contract.
-
+To be able to interact with the AMM, users must first opt into the contract.
+The modifier `Optin` provides joined users with a local state. 
 ```java
 OptIn optin() {
     loc.t0_reserved = 0
@@ -54,8 +53,6 @@ OptIn optin() {
     loc.minted_reserved = 0
 }
 ```
-
-When called, this function initializes all the local variables of the caller to zero.
 
 ## Deposit
 
