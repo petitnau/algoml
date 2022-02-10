@@ -2,9 +2,9 @@
 
 We implement a blind auction where users place their bids to buy an NFT. The winner is the user which places the highest bid. 
 The auction is split in three phases:
-* in the **bid phase**, users place their sealed bids, and guarantee them by a deposit in ALGO. The deposit must cover the bid amount, and can be redeemed by non-winning users in the third phase;
-* in the **reveal phase**, users reveal their bids. While doing so, the winner and her bid are updated.
-* in the **redeem phase**, the winner can withdraw the NFT, and the difference between the deposit and the bid.
+* in the **bid phase**, users place their sealed bids, and guarantee them by a deposit in ALGO. The deposit must cover the bid amount, and can be redeemed by non-winning users in the second phase;
+* in the **reveal phase**, users reveal their bids. While doing so, the winner and her bid are updated, and the non-winners can redeem their deposits. 
+* in the **redeem phase**, the winner can withdraw the NFT and the difference between her deposit and her bid.
 
 ## Contract state
 The contract state is stored in the following variables:
@@ -18,10 +18,8 @@ Global variables:
 * `NFT`: id of the auctioned token
 
 Local variables:
-* `sealed_bid`: hash of the bid (32 bytes nonce + 8 bytes bid value)
+* `sealed_bid`: hash of the bid (32 bytes nonce + 2 bytes bid value in ALGO)
 * `deposit`: value deposited by the bidder
-* `bid`: actual bid value
-* `can_redeem`: boolean flag, true when the bidder reveals the bid, and deposit covers the bid
 
 ## Contract creation
 
@@ -50,7 +48,6 @@ The deposit can be withdrawn in the redeem phase, provided that the user reveals
 OptIn bid(string sealed_bid) {
     loc.sealed_bid = sealed_bid
     loc.deposit = v
-    loc.can_redeem = false
 }
 ```
 
@@ -79,12 +76,13 @@ A non-winner bidder can still reveal, to be able to withdraw her deposit in the 
 @assert len(bid) == 32 + 2
 @assert get_int(substring(bid,32,34)) <= glob.highest_bid
 @assert get_int(substring(bid,32,34)) <= caller.deposit
+@pay caller.deposit of ALGO : escrow -> caller
 reveal(string bid) {
-    loc.can_redeem = true
+    caller.deposit = 0
 }
 ```
 
-## Redeeming the NFT and the deposits
+## Redeeming the NFT
 
 The winner can redeem the NFT and the difference between the deposit and the bid amount through the following clause:
 ```java
@@ -93,17 +91,6 @@ The winner can redeem the NFT and the difference between the deposit and the bid
 @pay 1 of glob.NFT : escrow -> glob.winner
 redeem() { 
     caller.deposit = 0
-}
-```
-
-The other bidders who have revealed can redeem their deposits:
-```java
-@round (glob.end_reveal,glob.end_redeem)
-@assert caller.can_redeem
-@pay caller.deposit of ALGO : escrow -> caller
-redeem() {
-    caller.deposit = 0
-    caller.can_redeem = false
 }
 ```
 
