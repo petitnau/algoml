@@ -34,17 +34,17 @@ Create escrow_contract(address e, int end_join, int end_choice, int end_redeem, 
 @gstate init -> join1
 @round (,glob.end_join)
 @pay $amt of ALGO : caller -> escrow
-OptIn join() { 
+@assert caller != b  // no schizophrenia
+OptIn join(address b) { 
     glob.a = caller
+    glob.b = b
     glob.deposit = amt
 }
 
 @gstate join1 -> join2
-@assert caller != glob.a  // no schizophrenia
 @round (,glob.end_join)
-OptIn join() { 
-    glob.b = caller
-}
+@from glob.b
+OptIn join() { }
 
 /******************************
  Making a choice
