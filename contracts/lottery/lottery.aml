@@ -98,7 +98,7 @@ redeem() {}
  Deleting the contract
  ******************************/
 
-// delete a termibated contract
+// delete a terminated contract
 @gstate end -> 
 @round (glob.end_commit,)
 @from creator
