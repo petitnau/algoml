@@ -158,7 +158,7 @@ opam install dune
 ```
 4\. Install AlgoML dependencies
 ```
-opam install algoml --deps-only
+opam install . --deps-only
 ```
 5\. Build the source
 ```
