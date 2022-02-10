@@ -1,6 +1,6 @@
 # Automated Market Makers 
 
-Automated Market Makers (AMMs) are decentralized applications that allow digital assets to be traded in a permissionless way by using liquidity pools rather than traditional market of buyers and sellers. In this use case we specify in AlgoML a constant-product AMM, inspired by [Uniswap2](https://docs.uniswap.org/protocol/v2/introduction). Our specification follows closely the transition system defined in [[BCL21]](#references).
+Automated Market Makers (AMMs) are decentralized applications that allow digital assets to be traded in a permissionless way by using liquidity pools rather than traditional market of buyers and sellers. In this use case we specify in AlgoML a constant-product AMM, inspired by [Uniswap2](https://docs.uniswap.org/protocol/v2/introduction). Our specification follows closely the transition system defined in [[BCL22]](#references).
 
 ## Contract state
 
@@ -56,29 +56,40 @@ OptIn optin() {
 
 ## Deposit
 
-Users can deposit tokens into the AMM as long as doing so preserves the ratio of the token holdings in the AMM. In return, they will receive a certain amount of minted tokens, equal to the ratio between the deposited amount and the *redeem rate* (the ratio between `r0` and the `minted_supply`)
+Users can deposit tokens into the AMM as long as doing so preserves the ratio of the token reserves in the AMM. 
+In return, they will receive a certain amount of minted tokens, equal to the ratio between the deposited amount of `r0` and the *redeem rate* (the ratio between `r0` and the `minted_supply`)
 
-Users must set a lower bound on the amount of minted tokens they will receive upon a deposit. This is to mitigate problems related to transactions reordering.
+Since the ratio between the token reserves can change unpredictably upon swap operations, specifying an exact amount of units of `t0` and `t1` to deposit could make the deposit operation never enabled.
+To overcome this issue, the `deposit` clause allows users to specify a *lower bound* on the amount of `t0` and `t1` in the function parameters, 
+and to actually deposit an *upper bound* through the `@pay` preconditions.
 
-This function can be written as:
+The difference between the paid upper bounds and the actual units that will be deposited in the AMM is recorded in the local state
+(in variables `t0_reserved` and `t0_reserved`), and can be redeemed later on through the `get_excess` clauses.
+The same holds for the units of minted tokens obtained upon the deposit, which are recorded in the local variable `minted_reserved`.
+
 ```java
-@pay $v0 of glob.t0 : * -> escrow
-@pay $v1 of glob.t1 : * -> escrow
-@assert v0 / glob.r0 * glob.minted_supply >= lowb && lowb > 0
-@assert glob.r1 * v0 == glob.r0 * v1    
-dep(int lowb) {
-    glob.minted_supply += v0 / glob.r0 * glob.minted_supply
-    loc.minted_reserved += v0 / glob.r0 * glob.minted_supply
+@pay $v0_highb of glob.t0 : * -> escrow
+@pay $v1_highb of glob.t1 : * -> escrow
+@assert v1_lowb <= v0_highb * glob.r1 / glob.r0 
+@assert v0_highb * glob.r1 / glob.r0 <= v1_highb 
+dep(int v0_lowb, int v1_lowb) {
+    loc.t0_reserved = v0_highb - (v0_highb * glob.r1 / glob.r0)
+    glob.minted_supply += v1_highb / glob.r1 * glob.minted_supply
+    loc.minted_reserved += v1_highb / glob.r1 * glob.minted_supply
 }
 ```
 
-The `dep` function has a single parameter, i.e. the lower bound on the amount of units of minted token they will receive.
-To call this function, the user must send two payments to the escrow: one of the token `t0`, and one of the token `t1` (much alike the create function). When these tokens are added to the escrow account, the ratio between the tokens `t0` and `t1` must not change, and therefore, the ratio between the amount of tokens `t0` sent, and the amount of tokens `t1` sent, must be the same as the ratio between `r0` and `r1`. 
-The function, also checks that the lower bound of received minted tokens is respected (`v0 / glob.r0 * glob.minted_supply >= lowb`). If this check fails, the function is not executed.
-
-When the function is called succesfully, the `minted_supply` gets increased by the amount of `minted_tokens` that the AMM will reserve for the user (even though the AMM still hasn't sent those tokens), and the `minted_reserved` gets increased by the same amount.
-
-It is up to the caller to actually redeem the reserved tokens with a later call to `get_minted_t`.
+```java
+@pay $v0_highb of glob.t0 : * -> escrow
+@pay $v1_highb of glob.t1 : * -> escrow
+@assert v0_lowb <= v1_highb * glob.r0 / glob.r1 
+@assert v1_highb * glob.r0 / glob.r1 <= v0_highb 
+dep(int v0_lowb, int v1_lowb) {
+    loc.t1_reserved = v1_highb - (v1_highb * glob.r0 / glob.r1)
+    glob.minted_supply += v0_highb / glob.r0 * glob.minted_supply
+    loc.minted_reserved += v0_highb / glob.r0 * glob.minted_supply
+}
+```
 
 ## Swap
 
@@ -146,6 +157,7 @@ When called, the reserved amount of the chosen token is set to 0.
 ## References
 
 - **[BCL21]** Massimo Bartoletti, James Hsin-yu Chiang and Alberto Lluch-Lafuente. [Maximizing Extractable Value from Automated Market Makers](https://arxiv.org/pdf/2106.01870.pdf). Financial Cryptography, 2022
+- **[BCL22]** Massimo Bartoletti, James Hsin-yu Chiang and Alberto Lluch-Lafuente. [A theory of Automated Market Makers in DeFi](https://arxiv.org/abs/2102.11350). Submitted, 2022
 
 ## Disclaimer
 
