@@ -19,7 +19,7 @@ glob address eChoice    // choice of the escrow
 @gstate -> init
 @assert end_join < end_choice
 @assert end_join < end_redeem
-Create escrow(address e, int end_join, int end_choice, int end_redeem, int feeRate) {
+Create escrow_contract(address e, int end_join, int end_choice, int end_redeem, int feeRate) {
     glob.e = e
     glob.end_join = end_join
     glob.end_choice = end_choice
@@ -32,17 +32,17 @@ Create escrow(address e, int end_join, int end_choice, int end_redeem, int feeRa
  ******************************/
 
 @gstate init -> join1
-@round (,end_join)
+@round (,glob.end_join)
 @pay $amt of ALGO : caller -> escrow
-Optin join() { 
+OptIn join() { 
     glob.a = caller
     glob.deposit = amt
 }
 
 @gstate join1 -> join2
 @assert caller != glob.a  // no schizophrenia
-@round (,end_join)
-Optin join() { 
+@round (,glob.end_join)
+OptIn join() { 
     glob.b = caller
 }
 
@@ -51,14 +51,14 @@ Optin join() {
  ******************************/
 
 @gstate join2 -> choice1
-@round (,end_choice)
+@round (,glob.end_choice)
 choose(address choice) { 
     caller.choice = choice
     glob.choser1 = caller
 }
 
 @gstate choice1 -> choice2
-@round (,end_choice)
+@round (,glob.end_choice)
 @assert caller != glob.choser1 // the two choosers must be different
 choose(address choice) { 
     caller.choice = choice
@@ -69,14 +69,14 @@ choose(address choice) {
  ******************************/
 
 @gstate join1 -> end
-@round (end_join,)
-@pay glob.deposit of ALGO : escrow -> glob.a
+@round (glob.end_join, glob.end_redeem)
+@close ALGO : escrow -> glob.a
 redeem() { }
 
 @gstate choice2 -> end
-@round (,end_redeem)
+@round (,glob.end_redeem)
 @assert glob.a.choice == glob.b.choice
-@close glob.deposit of ALGO : escrow -> glob.a.choiceA
+@close ALGO : escrow -> glob.a.choice
 redeem() { }
 
 /******************************
@@ -84,9 +84,9 @@ redeem() { }
  ******************************/
 
 @gstate -> arbitrated
-@round (end_redeem,)
+@round (glob.end_redeem,)
 @from glob.e 
-@pay (glob.deposit * feeRate / 100) of ALGO : escrow -> glob.e
+@pay (glob.deposit * glob.feeRate / 100) of ALGO : escrow -> glob.e
 arbitrate(address choice) {
     glob.eChoice = choice    
 }
@@ -101,6 +101,5 @@ redeem() { }
 
 // delete a terminated contract
 @gstate end -> 
-@round (glob.end_commit,)
 @from creator
 Delete delete() { }
