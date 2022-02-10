@@ -42,25 +42,26 @@ Create escrow_contract(address e, int end_join, int end_choice, int end_redeem, 
 ## Joining the escrow
 
 The following two clauses allow users to join the contract.
-The buyer must join first and provide a deposit in ALGO, while the seller just needs to join before the join phase ends.
+The buyer must join first and provide the seller's address and a deposit in ALGO, while the seller just needs to join before the join phase ends.
 ```java
 @gstate init -> join1
 @round (,glob.end_join)
 @pay $amt of ALGO : caller -> escrow
-OptIn join() { 
+@assert caller != b  // no schizophrenia
+OptIn join(address b) { 
     glob.a = caller
+    glob.b = b
     glob.deposit = amt
 }
 ```
 
-The `@gstate` clause ensures that the seller will join after the buyer:
+The `@gstate` clause allows the seller to join after the buyer. 
+Even though we already know the seller's address from the previous `join`, this `OptIn` clause is needed to provide the seller with a local state:
 ```java
 @gstate join1 -> join2
-@assert caller != glob.a  // no schizophrenia
 @round (,glob.end_join)
-OptIn join() { 
-    glob.b = caller
-}
+@from glob.b
+OptIn join() { }
 ```
 
 ## Making the choice
