@@ -18,7 +18,7 @@ glob address eChoice    // choice of the escrow
 
 @gstate -> init
 @assert end_join < end_choice
-@assert end_join < end_redeem
+@assert end_choice < end_redeem
 Create escrow_contract(address e, int end_join, int end_choice, int end_redeem, int feeRate) {
     glob.e = e
     glob.end_join = end_join
