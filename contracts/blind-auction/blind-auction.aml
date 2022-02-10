@@ -4,6 +4,7 @@ glob int end_redeem      // end of the redeem period
 
 glob int highest_bid
 glob address winner
+glob token NFT
 
 loc string sealed_bid
 loc int deposit
@@ -16,12 +17,13 @@ loc bool can_redeem
 
 @assert end_bidding < end_reveal
 @assert end_reveal < end_redeem
-@newtok 1 of NFT -> escrow
+@newtok 1 of $NFT -> escrow
 Create auction(int end_bidding, int end_reveal, int end_redeem) {
     glob.highest_bid = 0
     glob.end_bidding = end_bidding
     glob.end_reveal = end_reveal
     glob.end_redeem = end_redeem
+    glob.NFT = glob.NFT
 }
 
 /******************************
@@ -30,7 +32,7 @@ Create auction(int end_bidding, int end_reveal, int end_redeem) {
 
 @round (,glob.end_bidding)
 @pay $v of ALGO : caller -> escrow
-Optin bid(string sealed_bid) {
+OptIn bid(string sealed_bid) {
     loc.sealed_bid = sealed_bid
     loc.deposit = v
     loc.can_redeem = false
@@ -42,7 +44,7 @@ Optin bid(string sealed_bid) {
 
 @round (glob.end_bidding,glob.end_reveal)
 @assert sha256(bid) == caller.sealed_bid
-@assert len(bid) = 32 + 2
+@assert len(bid) == 32 + 2
 @assert get_int(substring(bid,32,34)) > glob.highest_bid
 @assert get_int(substring(bid,32,34)) <= caller.deposit
 reveal(string bid) {
@@ -52,7 +54,7 @@ reveal(string bid) {
 
 @round (glob.end_bidding,glob.end_reveal)
 @assert sha256(bid) == caller.sealed_bid
-@assert len(bid) = 32 + 2
+@assert len(bid) == 32 + 2
 @assert get_int(substring(bid,32,34)) < glob.highest_bid
 @assert get_int(substring(bid,32,34)) <= caller.deposit
 reveal(string bid) {
@@ -60,12 +62,12 @@ reveal(string bid) {
 }
 
 /******************************
- Redeeming the NFT 
+ Redeeming the glob.NFT 
  ******************************/
 
 @round (glob.end_reveal,glob.end_redeem)
 @pay caller.deposit - glob.highest_bid of ALGO : escrow -> glob.winner
-@pay 1 of NFT : escrow -> glob.winner
+@pay 1 of glob.NFT : escrow -> glob.winner
 redeem() { 
     caller.deposit = 0
 }
@@ -91,5 +93,5 @@ redeem() {
 @round (glob.end_redeem,)
 @from creator
 @close ALGO : escrow -> creator
-@close NFT : escrow -> creator
+@close glob.NFT : escrow -> creator
 Delete delete() {}
