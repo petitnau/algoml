@@ -1,6 +1,8 @@
 # AlgoML
 
 AlgoML (*Algorand Modelling Language*) is a DSL for specifying Algorand smart contracts, which compiles into TEAL scripts.
+AlgoML allows to specify stateful contracts in a declarative style; its compiler implements several static checks to rule out common programming errors in lower-level languages like TEAL.
+We illustrate the expressiveness of AlgoML through a [series of use cases](#algoml-use-cases), including DeFi contracts and games.
 
 AlgoML contracts have a global state, which can be updated through clauses of the form:
 ```java
@@ -42,6 +44,7 @@ This precondition holds when a number of units of token `tok` in the range `(min
 ```
 This holds when the current contract state is `oldstate`. After executing the function, the state takes a transition to `newstate`.
 
+We discuss the design of the AlgoML compiler in a [dedicated subpage](src).
 
 ## AlgoML by examples: tinybond
 
