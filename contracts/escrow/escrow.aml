@@ -7,7 +7,7 @@ glob address a          // buyer
 glob address b          // seller
 glob address e          // escrow
 glob int deposit        // buyer's deposit
-glob address choser1    // first user who makes a choice
+glob address first      // first user to makes a choice
 
 loc address choice      // recipient of the deposit
 glob address eChoice    // choice of the escrow
@@ -54,12 +54,12 @@ OptIn join() {
 @round (,glob.end_choice)
 choose(address choice) { 
     caller.choice = choice
-    glob.choser1 = caller
+    glob.first = caller
 }
 
 @gstate choice1 -> choice2
 @round (,glob.end_choice)
-@assert caller != glob.choser1 // the two choosers must be different
+@assert caller != glob.first // the two choosers must be different
 choose(address choice) { 
     caller.choice = choice
 }
