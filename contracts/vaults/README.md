@@ -1,25 +1,11 @@
-# Algorand vaults
+# Vaults
 
 Vaults are a security mechanism to prevent cryptocurrency from being immediately withdrawn. When users want to withdraw some crypto from a vault, they must first issue a request, and the withdrawal is finalized only after a certain wait time has passed since the request. During the wait time, the request can be cancelled by using a recovery key. Vaults mitigate the risk that the user's private key is stolen: whenever an adversary attempts to withdraw using a stolen private key, the legit user can cancel the operation through the recovery key.
 
-Vaults are quite popular in blockchain ecosystems. For instance, they are available on the following crypto wallets:
-* [Coinbase](https://help.coinbase.com/en/coinbase/getting-started/other/vaults-faq)
-* [Bitcoin Suisse](https://www.bitcoinsuisse.com/vault)
-* [Electrum Vault](https://github.com/bitcoinvault/electrum-vault)
-
-The purpose of this tutorial is to create a **decentralized** vault as an Algorand smart contract.
-
-## Table of contents
-- [Algorand vaults](#algorand-vaults)
-  - [Table of contents](#table-of-contents)
-  - [Contract state](#contract-state)
-  - [Creating the vault](#creating-the-vault)
-  - [Depositing funds](#depositing-funds)
-  - [Requesting a withdrawal](#requesting-a-withdrawal)
-  - [Finalizing a request](#finalizing-a-request)
-  - [Cancelling a request](#cancelling-a-request)
-- [Disclaimer](#disclaimer)
-- [Credits](#credits)
+Vaults are quite popular in blockchain ecosystems. For instance, they are available on popular crypto wallets like 
+[Coinbase](https://help.coinbase.com/en/coinbase/getting-started/other/vaults-faq),
+[Bitcoin Suisse](https://www.bitcoinsuisse.com/vault) and
+[Electrum Vault](https://github.com/bitcoinvault/electrum-vault).
 
 ## Contract state
 

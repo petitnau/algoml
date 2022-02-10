@@ -1,8 +1,8 @@
 # AlgoML
 
-AlgoML (after *Algorand Modelling Language*) is a DSL for specifying Algorand smart contracts, which compiles into TEAL scripts.
+AlgoML (*Algorand Modelling Language*) is a DSL for specifying Algorand smart contracts, which compiles into TEAL scripts.
 
-Roughly, an AlgoML specification is a sequence of clauses of the form:
+AlgoML contracts have a global state, which can be updated through clauses of the form:
 ```java
 @precondition1
 ...
@@ -12,7 +12,7 @@ foo(x1,...,xn) {
   ...
 }
 ```
-The intuition is that the function ``foo`` is enabled whenever all the preconditions are respected. Executing ``foo`` results in a state update, specified in the function body. Preconditions may have various forms: for instance, they can be predicates on the contract state, or checks that certain transactions belong to the group wherein the function is called.
+This clause defines a contract function ``foo`` which is enabled whenever all the preconditions are respected. Executing ``foo`` results in a state update, specified in the function body. Preconditions may have various forms: for instance, they can be predicates on the contract state, or checks that certain transactions belong to the group wherein the function is called.
 
 On a lower level, an AlgoML program models two contracts: a stateful application, and a stateless contract account. The stateful application is in charge of all of the contract logic, while the stateless contract acts as an escrow, which holds funds and releases them according to the logic of the stateful contract.
 
@@ -181,10 +181,19 @@ For example, to compile the tinybond contract, enter the following command from 
 dune exec ./amlc.exe contracts/tinybond/tinybond.aml
 ```
 
+## Future developments
+
+AlgoML is a work in progress towards safer programming of smart contracts in Algorand.
+Possible future developments include:
+* an executable formal specification of AlgoML semantics;
+* a client-side DSL to program the behaviour of users interacting with AlgoML contracts. Static cross-checks on the client and contract code could ensure that the client enjoys desirable behavioural properties, like e.g. deadlock-freedom and wealth preservation;
+* a verification tool to check relevant properties of AlgoML contracts. For instance, we would like to ensure that a contract has always at least one enabled clause, that no assets are frozen forever, and so on;
+* a proof of correctness of the AlgoML compiler, showing that all the possible executions of the TEAL code produced by the compiler are coherent with the behaviour of the source AlgoML specification.
+
 ## Disclaimer
 
 The project is not audited and should not be used in a production environment.
 
 ## Credits
 
-AlgoML has been designed by Roberto Pettinau and Massimo Bartoletti from the University of Cagliari, Italy.
+AlgoML has been designed by Roberto Pettinau and [Massimo Bartoletti](https://blockchain.unica.it/) from the University of Cagliari, Italy.
