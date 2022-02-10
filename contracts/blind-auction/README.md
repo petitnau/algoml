@@ -9,6 +9,7 @@ Global variables:
 * `end_redeem`: last round of the redeem period
 * `highest_bid`: value of the highest bid
 * `winner`: address of the auction winner
+* `NFT`: id of the auctioned token
 
 Local variables:
 * `sealed_bid`: hash of the bid (32 bytes nonce + 8 bytes bid value)
@@ -22,12 +23,13 @@ Any user can create an auction by providing the deadlines. Upon creation, a new 
 ```java
 @assert end_bidding < end_reveal
 @assert end_reveal < end_redeem
-@newtok 1 of NFT -> escrow
+@newtok 1 of $NFT -> escrow
 Create auction(int end_bidding, int end_reveal, int end_redeem) {
     glob.highest_bid = 0
     glob.end_bidding = end_bidding
     glob.end_reveal = end_reveal
     glob.end_redeem = end_redeem
+    glob.NFT = glob.NFT
 }
 ```
 
@@ -39,7 +41,7 @@ The deposit can be withdrawn in the redeem phase, provided that the user reveals
 ```java
 @round (,glob.end_bidding)
 @pay $v of ALGO : caller -> escrow
-Optin bid(string sealed_bid) {
+OptIn bid(string sealed_bid) {
     loc.sealed_bid = sealed_bid
     loc.deposit = v
     loc.can_redeem = false
@@ -55,7 +57,7 @@ The highest bid and the corresponding bidder are recorded in the global state.
 ```java
 @round (glob.end_bidding,glob.end_reveal)
 @assert sha256(bid) == caller.sealed_bid
-@assert len(bid) = 32 + 2
+@assert len(bid) == 32 + 2
 @assert get_int(substring(bid,32,34)) > glob.highest_bid
 @assert get_int(substring(bid,32,34)) <= caller.deposit
 reveal(string bid) {
@@ -68,8 +70,8 @@ A non-winner bidder can still reveal, to be able to withdraw her deposit in the 
 ```java
 @round (glob.end_bidding,glob.end_reveal)
 @assert sha256(bid) == caller.sealed_bid
-@assert len(bid) = 32 + 2
-@assert get_int(substring(bid,32,34)) < glob.highest_bid
+@assert len(bid) == 32 + 2
+@assert get_int(substring(bid,32,34)) <= glob.highest_bid
 @assert get_int(substring(bid,32,34)) <= caller.deposit
 reveal(string bid) {
     loc.can_redeem = true
@@ -82,7 +84,7 @@ The winner can redeem the NFT and the difference between the deposit and the bid
 ```java
 @round (glob.end_reveal,glob.end_redeem)
 @pay caller.deposit - glob.highest_bid of ALGO : escrow -> glob.winner
-@pay 1 of NFT : escrow -> glob.winner
+@pay 1 of glob.NFT : escrow -> glob.winner
 redeem() { 
     caller.deposit = 0
 }
@@ -105,8 +107,8 @@ The following clause allows the creator to delete a terminated auction, and to r
 ```java
 @round (glob.end_redeem,)
 @from creator
+@close glob.NFT : escrow -> creator
 @close ALGO : escrow -> creator
-@close NFT : escrow -> creator
 Delete delete() {}
 ```
 
