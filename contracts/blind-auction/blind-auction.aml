@@ -8,8 +8,6 @@ glob token NFT
 
 loc string sealed_bid
 loc int deposit
-loc int bid
-loc bool can_redeem
 
 /******************************
  Contract creation
@@ -35,7 +33,6 @@ Create auction(int end_bidding, int end_reveal, int end_redeem) {
 OptIn bid(string sealed_bid) {
     loc.sealed_bid = sealed_bid
     loc.deposit = v
-    loc.can_redeem = false
 }
 
 /******************************
@@ -57,12 +54,13 @@ reveal(string bid) {
 @assert len(bid) == 32 + 2
 @assert get_int(substring(bid,32,34)) <= glob.highest_bid
 @assert get_int(substring(bid,32,34)) <= caller.deposit
+@pay caller.deposit of ALGO : escrow -> caller
 reveal(string bid) {
-    loc.can_redeem = true
+    caller.deposit = 0
 }
 
 /******************************
- Redeeming the glob.NFT 
+ Redeeming the NFT 
  ******************************/
 
 @round (glob.end_reveal,glob.end_redeem)
@@ -71,20 +69,6 @@ reveal(string bid) {
 redeem() { 
     caller.deposit = 0
 }
-
-
-/******************************
- Redeeming the deposits
- ******************************/
-
-@round (glob.end_reveal,glob.end_redeem)
-@assert caller.can_redeem
-@pay caller.deposit of ALGO : escrow -> caller
-redeem() {
-    caller.deposit = 0
-    caller.can_redeem = false
-}
-
 
 /******************************
  Deleting the contract
