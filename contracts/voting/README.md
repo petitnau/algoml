@@ -1,29 +1,28 @@
 # Voting
 
 This contract is inspired by [this contract](https://developer.algorand.org/solutions/example-permissioned-voting-stateful-smart-contract-application/) by Jason Weathersby. The contract consists of two phases:
-- an application phase, where users can apply as a candidate
-- a voting phase, in which users that have received (off contract) a voting token, can spend units of those tokens to vote the candidates
+- an **application phase**, where users can apply as a candidate
+- a **voting phase**, where users that have received (off contract) a voting token, can spend units of their tokens to vote the candidates
 
 ## Contract state
 
 The contract state is stored in the following variables:
 
 Global variables:
-- `candidate_begin` is the first round in which users can apply
-- `candidate_end` is the last round in which users can apply
-- `vote_begin` is the first round in which users can vote
-- `vote_end` is the last round in which users can vote
-- `vote_token` is the token that users spend in order to vote
+- `candidate_begin`: the first round in which users can apply
+- `candidate_end`: the last round in which users can apply
+- `vote_begin`: the first round in which users can vote
+- `vote_end`: the last round in which users can vote
+- `vote_token`: the token that users spend in order to vote
 
 Local variables:
-- `votes` is the number of votes of the user
+- `votes`: the number of votes received by the user
 
 All the variables but `votes` are immutable throughout the contract lifetime.
 
-## Creating the poll
+## Creating a poll
 
-Any user can crete a poll, by providing the application round period, the voting round period, and the identifier of the token that must be spent to cast vote. 
-
+Any user can crete a poll, by providing the application period, the voting period, and the identifier of the token that must be spent to cast votes. 
 ```java
 @assert candidate_begin < candidate_end
 @assert candidate_end < vote_begin
@@ -37,12 +36,11 @@ Create ballot(int candidate_begin, int candidate_end, int vote_begin, int vote_e
 }
 ```
 
-When the `ballot` function is called, the contract and all the global state variables are initialized to the corresponding actual parameters.
+When the clause is executed, the contract is created, and all the global state variables are initialized to the corresponding actual parameters.
 
 ## Application
 
-To apply, users must opt into the contract, by invoking the `candidate` function.
-
+To apply, users must opt into the contract, by executing the following clause:
 ```java
 @round (glob.candidate_begin, glob.candidate_end)
 OptIn candidate() {
@@ -50,7 +48,8 @@ OptIn candidate() {
 }
 ```
 
-The `@round` clause ensures that the function can only be called in the application round period. When a user calls the function, they opt into the contract, and their local variable `votes` is initialized to 0.
+The `@round` precondition ensures that the function can only be called in the application period. 
+The `OptIn` modifier causes the local state of the caller to be initialized. In particular, the local variable `votes` is initialized to 0.
 
 ## Voting
 
@@ -78,8 +77,10 @@ After the voting phase has ended and the votes are checked, the contract can be 
 Delete delete() {}
 ```
 
-The `delete` function can be called at any round after `vote_end`, only by the creator of the contract. To call the function, they must send a close transaction of both the `vote_token` and the ALGOs from the escrow account to their account. Once called, the contract is deleted (as indicated by the `Delete` modifier).
+The clause can be executed at any round after `vote_end`, and only by the creator of the contract. 
+Further, the clause requires a close transaction of both the `vote_token` and the ALGOs from the escrow account to their account. 
+The `Delete` modifier causes the contract to be deleted upon the execution of the clause.
 
-# Disclaimer
+## Disclaimer
 
 The project is not audited and should not be used in a production environment.
