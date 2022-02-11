@@ -1,0 +1,64 @@
+glob int maxrounds   // max number of rounds for a user to withdraw 
+glob int mindep      // minimum deposit in ALGO
+glob int intR        // interest rate (percent)
+glob int feeR        // fee rate (percent)
+
+glob mut int balance // contract balance
+glob mut int paying  // index of the next investor to be paid
+glob mut int ctr     // total number of investors
+glob mut int wdstart // start of the current withdraw period
+
+loc mut int deposit  // user deposit in ALGO
+loc mut int pos      // user position in the payment queue
+
+Create init(int intR, int feeR, int mindep, int maxrounds) {
+    glob.intR = intR
+    glob.feeR = feeR
+    glob.mindep = mindep
+    glob.maxrounds = maxrounds
+    glob.balance = 0
+    glob.paying = 0
+    glob.ctr = 0
+}
+
+// any user can join the payment queue by providing a deposit (at least mindep)
+// the contract creator takes a fee on every deposit
+@pay $v of ALGO : caller -> escrow
+@pay (v * feeR / 100) of ALGO : escrow -> creator
+@assert v >= glob.mindep
+OptIn join() {
+    loc.deposit = v
+    loc.pos = glob.ctr
+    glob.ctr += 1
+    glob.balance += v
+}
+
+// if the balance is enough to pay the next user in the queue,
+// the state is set to "paying" and the clock wdstart is set to the current round
+@gstate notpaying -> paying
+@round $r
+@assert glob.balance >= loc.deposit + (loc.deposit * intR) / 100
+next() { 
+    glob.wdstart = r
+}
+
+// if the next user in the queue does not redeem within maxrounds,
+// anyone can make the queue advance to the next user
+@gstate paying -> notpaying
+@round (glob.wdstart + glob.maxrounds, )
+next() { 
+    glob.paying += 1
+}
+
+// the next user in the queue withdraws the deposit with interests
+@gstate paying -> notpaying
+@round (glob.wdstart,glob.wdstart + glob.maxrounds)
+@pay $v of ALGO : escrow -> caller
+@assert glob.balance >= loc.deposit + (loc.deposit * intR) / 100
+@assert v == loc.deposit + (loc.deposit * intR) / 100
+@assert caller.pos == glob.paying
+withdraw() {
+    glob.balance -= v
+    glob.paying += 1
+    caller.deposit = 0   // not really needed
+}
