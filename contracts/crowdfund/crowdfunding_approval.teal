@@ -117,7 +117,7 @@ bz aclause_3
 //*******
 
 byte "gstate"
-byte "@inited"
+byte "#inited"
 app_global_put
 
 byte "start_date"

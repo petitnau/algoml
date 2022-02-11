@@ -26,18 +26,6 @@ bnz app_called
 
 call_2:
 
-gtxn 2 TypeEnum
-int appl
-==
-bz call_3
-
-gtxn 2 ApplicationID
-int <APP-ID>
-==
-bnz app_called
-
-call_3:
-
 err
 
 app_called:
