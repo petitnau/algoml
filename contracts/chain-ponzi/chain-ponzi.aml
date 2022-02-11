@@ -11,6 +11,7 @@ glob mut int wdstart // start of the current withdraw period
 loc mut int deposit  // user deposit in ALGO
 loc mut int pos      // user position in the payment queue
 
+@gstate -> notpaying
 Create init(int intR, int feeR, int mindep, int maxrounds) {
     glob.intR = intR
     glob.feeR = feeR
@@ -24,7 +25,7 @@ Create init(int intR, int feeR, int mindep, int maxrounds) {
 // any user can join the payment queue by providing a deposit (at least mindep)
 // the contract creator takes a fee on every deposit
 @pay $v of ALGO : caller -> escrow
-@pay (v * feeR / 100) of ALGO : escrow -> creator
+@pay (v * glob.feeR / 100) of ALGO : escrow -> creator
 @assert v >= glob.mindep
 OptIn join() {
     loc.deposit = v
@@ -37,7 +38,7 @@ OptIn join() {
 // the state is set to "paying" and the clock wdstart is set to the current round
 @gstate notpaying -> paying
 @round $r
-@assert glob.balance >= loc.deposit + (loc.deposit * intR) / 100
+@assert glob.balance >= loc.deposit + (loc.deposit * glob.intR) / 100
 next() { 
     glob.wdstart = r
 }
@@ -54,8 +55,8 @@ next() {
 @gstate paying -> notpaying
 @round (glob.wdstart,glob.wdstart + glob.maxrounds)
 @pay $v of ALGO : escrow -> caller
-@assert glob.balance >= loc.deposit + (loc.deposit * intR) / 100
-@assert v == loc.deposit + (loc.deposit * intR) / 100
+@assert glob.balance >= loc.deposit + (loc.deposit * glob.intR) / 100
+@assert v == loc.deposit + (loc.deposit * glob.intR) / 100
 @assert caller.pos == glob.paying
 withdraw() {
     glob.balance -= v
