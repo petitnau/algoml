@@ -191,6 +191,7 @@ dune exec ./amlc.exe contracts/tinybond/tinybond.aml
 AlgoML is a work in progress towards safer programming of smart contracts in Algorand.
 Possible future developments include:
 * an executable formal specification of AlgoML semantics;
+* more informative error messages from the AlgoML compiler;
 * a type-safe mechanism for the commit-reveal pattern (now programmers must use low-level primitives like `sha256hash`, `get_int`, etc.)
 * a client-side DSL to program the behaviour of users interacting with AlgoML contracts. Static cross-checks on the client and contract code could ensure that the client enjoys desirable behavioural properties, like e.g. deadlock-freedom and wealth preservation;
 * a verification tool to check relevant properties of AlgoML contracts. For instance, we would like to ensure that a contract has always at least one enabled clause, that no assets are frozen forever, and so on;
