@@ -1,6 +1,8 @@
 # AlgoML
 
 AlgoML (*Algorand Modelling Language*) is a DSL for specifying Algorand smart contracts, which compiles into TEAL scripts.
+AlgoML allows to specify stateful contracts in a declarative style; its compiler implements several static checks to rule out common programming errors in lower-level languages like TEAL.
+We illustrate the expressiveness of AlgoML through a [series of use cases](#algoml-use-cases), including DeFi contracts and games.
 
 AlgoML contracts have a global state, which can be updated through clauses of the form:
 ```java
@@ -42,6 +44,7 @@ This precondition holds when a number of units of token `tok` in the range `(min
 ```
 This holds when the current contract state is `oldstate`. After executing the function, the state takes a transition to `newstate`.
 
+We discuss the design of the AlgoML compiler in a [dedicated subpage](src).
 
 ## AlgoML by examples: tinybond
 
@@ -127,7 +130,7 @@ After the maturity date has passed, users that bought bonds in the sale/presale 
 redeem() {}
 ```
 
-To compile the tinybond contract, follow the instructions in the [Using the AlgoML compiler](#using-the-algoml-compiler) section. 
+To compile the tinybond contract, follow the instructions in the [Using the AlgoML compiler](#using-the-algoml-compiler) section. For more information on how the contract is compiled, see the [How an AlgoML contract is compiled](/src/README.md) section.
 
 
 ## AlgoML use cases
@@ -158,7 +161,7 @@ opam install dune
 ```
 4\. Install AlgoML dependencies
 ```
-opam install algoml --deps-only
+opam install . --deps-only
 ```
 5\. Build the source
 ```
@@ -188,6 +191,7 @@ dune exec ./amlc.exe contracts/tinybond/tinybond.aml
 AlgoML is a work in progress towards safer programming of smart contracts in Algorand.
 Possible future developments include:
 * an executable formal specification of AlgoML semantics;
+* more informative error messages from the AlgoML compiler;
 * a type-safe mechanism for the commit-reveal pattern (now programmers must use low-level primitives like `sha256hash`, `get_int`, etc.)
 * a client-side DSL to program the behaviour of users interacting with AlgoML contracts. Static cross-checks on the client and contract code could ensure that the client enjoys desirable behavioural properties, like e.g. deadlock-freedom and wealth preservation;
 * a verification tool to check relevant properties of AlgoML contracts. For instance, we would like to ensure that a contract has always at least one enabled clause, that no assets are frozen forever, and so on;

@@ -54,7 +54,7 @@ bz aclause_2
 //*******
 
 byte "gstate"
-byte "@inited"
+byte "#inited"
 app_global_put
 
 byte "start_amount"
@@ -126,16 +126,10 @@ byte "take_power"
 ==
 bz aclause_3
 
-int 0
-byte "gstate"
-app_global_get_ex
-swap
-pop
-bz aclause_3
-
 byte "gstate"
 app_global_get
-byte "@created"
+substring 0 1
+byte "@"
 !=
 bz aclause_3
 
@@ -246,16 +240,10 @@ byte "dethrone"
 ==
 bz aclause_4
 
-int 0
-byte "gstate"
-app_global_get_ex
-swap
-pop
-bz aclause_4
-
 byte "gstate"
 app_global_get
-byte "@created"
+substring 0 1
+byte "@"
 !=
 bz aclause_4
 
@@ -368,8 +356,6 @@ return
 aclause_4:
 
 //*******
-
-fail:
 
 err
 

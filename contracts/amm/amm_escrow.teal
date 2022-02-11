@@ -67,16 +67,16 @@ err
 app_called:
 
 txn TypeEnum
-int pay
+int appl
 ==
-bz not_call
-
-not_call:
+bnz not_call
 
 txn ApplicationID
 int <APP-ID>
 !=
 assert
+
+not_call:
 
 txn RekeyTo
 global ZeroAddress

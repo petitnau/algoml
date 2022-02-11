@@ -1,0 +1,963 @@
+#pragma version 4
+
+aclause_0:
+
+txn ApplicationID
+int 0
+==
+bz aclause_1
+
+//*******
+
+byte "gstate"
+byte "@created"
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_1:
+
+global GroupSize
+int 2
+==
+bz aclause_2
+
+gtxn 0 TypeEnum
+int pay
+==
+bz aclause_2
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_2
+
+txn NumAppArgs
+int 1
+==
+bz aclause_2
+
+txna ApplicationArgs 0
+byte "init_escrow"
+==
+bz aclause_2
+
+txn Sender
+global CreatorAddress
+==
+bz aclause_2
+
+byte "gstate"
+app_global_get
+byte "@created"
+==
+bz aclause_2
+
+gtxn 0 Amount
+int 100000
+==
+bz aclause_2
+
+gtxn 0 CloseRemainderTo
+global ZeroAddress
+==
+bz aclause_2
+
+//*******
+
+byte "gstate"
+byte "@escrowinited"
+app_global_put
+
+byte "escrow"
+gtxn 0 Receiver
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_2:
+
+global GroupSize
+int 1
+==
+bz aclause_3
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_3
+
+txn NumAppArgs
+int 3
+==
+bz aclause_3
+
+txna ApplicationArgs 0
+byte "lottery"
+==
+bz aclause_3
+
+byte "gstate"
+app_global_get
+byte "@escrowinited"
+==
+bz aclause_3
+
+txna ApplicationArgs 1
+btoi
+txna ApplicationArgs 2
+btoi
+<
+bz aclause_3
+
+txn Sender
+global CreatorAddress
+==
+bz aclause_3
+
+//*******
+
+byte "gstate"
+byte "joined0"
+app_global_put
+
+byte "end_commit"
+txna ApplicationArgs 1
+btoi
+app_global_put
+
+byte "end_reveal"
+txna ApplicationArgs 2
+btoi
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_3:
+
+global GroupSize
+int 2
+==
+bz aclause_4
+
+gtxn 0 TypeEnum
+int pay
+==
+bz aclause_4
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_4
+
+txn NumAppArgs
+int 2
+==
+bz aclause_4
+
+txna ApplicationArgs 0
+byte "join"
+==
+bz aclause_4
+
+byte "gstate"
+app_global_get
+byte "joined0"
+==
+bz aclause_4
+
+int 0
+byte "end_commit"
+app_global_get_ex
+swap
+pop
+bz aclause_4
+
+global Round
+byte "end_commit"
+app_global_get
+<=
+bz aclause_4
+
+gtxn 0 Amount
+int 1
+==
+bz aclause_4
+
+gtxn 0 Sender
+txn Sender
+==
+bz aclause_4
+
+gtxn 0 Receiver
+byte "escrow"
+app_global_get
+==
+bz aclause_4
+
+gtxn 0 CloseRemainderTo
+global ZeroAddress
+==
+bz aclause_4
+
+//*******
+
+byte "gstate"
+byte "joined1"
+app_global_put
+
+byte "player1"
+txn Sender
+app_global_put
+
+byte "commitment1"
+txna ApplicationArgs 1
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_4:
+
+global GroupSize
+int 2
+==
+bz aclause_5
+
+gtxn 0 TypeEnum
+int pay
+==
+bz aclause_5
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_5
+
+txn NumAppArgs
+int 2
+==
+bz aclause_5
+
+txna ApplicationArgs 0
+byte "join"
+==
+bz aclause_5
+
+byte "gstate"
+app_global_get
+byte "joined1"
+==
+bz aclause_5
+
+int 0
+byte "end_commit"
+app_global_get_ex
+swap
+pop
+bz aclause_5
+
+global Round
+byte "end_commit"
+app_global_get
+<=
+bz aclause_5
+
+gtxn 0 Amount
+int 1
+==
+bz aclause_5
+
+gtxn 0 Sender
+txn Sender
+==
+bz aclause_5
+
+gtxn 0 Receiver
+byte "escrow"
+app_global_get
+==
+bz aclause_5
+
+gtxn 0 CloseRemainderTo
+global ZeroAddress
+==
+bz aclause_5
+
+int 0
+byte "commitment1"
+app_global_get_ex
+swap
+pop
+bz aclause_5
+
+byte "commitment1"
+app_global_get
+txna ApplicationArgs 1
+!=
+bz aclause_5
+
+//*******
+
+byte "gstate"
+byte "joined2"
+app_global_put
+
+byte "player2"
+txn Sender
+app_global_put
+
+byte "commitment2"
+txna ApplicationArgs 1
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_5:
+
+global GroupSize
+int 2
+==
+bz aclause_6
+
+gtxn 0 TypeEnum
+int pay
+==
+bz aclause_6
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_6
+
+txn NumAppArgs
+int 1
+==
+bz aclause_6
+
+txna ApplicationArgs 0
+byte "redeem"
+==
+bz aclause_6
+
+byte "gstate"
+app_global_get
+byte "joined1"
+==
+bz aclause_6
+
+int 0
+byte "end_commit"
+app_global_get_ex
+swap
+pop
+bz aclause_6
+
+global Round
+byte "end_commit"
+app_global_get
+>=
+bz aclause_6
+
+int 0
+byte "player1"
+app_global_get_ex
+swap
+pop
+bz aclause_6
+
+gtxn 0 Amount
+int 0
+==
+bz aclause_6
+
+gtxn 0 Sender
+byte "escrow"
+app_global_get
+==
+bz aclause_6
+
+gtxn 0 CloseRemainderTo
+byte "player1"
+app_global_get
+==
+bz aclause_6
+
+//*******
+
+byte "gstate"
+byte "end"
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_6:
+
+global GroupSize
+int 1
+==
+bz aclause_7
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_7
+
+txn NumAppArgs
+int 2
+==
+bz aclause_7
+
+txna ApplicationArgs 0
+byte "reveal"
+==
+bz aclause_7
+
+byte "gstate"
+app_global_get
+byte "joined2"
+==
+bz aclause_7
+
+int 0
+byte "end_commit"
+app_global_get_ex
+swap
+pop
+bz aclause_7
+
+int 0
+byte "end_reveal"
+app_global_get_ex
+swap
+pop
+bz aclause_7
+
+global Round
+byte "end_commit"
+app_global_get
+>=
+global Round
+byte "end_reveal"
+app_global_get
+<=
+&&
+bz aclause_7
+
+int 0
+byte "commitment1"
+app_global_get_ex
+swap
+pop
+bz aclause_7
+
+txna ApplicationArgs 1
+sha256
+byte "commitment1"
+app_global_get
+==
+bz aclause_7
+
+//*******
+
+byte "gstate"
+byte "revealed1"
+app_global_put
+
+byte "secret1"
+txna ApplicationArgs 1
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_7:
+
+global GroupSize
+int 1
+==
+bz aclause_8
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_8
+
+txn NumAppArgs
+int 2
+==
+bz aclause_8
+
+txna ApplicationArgs 0
+byte "reveal"
+==
+bz aclause_8
+
+byte "gstate"
+app_global_get
+byte "revealed1"
+==
+bz aclause_8
+
+int 0
+byte "end_commit"
+app_global_get_ex
+swap
+pop
+bz aclause_8
+
+int 0
+byte "end_reveal"
+app_global_get_ex
+swap
+pop
+bz aclause_8
+
+global Round
+byte "end_commit"
+app_global_get
+>=
+global Round
+byte "end_reveal"
+app_global_get
+int 100
++
+<=
+&&
+bz aclause_8
+
+int 0
+byte "commitment2"
+app_global_get_ex
+swap
+pop
+bz aclause_8
+
+txna ApplicationArgs 1
+sha256
+byte "commitment2"
+app_global_get
+==
+bz aclause_8
+
+//*******
+
+byte "gstate"
+byte "revealed2"
+app_global_put
+
+byte "secret2"
+txna ApplicationArgs 1
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_8:
+
+global GroupSize
+int 2
+==
+bz aclause_9
+
+gtxn 0 TypeEnum
+int pay
+==
+bz aclause_9
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_9
+
+txn NumAppArgs
+int 1
+==
+bz aclause_9
+
+txna ApplicationArgs 0
+byte "redeem"
+==
+bz aclause_9
+
+byte "gstate"
+app_global_get
+byte "joined2"
+==
+bz aclause_9
+
+int 0
+byte "end_reveal"
+app_global_get_ex
+swap
+pop
+bz aclause_9
+
+global Round
+byte "end_reveal"
+app_global_get
+>=
+bz aclause_9
+
+int 0
+byte "player2"
+app_global_get_ex
+swap
+pop
+bz aclause_9
+
+gtxn 0 Amount
+int 0
+==
+bz aclause_9
+
+gtxn 0 Sender
+byte "escrow"
+app_global_get
+==
+bz aclause_9
+
+gtxn 0 CloseRemainderTo
+byte "player2"
+app_global_get
+==
+bz aclause_9
+
+//*******
+
+byte "gstate"
+byte "end"
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_9:
+
+global GroupSize
+int 2
+==
+bz aclause_10
+
+gtxn 0 TypeEnum
+int pay
+==
+bz aclause_10
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_10
+
+txn NumAppArgs
+int 1
+==
+bz aclause_10
+
+txna ApplicationArgs 0
+byte "redeem"
+==
+bz aclause_10
+
+byte "gstate"
+app_global_get
+byte "revealed1"
+==
+bz aclause_10
+
+int 0
+byte "end_reveal"
+app_global_get_ex
+swap
+pop
+bz aclause_10
+
+global Round
+byte "end_reveal"
+app_global_get
+int 100
++
+>=
+bz aclause_10
+
+int 0
+byte "player1"
+app_global_get_ex
+swap
+pop
+bz aclause_10
+
+gtxn 0 Amount
+int 0
+==
+bz aclause_10
+
+gtxn 0 Sender
+byte "escrow"
+app_global_get
+==
+bz aclause_10
+
+gtxn 0 CloseRemainderTo
+byte "player1"
+app_global_get
+==
+bz aclause_10
+
+//*******
+
+byte "gstate"
+byte "end"
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_10:
+
+global GroupSize
+int 2
+==
+bz aclause_11
+
+gtxn 0 TypeEnum
+int pay
+==
+bz aclause_11
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_11
+
+txn NumAppArgs
+int 1
+==
+bz aclause_11
+
+txna ApplicationArgs 0
+byte "redeem"
+==
+bz aclause_11
+
+byte "gstate"
+app_global_get
+byte "revealed2"
+==
+bz aclause_11
+
+byte "secret1"
+app_global_get
+len
+byte "secret2"
+app_global_get
+len
++
+int 2
+%
+int 0
+==
+bz aclause_11
+
+int 0
+byte "player1"
+app_global_get_ex
+swap
+pop
+bz aclause_11
+
+gtxn 0 Amount
+int 0
+==
+bz aclause_11
+
+gtxn 0 Sender
+byte "escrow"
+app_global_get
+==
+bz aclause_11
+
+gtxn 0 CloseRemainderTo
+byte "player1"
+app_global_get
+==
+bz aclause_11
+
+//*******
+
+byte "gstate"
+byte "end"
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_11:
+
+global GroupSize
+int 2
+==
+bz aclause_12
+
+gtxn 0 TypeEnum
+int pay
+==
+bz aclause_12
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_12
+
+txn NumAppArgs
+int 1
+==
+bz aclause_12
+
+txna ApplicationArgs 0
+byte "redeem"
+==
+bz aclause_12
+
+byte "gstate"
+app_global_get
+byte "revealed2"
+==
+bz aclause_12
+
+byte "secret1"
+app_global_get
+len
+byte "secret2"
+app_global_get
+len
++
+int 2
+%
+int 1
+==
+bz aclause_12
+
+int 0
+byte "player2"
+app_global_get_ex
+swap
+pop
+bz aclause_12
+
+gtxn 0 Amount
+int 0
+==
+bz aclause_12
+
+gtxn 0 Sender
+byte "escrow"
+app_global_get
+==
+bz aclause_12
+
+gtxn 0 CloseRemainderTo
+byte "player2"
+app_global_get
+==
+bz aclause_12
+
+//*******
+
+byte "gstate"
+byte "end"
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_12:
+
+global GroupSize
+int 1
+==
+bz aclause_13
+
+txn OnCompletion
+int DeleteApplication
+==
+bz aclause_13
+
+txn NumAppArgs
+int 1
+==
+bz aclause_13
+
+txna ApplicationArgs 0
+byte "delete"
+==
+bz aclause_13
+
+byte "gstate"
+app_global_get
+byte "end"
+==
+bz aclause_13
+
+int 0
+byte "end_commit"
+app_global_get_ex
+swap
+pop
+bz aclause_13
+
+global Round
+byte "end_commit"
+app_global_get
+>=
+bz aclause_13
+
+txn Sender
+global CreatorAddress
+==
+bz aclause_13
+
+//*******
+
+int 1
+return
+
+//--------------------------------
+
+aclause_13:
+
+//*******
+
+err
+
+int 1
+return

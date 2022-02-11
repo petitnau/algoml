@@ -4,8 +4,6 @@ aclause_0:
 
 //*******
 
-fail:
-
 err
 
 int 1

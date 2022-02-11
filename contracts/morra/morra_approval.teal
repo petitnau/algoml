@@ -1,0 +1,1814 @@
+#pragma version 4
+
+aclause_0:
+
+txn ApplicationID
+int 0
+==
+bz aclause_1
+
+//*******
+
+byte "gstate"
+byte "@created"
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_1:
+
+global GroupSize
+int 2
+==
+bz aclause_2
+
+gtxn 0 TypeEnum
+int pay
+==
+bz aclause_2
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_2
+
+txn NumAppArgs
+int 1
+==
+bz aclause_2
+
+txna ApplicationArgs 0
+byte "init_escrow"
+==
+bz aclause_2
+
+txn Sender
+global CreatorAddress
+==
+bz aclause_2
+
+byte "gstate"
+app_global_get
+byte "@created"
+==
+bz aclause_2
+
+gtxn 0 Amount
+int 100000
+==
+bz aclause_2
+
+gtxn 0 CloseRemainderTo
+global ZeroAddress
+==
+bz aclause_2
+
+//*******
+
+byte "gstate"
+byte "@escrowinited"
+app_global_put
+
+byte "escrow"
+gtxn 0 Receiver
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_2:
+
+global GroupSize
+int 1
+==
+bz aclause_3
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_3
+
+txn NumAppArgs
+int 2
+==
+bz aclause_3
+
+txna ApplicationArgs 0
+byte "morra"
+==
+bz aclause_3
+
+byte "gstate"
+app_global_get
+byte "@escrowinited"
+==
+bz aclause_3
+
+txna ApplicationArgs 1
+btoi
+int 0
+>
+bz aclause_3
+
+txn Sender
+global CreatorAddress
+==
+bz aclause_3
+
+//*******
+
+byte "gstate"
+byte "joined0"
+app_global_put
+
+byte "turns_to_play"
+txna ApplicationArgs 1
+btoi
+app_global_put
+
+byte "turn_started_at"
+global Round
+app_global_put
+
+byte "score1"
+int 0
+app_global_put
+
+byte "score2"
+int 0
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_3:
+
+global GroupSize
+int 2
+==
+bz aclause_4
+
+gtxn 0 TypeEnum
+int pay
+==
+bz aclause_4
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_4
+
+txn NumAppArgs
+int 1
+==
+bz aclause_4
+
+txna ApplicationArgs 0
+byte "join"
+==
+bz aclause_4
+
+byte "gstate"
+app_global_get
+byte "joined0"
+==
+bz aclause_4
+
+int 0
+byte "turn_started_at"
+app_global_get_ex
+swap
+pop
+bz aclause_4
+
+global Round
+byte "turn_started_at"
+app_global_get
+>=
+global Round
+byte "turn_started_at"
+app_global_get
+int 100
++
+<=
+&&
+bz aclause_4
+
+gtxn 0 Amount
+int 1
+==
+bz aclause_4
+
+gtxn 0 Sender
+txn Sender
+==
+bz aclause_4
+
+gtxn 0 Receiver
+byte "escrow"
+app_global_get
+==
+bz aclause_4
+
+gtxn 0 CloseRemainderTo
+global ZeroAddress
+==
+bz aclause_4
+
+//*******
+
+byte "gstate"
+byte "joined1"
+app_global_put
+
+byte "player1"
+txn Sender
+app_global_put
+
+byte "turn_started_at"
+global Round
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_4:
+
+global GroupSize
+int 2
+==
+bz aclause_5
+
+gtxn 0 TypeEnum
+int pay
+==
+bz aclause_5
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_5
+
+txn NumAppArgs
+int 1
+==
+bz aclause_5
+
+txna ApplicationArgs 0
+byte "join"
+==
+bz aclause_5
+
+byte "gstate"
+app_global_get
+byte "joined1"
+==
+bz aclause_5
+
+int 0
+byte "turn_started_at"
+app_global_get_ex
+swap
+pop
+bz aclause_5
+
+global Round
+byte "turn_started_at"
+app_global_get
+>=
+global Round
+byte "turn_started_at"
+app_global_get
+int 100
++
+<=
+&&
+bz aclause_5
+
+gtxn 0 Amount
+int 1
+==
+bz aclause_5
+
+gtxn 0 Sender
+txn Sender
+==
+bz aclause_5
+
+gtxn 0 Receiver
+byte "escrow"
+app_global_get
+==
+bz aclause_5
+
+gtxn 0 CloseRemainderTo
+global ZeroAddress
+==
+bz aclause_5
+
+//*******
+
+byte "gstate"
+byte "turn1"
+app_global_put
+
+byte "player2"
+txn Sender
+app_global_put
+
+byte "turn_started_at"
+global Round
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_5:
+
+global GroupSize
+int 1
+==
+bz aclause_6
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_6
+
+txn NumAppArgs
+int 1
+==
+bz aclause_6
+
+txna ApplicationArgs 0
+byte "endgame"
+==
+bz aclause_6
+
+byte "gstate"
+app_global_get
+byte "joined0"
+==
+bz aclause_6
+
+int 0
+byte "turn_started_at"
+app_global_get_ex
+swap
+pop
+bz aclause_6
+
+global Round
+byte "turn_started_at"
+app_global_get
+int 200
++
+>=
+bz aclause_6
+
+//*******
+
+byte "gstate"
+byte "end"
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_6:
+
+global GroupSize
+int 2
+==
+bz aclause_7
+
+gtxn 0 TypeEnum
+int pay
+==
+bz aclause_7
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_7
+
+txn NumAppArgs
+int 1
+==
+bz aclause_7
+
+txna ApplicationArgs 0
+byte "endgame"
+==
+bz aclause_7
+
+byte "gstate"
+app_global_get
+byte "joined1"
+==
+bz aclause_7
+
+int 0
+byte "turn_started_at"
+app_global_get_ex
+swap
+pop
+bz aclause_7
+
+global Round
+byte "turn_started_at"
+app_global_get
+int 200
++
+>=
+bz aclause_7
+
+int 0
+byte "player1"
+app_global_get_ex
+swap
+pop
+bz aclause_7
+
+gtxn 0 Amount
+int 0
+==
+bz aclause_7
+
+gtxn 0 Sender
+byte "escrow"
+app_global_get
+==
+bz aclause_7
+
+gtxn 0 CloseRemainderTo
+byte "player1"
+app_global_get
+==
+bz aclause_7
+
+//*******
+
+byte "gstate"
+byte "end"
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_7:
+
+global GroupSize
+int 1
+==
+bz aclause_8
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_8
+
+txn NumAppArgs
+int 3
+==
+bz aclause_8
+
+txna ApplicationArgs 0
+byte "hand"
+==
+bz aclause_8
+
+byte "gstate"
+app_global_get
+byte "turn1"
+==
+bz aclause_8
+
+int 0
+byte "turn_started_at"
+app_global_get_ex
+swap
+pop
+bz aclause_8
+
+global Round
+byte "turn_started_at"
+app_global_get
+>=
+global Round
+byte "turn_started_at"
+app_global_get
+int 100
++
+<=
+&&
+bz aclause_8
+
+int 0
+byte "turns_to_play"
+app_global_get_ex
+swap
+pop
+bz aclause_8
+
+byte "turns_to_play"
+app_global_get
+int 0
+>
+bz aclause_8
+
+//*******
+
+byte "gstate"
+byte "turn2"
+app_global_put
+
+byte "turns_to_play"
+byte "turns_to_play"
+app_global_get
+int 1
+-
+app_global_put
+
+byte "hand_commit1"
+txna ApplicationArgs 1
+app_global_put
+
+byte "guess_commit1"
+txna ApplicationArgs 2
+app_global_put
+
+byte "turn_started_at"
+global Round
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_8:
+
+global GroupSize
+int 1
+==
+bz aclause_9
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_9
+
+txn NumAppArgs
+int 3
+==
+bz aclause_9
+
+txna ApplicationArgs 0
+byte "hand"
+==
+bz aclause_9
+
+byte "gstate"
+app_global_get
+byte "turn2"
+==
+bz aclause_9
+
+int 0
+byte "turn_started_at"
+app_global_get_ex
+swap
+pop
+bz aclause_9
+
+global Round
+byte "turn_started_at"
+app_global_get
+>=
+global Round
+byte "turn_started_at"
+app_global_get
+int 100
++
+<=
+&&
+bz aclause_9
+
+int 0
+byte "hand_commit1"
+app_global_get_ex
+swap
+pop
+bz aclause_9
+
+byte "hand_commit1"
+app_global_get
+txna ApplicationArgs 1
+!=
+bz aclause_9
+
+int 0
+byte "guess_commit1"
+app_global_get_ex
+swap
+pop
+bz aclause_9
+
+byte "guess_commit1"
+app_global_get
+txna ApplicationArgs 2
+!=
+bz aclause_9
+
+//*******
+
+byte "gstate"
+byte "reveal1"
+app_global_put
+
+byte "hand_commit2"
+txna ApplicationArgs 1
+app_global_put
+
+byte "guess_commit2"
+txna ApplicationArgs 2
+app_global_put
+
+byte "turn_started_at"
+global Round
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_9:
+
+global GroupSize
+int 1
+==
+bz aclause_10
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_10
+
+txn NumAppArgs
+int 3
+==
+bz aclause_10
+
+txna ApplicationArgs 0
+byte "reveal"
+==
+bz aclause_10
+
+byte "gstate"
+app_global_get
+byte "reveal1"
+==
+bz aclause_10
+
+int 0
+byte "turn_started_at"
+app_global_get_ex
+swap
+pop
+bz aclause_10
+
+global Round
+byte "turn_started_at"
+app_global_get
+>=
+global Round
+byte "turn_started_at"
+app_global_get
+int 100
++
+<=
+&&
+bz aclause_10
+
+int 0
+txna ApplicationArgs 1
+len
+int 32
+-
+<=
+txna ApplicationArgs 1
+len
+int 32
+-
+int 5
+<=
+&&
+bz aclause_10
+
+int 0
+byte "hand_commit1"
+app_global_get_ex
+swap
+pop
+bz aclause_10
+
+txna ApplicationArgs 1
+sha256
+byte "hand_commit1"
+app_global_get
+==
+bz aclause_10
+
+int 0
+byte "guess_commit1"
+app_global_get_ex
+swap
+pop
+bz aclause_10
+
+txna ApplicationArgs 2
+sha256
+byte "guess_commit1"
+app_global_get
+==
+bz aclause_10
+
+//*******
+
+byte "gstate"
+byte "reveal2"
+app_global_put
+
+byte "hand1"
+txna ApplicationArgs 1
+len
+int 32
+-
+app_global_put
+
+byte "guess1"
+txna ApplicationArgs 2
+len
+int 32
+-
+app_global_put
+
+byte "turn_started_at"
+global Round
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_10:
+
+global GroupSize
+int 1
+==
+bz aclause_11
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_11
+
+txn NumAppArgs
+int 3
+==
+bz aclause_11
+
+txna ApplicationArgs 0
+byte "reveal"
+==
+bz aclause_11
+
+byte "gstate"
+app_global_get
+byte "reveal2"
+==
+bz aclause_11
+
+int 0
+byte "turn_started_at"
+app_global_get_ex
+swap
+pop
+bz aclause_11
+
+global Round
+byte "turn_started_at"
+app_global_get
+>=
+global Round
+byte "turn_started_at"
+app_global_get
+int 100
++
+<=
+&&
+bz aclause_11
+
+int 0
+txna ApplicationArgs 1
+len
+int 32
+-
+<=
+txna ApplicationArgs 1
+len
+int 32
+-
+int 5
+<=
+&&
+bz aclause_11
+
+int 0
+byte "hand_commit2"
+app_global_get_ex
+swap
+pop
+bz aclause_11
+
+txna ApplicationArgs 1
+sha256
+byte "hand_commit2"
+app_global_get
+==
+bz aclause_11
+
+int 0
+byte "guess_commit2"
+app_global_get_ex
+swap
+pop
+bz aclause_11
+
+txna ApplicationArgs 2
+sha256
+byte "guess_commit2"
+app_global_get
+==
+bz aclause_11
+
+//*******
+
+byte "gstate"
+byte "winturn"
+app_global_put
+
+byte "hand2"
+txna ApplicationArgs 1
+len
+int 32
+-
+app_global_put
+
+byte "guess2"
+txna ApplicationArgs 2
+len
+int 32
+-
+app_global_put
+
+byte "turn_started_at"
+global Round
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_11:
+
+global GroupSize
+int 1
+==
+bz aclause_12
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_12
+
+txn NumAppArgs
+int 1
+==
+bz aclause_12
+
+txna ApplicationArgs 0
+byte "newturn"
+==
+bz aclause_12
+
+byte "gstate"
+app_global_get
+byte "turn1"
+==
+bz aclause_12
+
+int 0
+byte "turn_started_at"
+app_global_get_ex
+swap
+pop
+bz aclause_12
+
+global Round
+byte "turn_started_at"
+app_global_get
+int 100
++
+>=
+bz aclause_12
+
+//*******
+
+byte "gstate"
+byte "turn1"
+app_global_put
+
+byte "score2"
+byte "score2"
+app_global_get
+int 1
++
+app_global_put
+
+byte "turn_started_at"
+global Round
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_12:
+
+global GroupSize
+int 1
+==
+bz aclause_13
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_13
+
+txn NumAppArgs
+int 1
+==
+bz aclause_13
+
+txna ApplicationArgs 0
+byte "newturn"
+==
+bz aclause_13
+
+byte "gstate"
+app_global_get
+byte "turn2"
+==
+bz aclause_13
+
+int 0
+byte "turn_started_at"
+app_global_get_ex
+swap
+pop
+bz aclause_13
+
+global Round
+byte "turn_started_at"
+app_global_get
+int 100
++
+>=
+bz aclause_13
+
+//*******
+
+byte "gstate"
+byte "turn1"
+app_global_put
+
+byte "score1"
+byte "score1"
+app_global_get
+int 1
++
+app_global_put
+
+byte "turn_started_at"
+global Round
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_13:
+
+global GroupSize
+int 1
+==
+bz aclause_14
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_14
+
+txn NumAppArgs
+int 1
+==
+bz aclause_14
+
+txna ApplicationArgs 0
+byte "newturn"
+==
+bz aclause_14
+
+byte "gstate"
+app_global_get
+byte "reveal1"
+==
+bz aclause_14
+
+int 0
+byte "turn_started_at"
+app_global_get_ex
+swap
+pop
+bz aclause_14
+
+global Round
+byte "turn_started_at"
+app_global_get
+int 100
++
+>=
+bz aclause_14
+
+//*******
+
+byte "gstate"
+byte "turn1"
+app_global_put
+
+byte "score1"
+byte "score1"
+app_global_get
+int 1
++
+app_global_put
+
+byte "turn_started_at"
+global Round
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_14:
+
+global GroupSize
+int 1
+==
+bz aclause_15
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_15
+
+txn NumAppArgs
+int 1
+==
+bz aclause_15
+
+txna ApplicationArgs 0
+byte "newturn"
+==
+bz aclause_15
+
+byte "gstate"
+app_global_get
+byte "reveal2"
+==
+bz aclause_15
+
+int 0
+byte "turn_started_at"
+app_global_get_ex
+swap
+pop
+bz aclause_15
+
+global Round
+byte "turn_started_at"
+app_global_get
+int 100
++
+>=
+bz aclause_15
+
+//*******
+
+byte "gstate"
+byte "turn1"
+app_global_put
+
+byte "score1"
+byte "score1"
+app_global_get
+int 1
++
+app_global_put
+
+byte "turn_started_at"
+global Round
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_15:
+
+global GroupSize
+int 1
+==
+bz aclause_16
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_16
+
+txn NumAppArgs
+int 1
+==
+bz aclause_16
+
+txna ApplicationArgs 0
+byte "newturn"
+==
+bz aclause_16
+
+byte "gstate"
+app_global_get
+byte "winturn"
+==
+bz aclause_16
+
+int 0
+byte "turn_started_at"
+app_global_get_ex
+swap
+pop
+bz aclause_16
+
+global Round
+byte "turn_started_at"
+app_global_get
+>=
+global Round
+byte "turn_started_at"
+app_global_get
+int 100
++
+<=
+&&
+bz aclause_16
+
+int 0
+byte "guess1"
+app_global_get_ex
+swap
+pop
+bz aclause_16
+
+int 0
+byte "hand1"
+app_global_get_ex
+swap
+pop
+bz aclause_16
+
+int 0
+byte "hand2"
+app_global_get_ex
+swap
+pop
+bz aclause_16
+
+byte "guess1"
+app_global_get
+byte "hand1"
+app_global_get
+byte "hand2"
+app_global_get
++
+==
+bz aclause_16
+
+//*******
+
+byte "gstate"
+byte "turn1"
+app_global_put
+
+byte "score1"
+byte "score1"
+app_global_get
+int 1
++
+app_global_put
+
+byte "turn_started_at"
+global Round
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_16:
+
+global GroupSize
+int 1
+==
+bz aclause_17
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_17
+
+txn NumAppArgs
+int 1
+==
+bz aclause_17
+
+txna ApplicationArgs 0
+byte "newturn"
+==
+bz aclause_17
+
+byte "gstate"
+app_global_get
+byte "winturn"
+==
+bz aclause_17
+
+int 0
+byte "turn_started_at"
+app_global_get_ex
+swap
+pop
+bz aclause_17
+
+global Round
+byte "turn_started_at"
+app_global_get
+>=
+global Round
+byte "turn_started_at"
+app_global_get
+int 100
++
+<=
+&&
+bz aclause_17
+
+int 0
+byte "guess2"
+app_global_get_ex
+swap
+pop
+bz aclause_17
+
+int 0
+byte "hand1"
+app_global_get_ex
+swap
+pop
+bz aclause_17
+
+int 0
+byte "hand2"
+app_global_get_ex
+swap
+pop
+bz aclause_17
+
+byte "guess2"
+app_global_get
+byte "hand1"
+app_global_get
+byte "hand2"
+app_global_get
++
+==
+bz aclause_17
+
+//*******
+
+byte "gstate"
+byte "turn1"
+app_global_put
+
+byte "score2"
+byte "score2"
+app_global_get
+int 1
++
+app_global_put
+
+byte "turn_started_at"
+global Round
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_17:
+
+global GroupSize
+int 1
+==
+bz aclause_18
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_18
+
+txn NumAppArgs
+int 1
+==
+bz aclause_18
+
+txna ApplicationArgs 0
+byte "newturn"
+==
+bz aclause_18
+
+byte "gstate"
+app_global_get
+byte "winturn"
+==
+bz aclause_18
+
+int 0
+byte "turn_started_at"
+app_global_get_ex
+swap
+pop
+bz aclause_18
+
+global Round
+byte "turn_started_at"
+app_global_get
+int 100
++
+==
+bz aclause_18
+
+//*******
+
+byte "gstate"
+byte "turn1"
+app_global_put
+
+byte "turn_started_at"
+global Round
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_18:
+
+global GroupSize
+int 2
+==
+bz aclause_19
+
+gtxn 0 TypeEnum
+int pay
+==
+bz aclause_19
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_19
+
+txn NumAppArgs
+int 1
+==
+bz aclause_19
+
+txna ApplicationArgs 0
+byte "endgame"
+==
+bz aclause_19
+
+byte "gstate"
+app_global_get
+byte "turn1"
+==
+bz aclause_19
+
+int 0
+byte "turns_to_play"
+app_global_get_ex
+swap
+pop
+bz aclause_19
+
+byte "turns_to_play"
+app_global_get
+int 0
+==
+bz aclause_19
+
+int 0
+byte "player1"
+app_global_get_ex
+swap
+pop
+bz aclause_19
+
+gtxn 0 Amount
+int 0
+==
+bz aclause_19
+
+gtxn 0 Sender
+byte "escrow"
+app_global_get
+==
+bz aclause_19
+
+gtxn 0 CloseRemainderTo
+byte "player1"
+app_global_get
+==
+bz aclause_19
+
+int 0
+byte "score1"
+app_global_get_ex
+swap
+pop
+bz aclause_19
+
+int 0
+byte "score2"
+app_global_get_ex
+swap
+pop
+bz aclause_19
+
+byte "score1"
+app_global_get
+byte "score2"
+app_global_get
+>
+bz aclause_19
+
+//*******
+
+byte "gstate"
+byte "end"
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_19:
+
+global GroupSize
+int 2
+==
+bz aclause_20
+
+gtxn 0 TypeEnum
+int pay
+==
+bz aclause_20
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_20
+
+txn NumAppArgs
+int 1
+==
+bz aclause_20
+
+txna ApplicationArgs 0
+byte "endgame"
+==
+bz aclause_20
+
+byte "gstate"
+app_global_get
+byte "turn1"
+==
+bz aclause_20
+
+int 0
+byte "turns_to_play"
+app_global_get_ex
+swap
+pop
+bz aclause_20
+
+byte "turns_to_play"
+app_global_get
+int 0
+==
+bz aclause_20
+
+int 0
+byte "player2"
+app_global_get_ex
+swap
+pop
+bz aclause_20
+
+gtxn 0 Amount
+int 0
+==
+bz aclause_20
+
+gtxn 0 Sender
+byte "escrow"
+app_global_get
+==
+bz aclause_20
+
+gtxn 0 CloseRemainderTo
+byte "player2"
+app_global_get
+==
+bz aclause_20
+
+int 0
+byte "score2"
+app_global_get_ex
+swap
+pop
+bz aclause_20
+
+int 0
+byte "score1"
+app_global_get_ex
+swap
+pop
+bz aclause_20
+
+byte "score2"
+app_global_get
+byte "score1"
+app_global_get
+>
+bz aclause_20
+
+//*******
+
+byte "gstate"
+byte "end"
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_20:
+
+global GroupSize
+int 3
+==
+bz aclause_21
+
+gtxn 0 TypeEnum
+int pay
+==
+bz aclause_21
+
+gtxn 1 TypeEnum
+int pay
+==
+bz aclause_21
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_21
+
+txn NumAppArgs
+int 1
+==
+bz aclause_21
+
+txna ApplicationArgs 0
+byte "endgame"
+==
+bz aclause_21
+
+byte "gstate"
+app_global_get
+byte "turn1"
+==
+bz aclause_21
+
+int 0
+byte "turns_to_play"
+app_global_get_ex
+swap
+pop
+bz aclause_21
+
+byte "turns_to_play"
+app_global_get
+int 0
+==
+bz aclause_21
+
+int 0
+byte "score1"
+app_global_get_ex
+swap
+pop
+bz aclause_21
+
+int 0
+byte "score2"
+app_global_get_ex
+swap
+pop
+bz aclause_21
+
+byte "score1"
+app_global_get
+byte "score2"
+app_global_get
+==
+bz aclause_21
+
+int 0
+byte "player1"
+app_global_get_ex
+swap
+pop
+bz aclause_21
+
+gtxn 0 Amount
+int 1
+==
+bz aclause_21
+
+gtxn 0 Sender
+byte "escrow"
+app_global_get
+==
+bz aclause_21
+
+gtxn 0 Receiver
+byte "player1"
+app_global_get
+==
+bz aclause_21
+
+gtxn 0 CloseRemainderTo
+global ZeroAddress
+==
+bz aclause_21
+
+int 0
+byte "player2"
+app_global_get_ex
+swap
+pop
+bz aclause_21
+
+gtxn 1 Amount
+int 1
+==
+bz aclause_21
+
+gtxn 1 Sender
+byte "escrow"
+app_global_get
+==
+bz aclause_21
+
+gtxn 1 Receiver
+byte "player2"
+app_global_get
+==
+bz aclause_21
+
+gtxn 1 CloseRemainderTo
+global ZeroAddress
+==
+bz aclause_21
+
+//*******
+
+byte "gstate"
+byte "end"
+app_global_put
+
+int 1
+return
+
+//--------------------------------
+
+aclause_21:
+
+global GroupSize
+int 1
+==
+bz aclause_22
+
+txn OnCompletion
+int DeleteApplication
+==
+bz aclause_22
+
+txn NumAppArgs
+int 1
+==
+bz aclause_22
+
+txna ApplicationArgs 0
+byte "delete"
+==
+bz aclause_22
+
+byte "gstate"
+app_global_get
+byte "end"
+==
+bz aclause_22
+
+txn Sender
+global CreatorAddress
+==
+bz aclause_22
+
+//*******
+
+int 1
+return
+
+//--------------------------------
+
+aclause_22:
+
+//*******
+
+err
+
+int 1
+return

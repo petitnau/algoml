@@ -61,11 +61,6 @@ int 100000
 ==
 bz aclause_2
 
-gtxn 0 Sender
-gtxn 0 Receiver
-!=
-bz aclause_2
-
 gtxn 0 CloseRemainderTo
 global ZeroAddress
 ==
@@ -144,20 +139,13 @@ byte "@escrowinited"
 ==
 bz aclause_3
 
-int 0
-byte "escrow"
-app_global_get_ex
-swap
-pop
-bz aclause_3
-
 gtxn 0 XferAsset
 txna ApplicationArgs 1
 btoi
 ==
 bz aclause_3
 
-gtxn 0 AssetSender
+gtxn 0 Sender
 txn Sender
 ==
 bz aclause_3
@@ -173,20 +161,13 @@ global ZeroAddress
 ==
 bz aclause_3
 
-int 0
-byte "escrow"
-app_global_get_ex
-swap
-pop
-bz aclause_3
-
 gtxn 1 XferAsset
 txna ApplicationArgs 2
 btoi
 ==
 bz aclause_3
 
-gtxn 1 AssetSender
+gtxn 1 Sender
 txn Sender
 ==
 bz aclause_3
@@ -200,13 +181,6 @@ bz aclause_3
 gtxn 1 AssetCloseTo
 global ZeroAddress
 ==
-bz aclause_3
-
-int 0
-byte "escrow"
-app_global_get_ex
-swap
-pop
 bz aclause_3
 
 gtxn 2 Amount
@@ -227,7 +201,7 @@ app_global_get
 bz aclause_3
 
 gtxn 3 ConfigAssetTotal
-int 1000000
+int 4611686018427387903
 ==
 bz aclause_3
 
@@ -272,7 +246,7 @@ gaid 3
 ==
 bz aclause_3
 
-gtxn 4 AssetSender
+gtxn 4 Sender
 txn Sender
 ==
 bz aclause_3
@@ -287,19 +261,12 @@ global ZeroAddress
 ==
 bz aclause_3
 
-int 0
-byte "escrow"
-app_global_get_ex
-swap
-pop
-bz aclause_3
-
 gtxn 5 XferAsset
 gaid 3
 ==
 bz aclause_3
 
-gtxn 5 AssetSender
+gtxn 5 Sender
 byte "escrow"
 app_global_get
 ==
@@ -315,6 +282,13 @@ global ZeroAddress
 ==
 bz aclause_3
 
+txna ApplicationArgs 1
+btoi
+txna ApplicationArgs 2
+btoi
+!=
+bz aclause_3
+
 txn Sender
 global CreatorAddress
 ==
@@ -323,7 +297,7 @@ bz aclause_3
 //*******
 
 byte "gstate"
-byte "@inited"
+byte "#inited"
 app_global_put
 
 byte "t0"
@@ -379,22 +353,11 @@ byte "optin"
 ==
 bz aclause_4
 
-int 0
-byte "gstate"
-app_global_get_ex
-swap
-pop
-bz aclause_4
-
 byte "gstate"
 app_global_get
-byte "@created"
+substring 0 1
+byte "@"
 !=
-byte "gstate"
-app_global_get
-byte "@escrowinited"
-!=
-&&
 bz aclause_4
 
 //*******
@@ -442,7 +405,7 @@ int NoOp
 bz aclause_5
 
 txn NumAppArgs
-int 2
+int 3
 ==
 bz aclause_5
 
@@ -451,33 +414,15 @@ byte "dep"
 ==
 bz aclause_5
 
-int 0
-byte "gstate"
-app_global_get_ex
-swap
-pop
-bz aclause_5
-
 byte "gstate"
 app_global_get
-byte "@created"
+substring 0 1
+byte "@"
 !=
-byte "gstate"
-app_global_get
-byte "@escrowinited"
-!=
-&&
 bz aclause_5
 
 int 0
 byte "t0"
-app_global_get_ex
-swap
-pop
-bz aclause_5
-
-int 0
-byte "escrow"
 app_global_get_ex
 swap
 pop
@@ -489,7 +434,7 @@ app_global_get
 ==
 bz aclause_5
 
-gtxn 0 AssetSender
+gtxn 0 Sender
 byte "escrow"
 app_global_get
 !=
@@ -513,20 +458,13 @@ swap
 pop
 bz aclause_5
 
-int 0
-byte "escrow"
-app_global_get_ex
-swap
-pop
-bz aclause_5
-
 gtxn 1 XferAsset
 byte "t1"
 app_global_get
 ==
 bz aclause_5
 
-gtxn 1 AssetSender
+gtxn 1 Sender
 byte "escrow"
 app_global_get
 !=
@@ -544,34 +482,29 @@ global ZeroAddress
 bz aclause_5
 
 int 0
-byte "r0"
+byte "r1"
 app_global_get_ex
 swap
 pop
 bz aclause_5
 
 int 0
-byte "minted_supply"
+byte "r0"
 app_global_get_ex
 swap
 pop
 bz aclause_5
 
+txna ApplicationArgs 2
+btoi
 gtxn 0 Amount
+byte "r1"
+app_global_get
+*
 byte "r0"
 app_global_get
 /
-byte "minted_supply"
-app_global_get
-*
-txna ApplicationArgs 1
-btoi
->=
-txna ApplicationArgs 1
-btoi
-int 0
->
-&&
+<=
 bz aclause_5
 
 int 0
@@ -588,24 +521,37 @@ swap
 pop
 bz aclause_5
 
-byte "r1"
-app_global_get
 gtxn 0 Amount
+byte "r1"
+app_global_get
 *
 byte "r0"
 app_global_get
+/
 gtxn 1 Amount
-*
-==
+<=
 bz aclause_5
 
 //*******
 
+txn Sender
+byte "t0_reserved"
+gtxn 0 Amount
+gtxn 0 Amount
+byte "r1"
+app_global_get
+*
+byte "r0"
+app_global_get
+/
+-
+app_local_put
+
 byte "minted_supply"
 byte "minted_supply"
 app_global_get
-gtxn 0 Amount
-byte "r0"
+gtxn 1 Amount
+byte "r1"
 app_global_get
 /
 byte "minted_supply"
@@ -619,8 +565,8 @@ byte "minted_reserved"
 txn Sender
 byte "minted_reserved"
 app_local_get
-gtxn 0 Amount
-byte "r0"
+gtxn 1 Amount
+byte "r1"
 app_global_get
 /
 byte "minted_supply"
@@ -637,11 +583,16 @@ return
 aclause_5:
 
 global GroupSize
-int 2
+int 3
 ==
 bz aclause_6
 
 gtxn 0 TypeEnum
+int axfer
+==
+bz aclause_6
+
+gtxn 1 TypeEnum
 int axfer
 ==
 bz aclause_6
@@ -652,42 +603,24 @@ int NoOp
 bz aclause_6
 
 txn NumAppArgs
-int 2
+int 3
 ==
 bz aclause_6
 
 txna ApplicationArgs 0
-byte "swap0"
+byte "dep"
 ==
 bz aclause_6
 
-int 0
-byte "gstate"
-app_global_get_ex
-swap
-pop
-bz aclause_6
-
 byte "gstate"
 app_global_get
-byte "@created"
+substring 0 1
+byte "@"
 !=
-byte "gstate"
-app_global_get
-byte "@escrowinited"
-!=
-&&
 bz aclause_6
 
 int 0
 byte "t0"
-app_global_get_ex
-swap
-pop
-bz aclause_6
-
-int 0
-byte "escrow"
 app_global_get_ex
 swap
 pop
@@ -699,7 +632,7 @@ app_global_get
 ==
 bz aclause_6
 
-gtxn 0 AssetSender
+gtxn 0 Sender
 byte "escrow"
 app_global_get
 !=
@@ -717,10 +650,33 @@ global ZeroAddress
 bz aclause_6
 
 int 0
-byte "r1"
+byte "t1"
 app_global_get_ex
 swap
 pop
+bz aclause_6
+
+gtxn 1 XferAsset
+byte "t1"
+app_global_get
+==
+bz aclause_6
+
+gtxn 1 Sender
+byte "escrow"
+app_global_get
+!=
+bz aclause_6
+
+gtxn 1 AssetReceiver
+byte "escrow"
+app_global_get
+==
+bz aclause_6
+
+gtxn 1 AssetCloseTo
+global ZeroAddress
+==
 bz aclause_6
 
 int 0
@@ -730,65 +686,92 @@ swap
 pop
 bz aclause_6
 
+int 0
 byte "r1"
+app_global_get_ex
+swap
+pop
+bz aclause_6
+
+txna ApplicationArgs 1
+btoi
+gtxn 1 Amount
+byte "r0"
 app_global_get
-gtxn 0 Amount
 *
+byte "r1"
+app_global_get
+/
+<=
+bz aclause_6
+
+int 0
+byte "r0"
+app_global_get_ex
+swap
+pop
+bz aclause_6
+
+int 0
+byte "r1"
+app_global_get_ex
+swap
+pop
+bz aclause_6
+
+gtxn 1 Amount
 byte "r0"
 app_global_get
-gtxn 0 Amount
-+
+*
+byte "r1"
+app_global_get
 /
-txna ApplicationArgs 1
-btoi
->=
-txna ApplicationArgs 1
-btoi
-int 0
->
-&&
+gtxn 0 Amount
+<=
 bz aclause_6
 
 //*******
 
 txn Sender
 byte "t1_reserved"
-txn Sender
-byte "t1_reserved"
-app_local_get
-byte "r1"
-app_global_get
-gtxn 0 Amount
-*
+gtxn 1 Amount
+gtxn 1 Amount
 byte "r0"
 app_global_get
-gtxn 0 Amount
-+
-/
-+
-app_local_put
-
-byte "r1"
-byte "r1"
-app_global_get
-byte "r1"
-app_global_get
-gtxn 0 Amount
 *
-byte "r0"
+byte "r1"
 app_global_get
-gtxn 0 Amount
-+
 /
 -
-app_global_put
+app_local_put
 
-byte "r0"
-byte "r0"
+byte "minted_supply"
+byte "minted_supply"
 app_global_get
 gtxn 0 Amount
+byte "r0"
+app_global_get
+/
+byte "minted_supply"
+app_global_get
+*
 +
 app_global_put
+
+txn Sender
+byte "minted_reserved"
+txn Sender
+byte "minted_reserved"
+app_local_get
+gtxn 0 Amount
+byte "r0"
+app_global_get
+/
+byte "minted_supply"
+app_global_get
+*
++
+app_local_put
 
 int 1
 return
@@ -818,49 +801,31 @@ int 2
 bz aclause_7
 
 txna ApplicationArgs 0
-byte "swap1"
+byte "swap"
 ==
 bz aclause_7
 
-int 0
-byte "gstate"
-app_global_get_ex
-swap
-pop
-bz aclause_7
-
 byte "gstate"
 app_global_get
-byte "@created"
+substring 0 1
+byte "@"
 !=
-byte "gstate"
-app_global_get
-byte "@escrowinited"
-!=
-&&
 bz aclause_7
 
 int 0
-byte "t1"
-app_global_get_ex
-swap
-pop
-bz aclause_7
-
-int 0
-byte "escrow"
+byte "t0"
 app_global_get_ex
 swap
 pop
 bz aclause_7
 
 gtxn 0 XferAsset
-byte "t1"
+byte "t0"
 app_global_get
 ==
 bz aclause_7
 
-gtxn 0 AssetSender
+gtxn 0 Sender
 byte "escrow"
 app_global_get
 !=
@@ -878,24 +843,24 @@ global ZeroAddress
 bz aclause_7
 
 int 0
-byte "r0"
+byte "r1"
 app_global_get_ex
 swap
 pop
 bz aclause_7
 
 int 0
-byte "r1"
+byte "r0"
 app_global_get_ex
 swap
 pop
 bz aclause_7
 
-byte "r0"
+byte "r1"
 app_global_get
 gtxn 0 Amount
 *
-byte "r1"
+byte "r0"
 app_global_get
 gtxn 0 Amount
 +
@@ -913,15 +878,15 @@ bz aclause_7
 //*******
 
 txn Sender
-byte "t0_reserved"
+byte "t1_reserved"
 txn Sender
-byte "t0_reserved"
+byte "t1_reserved"
 app_local_get
-byte "r0"
+byte "r1"
 app_global_get
 gtxn 0 Amount
 *
-byte "r1"
+byte "r0"
 app_global_get
 gtxn 0 Amount
 +
@@ -929,14 +894,14 @@ gtxn 0 Amount
 +
 app_local_put
 
-byte "r0"
-byte "r0"
+byte "r1"
+byte "r1"
 app_global_get
-byte "r0"
+byte "r1"
 app_global_get
 gtxn 0 Amount
 *
-byte "r1"
+byte "r0"
 app_global_get
 gtxn 0 Amount
 +
@@ -944,8 +909,8 @@ gtxn 0 Amount
 -
 app_global_put
 
-byte "r1"
-byte "r1"
+byte "r0"
+byte "r0"
 app_global_get
 gtxn 0 Amount
 +
@@ -974,54 +939,36 @@ int NoOp
 bz aclause_8
 
 txn NumAppArgs
-int 3
+int 2
 ==
 bz aclause_8
 
 txna ApplicationArgs 0
-byte "redeem"
+byte "swap"
 ==
 bz aclause_8
 
-int 0
-byte "gstate"
-app_global_get_ex
-swap
-pop
-bz aclause_8
-
 byte "gstate"
 app_global_get
-byte "@created"
+substring 0 1
+byte "@"
 !=
-byte "gstate"
-app_global_get
-byte "@escrowinited"
-!=
-&&
 bz aclause_8
 
 int 0
-byte "minted_t"
-app_global_get_ex
-swap
-pop
-bz aclause_8
-
-int 0
-byte "escrow"
+byte "t1"
 app_global_get_ex
 swap
 pop
 bz aclause_8
 
 gtxn 0 XferAsset
-byte "minted_t"
+byte "t1"
 app_global_get
 ==
 bz aclause_8
 
-gtxn 0 AssetSender
+gtxn 0 Sender
 byte "escrow"
 app_global_get
 !=
@@ -1046,54 +993,25 @@ pop
 bz aclause_8
 
 int 0
-byte "minted_supply"
+byte "r1"
 app_global_get_ex
 swap
 pop
 bz aclause_8
 
-gtxn 0 Amount
 byte "r0"
 app_global_get
-*
-byte "minted_supply"
-app_global_get
-/
-txna ApplicationArgs 1
-btoi
->=
-txna ApplicationArgs 1
-btoi
-int 0
->
-&&
-bz aclause_8
-
-int 0
-byte "r1"
-app_global_get_ex
-swap
-pop
-bz aclause_8
-
-int 0
-byte "minted_supply"
-app_global_get_ex
-swap
-pop
-bz aclause_8
-
 gtxn 0 Amount
+*
 byte "r1"
 app_global_get
-*
-byte "minted_supply"
-app_global_get
+gtxn 0 Amount
++
 /
-txna ApplicationArgs 2
+txna ApplicationArgs 1
 btoi
 >=
-txna ApplicationArgs 2
+txna ApplicationArgs 1
 btoi
 int 0
 >
@@ -1102,15 +1020,34 @@ bz aclause_8
 
 //*******
 
-byte "r0"
+txn Sender
+byte "t0_reserved"
+txn Sender
+byte "t0_reserved"
+app_local_get
 byte "r0"
 app_global_get
 gtxn 0 Amount
+*
+byte "r1"
+app_global_get
+gtxn 0 Amount
++
+/
++
+app_local_put
+
+byte "r0"
 byte "r0"
 app_global_get
-*
-byte "minted_supply"
+byte "r0"
 app_global_get
+gtxn 0 Amount
+*
+byte "r1"
+app_global_get
+gtxn 0 Amount
++
 /
 -
 app_global_put
@@ -1119,50 +1056,7 @@ byte "r1"
 byte "r1"
 app_global_get
 gtxn 0 Amount
-byte "r1"
-app_global_get
-*
-byte "minted_supply"
-app_global_get
-/
--
-app_global_put
-
-txn Sender
-byte "t0_reserved"
-txn Sender
-byte "t0_reserved"
-app_local_get
-gtxn 0 Amount
-byte "r0"
-app_global_get
-*
-byte "minted_supply"
-app_global_get
-/
 +
-app_local_put
-
-txn Sender
-byte "t1_reserved"
-txn Sender
-byte "t1_reserved"
-app_local_get
-gtxn 0 Amount
-byte "r1"
-app_global_get
-*
-byte "minted_supply"
-app_global_get
-/
-+
-app_local_put
-
-byte "minted_supply"
-byte "minted_supply"
-app_global_get
-gtxn 0 Amount
--
 app_global_put
 
 int 1
@@ -1188,39 +1082,20 @@ int NoOp
 bz aclause_9
 
 txn NumAppArgs
-int 1
+int 3
 ==
 bz aclause_9
 
 txna ApplicationArgs 0
-byte "get_minted_t"
+byte "redeem"
 ==
 bz aclause_9
 
-int 0
-byte "gstate"
-app_global_get_ex
-swap
-pop
-bz aclause_9
-
 byte "gstate"
 app_global_get
-byte "@created"
+substring 0 1
+byte "@"
 !=
-byte "gstate"
-app_global_get
-byte "@escrowinited"
-!=
-&&
-bz aclause_9
-
-txn Sender
-int 0
-byte "minted_reserved"
-app_local_get_ex
-swap
-pop
 bz aclause_9
 
 int 0
@@ -1228,20 +1103,6 @@ byte "minted_t"
 app_global_get_ex
 swap
 pop
-bz aclause_9
-
-int 0
-byte "escrow"
-app_global_get_ex
-swap
-pop
-bz aclause_9
-
-gtxn 0 AssetAmount
-txn Sender
-byte "minted_reserved"
-app_local_get
-==
 bz aclause_9
 
 gtxn 0 XferAsset
@@ -1250,7 +1111,13 @@ app_global_get
 ==
 bz aclause_9
 
-gtxn 0 AssetSender
+gtxn 0 Sender
+byte "escrow"
+app_global_get
+!=
+bz aclause_9
+
+gtxn 0 AssetReceiver
 byte "escrow"
 app_global_get
 ==
@@ -1261,12 +1128,132 @@ global ZeroAddress
 ==
 bz aclause_9
 
+int 0
+byte "r0"
+app_global_get_ex
+swap
+pop
+bz aclause_9
+
+int 0
+byte "minted_supply"
+app_global_get_ex
+swap
+pop
+bz aclause_9
+
+gtxn 0 Amount
+byte "r0"
+app_global_get
+*
+byte "minted_supply"
+app_global_get
+/
+txna ApplicationArgs 1
+btoi
+>=
+txna ApplicationArgs 1
+btoi
+int 0
+>
+&&
+bz aclause_9
+
+int 0
+byte "r1"
+app_global_get_ex
+swap
+pop
+bz aclause_9
+
+int 0
+byte "minted_supply"
+app_global_get_ex
+swap
+pop
+bz aclause_9
+
+gtxn 0 Amount
+byte "r1"
+app_global_get
+*
+byte "minted_supply"
+app_global_get
+/
+txna ApplicationArgs 2
+btoi
+>=
+txna ApplicationArgs 2
+btoi
+int 0
+>
+&&
+bz aclause_9
+
 //*******
 
+byte "r0"
+byte "r0"
+app_global_get
+gtxn 0 Amount
+byte "r0"
+app_global_get
+*
+byte "minted_supply"
+app_global_get
+/
+-
+app_global_put
+
+byte "r1"
+byte "r1"
+app_global_get
+gtxn 0 Amount
+byte "r1"
+app_global_get
+*
+byte "minted_supply"
+app_global_get
+/
+-
+app_global_put
+
 txn Sender
-byte "minted_reserved"
-int 0
+byte "t0_reserved"
+txn Sender
+byte "t0_reserved"
+app_local_get
+gtxn 0 Amount
+byte "r0"
+app_global_get
+*
+byte "minted_supply"
+app_global_get
+/
++
 app_local_put
+
+txn Sender
+byte "t1_reserved"
+txn Sender
+byte "t1_reserved"
+app_local_get
+gtxn 0 Amount
+byte "r1"
+app_global_get
+*
+byte "minted_supply"
+app_global_get
+/
++
+app_local_put
+
+byte "minted_supply"
+byte "minted_supply"
+app_global_get
+gtxn 0 Amount
+-
+app_global_put
 
 int 1
 return
@@ -1296,45 +1283,27 @@ int 1
 bz aclause_10
 
 txna ApplicationArgs 0
-byte "get_t0"
+byte "get_excess"
 ==
 bz aclause_10
 
-int 0
-byte "gstate"
-app_global_get_ex
-swap
-pop
-bz aclause_10
-
 byte "gstate"
 app_global_get
-byte "@created"
+substring 0 1
+byte "@"
 !=
-byte "gstate"
-app_global_get
-byte "@escrowinited"
-!=
-&&
 bz aclause_10
 
 txn Sender
 int 0
-byte "t0_reserved"
+byte "minted_reserved"
 app_local_get_ex
 swap
 pop
 bz aclause_10
 
 int 0
-byte "t0"
-app_global_get_ex
-swap
-pop
-bz aclause_10
-
-int 0
-byte "escrow"
+byte "minted_t"
 app_global_get_ex
 swap
 pop
@@ -1342,18 +1311,18 @@ bz aclause_10
 
 gtxn 0 AssetAmount
 txn Sender
-byte "t0_reserved"
+byte "minted_reserved"
 app_local_get
 ==
 bz aclause_10
 
 gtxn 0 XferAsset
-byte "t0"
+byte "minted_t"
 app_global_get
 ==
 bz aclause_10
 
-gtxn 0 AssetSender
+gtxn 0 Sender
 byte "escrow"
 app_global_get
 ==
@@ -1367,7 +1336,7 @@ bz aclause_10
 //*******
 
 txn Sender
-byte "t0_reserved"
+byte "minted_reserved"
 int 0
 app_local_put
 
@@ -1399,45 +1368,27 @@ int 1
 bz aclause_11
 
 txna ApplicationArgs 0
-byte "get_t1"
+byte "get_excess"
 ==
 bz aclause_11
 
-int 0
-byte "gstate"
-app_global_get_ex
-swap
-pop
-bz aclause_11
-
 byte "gstate"
 app_global_get
-byte "@created"
+substring 0 1
+byte "@"
 !=
-byte "gstate"
-app_global_get
-byte "@escrowinited"
-!=
-&&
 bz aclause_11
 
 txn Sender
 int 0
-byte "t1_reserved"
+byte "t0_reserved"
 app_local_get_ex
 swap
 pop
 bz aclause_11
 
 int 0
-byte "t1"
-app_global_get_ex
-swap
-pop
-bz aclause_11
-
-int 0
-byte "escrow"
+byte "t0"
 app_global_get_ex
 swap
 pop
@@ -1445,18 +1396,18 @@ bz aclause_11
 
 gtxn 0 AssetAmount
 txn Sender
-byte "t1_reserved"
+byte "t0_reserved"
 app_local_get
 ==
 bz aclause_11
 
 gtxn 0 XferAsset
-byte "t1"
+byte "t0"
 app_global_get
 ==
 bz aclause_11
 
-gtxn 0 AssetSender
+gtxn 0 Sender
 byte "escrow"
 app_global_get
 ==
@@ -1470,7 +1421,7 @@ bz aclause_11
 //*******
 
 txn Sender
-byte "t1_reserved"
+byte "t0_reserved"
 int 0
 app_local_put
 
@@ -1482,16 +1433,11 @@ return
 aclause_11:
 
 global GroupSize
-int 3
+int 2
 ==
 bz aclause_12
 
 gtxn 0 TypeEnum
-int pay
-==
-bz aclause_12
-
-gtxn 1 TypeEnum
 int axfer
 ==
 bz aclause_12
@@ -1507,82 +1453,62 @@ int 1
 bz aclause_12
 
 txna ApplicationArgs 0
-byte "optin_token"
+byte "get_excess"
 ==
-bz aclause_12
-
-int 0
-byte "gstate"
-app_global_get_ex
-swap
-pop
 bz aclause_12
 
 byte "gstate"
 app_global_get
-byte "@created"
+substring 0 1
+byte "@"
 !=
 bz aclause_12
 
+txn Sender
 int 0
-byte "escrow"
+byte "t1_reserved"
+app_local_get_ex
+swap
+pop
+bz aclause_12
+
+int 0
+byte "t1"
 app_global_get_ex
 swap
 pop
 bz aclause_12
 
-gtxn 0 Amount
-int 100000
+gtxn 0 AssetAmount
+txn Sender
+byte "t1_reserved"
+app_local_get
+==
+bz aclause_12
+
+gtxn 0 XferAsset
+byte "t1"
+app_global_get
 ==
 bz aclause_12
 
 gtxn 0 Sender
 byte "escrow"
 app_global_get
-!=
-bz aclause_12
-
-gtxn 0 Receiver
-byte "escrow"
-app_global_get
 ==
 bz aclause_12
 
-gtxn 0 CloseRemainderTo
-global ZeroAddress
-==
-bz aclause_12
-
-int 0
-byte "escrow"
-app_global_get_ex
-swap
-pop
-bz aclause_12
-
-gtxn 1 AssetAmount
-int 0
-==
-bz aclause_12
-
-gtxn 1 AssetSender
-byte "escrow"
-app_global_get
-==
-bz aclause_12
-
-gtxn 1 AssetReceiver
-byte "escrow"
-app_global_get
-==
-bz aclause_12
-
-gtxn 1 AssetCloseTo
+gtxn 0 AssetCloseTo
 global ZeroAddress
 ==
 bz aclause_12
 
 //*******
+
+txn Sender
+byte "t1_reserved"
+int 0
+app_local_put
 
 int 1
 return
@@ -1591,9 +1517,103 @@ return
 
 aclause_12:
 
+global GroupSize
+int 3
+==
+bz aclause_13
+
+gtxn 0 TypeEnum
+int pay
+==
+bz aclause_13
+
+gtxn 1 TypeEnum
+int axfer
+==
+bz aclause_13
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_13
+
+txn NumAppArgs
+int 1
+==
+bz aclause_13
+
+txna ApplicationArgs 0
+byte "optin_token"
+==
+bz aclause_13
+
+int 0
+byte "gstate"
+app_global_get_ex
+swap
+pop
+bz aclause_13
+
+byte "gstate"
+app_global_get
+byte "@created"
+!=
+bz aclause_13
+
+gtxn 0 Amount
+int 100000
+==
+bz aclause_13
+
+gtxn 0 Sender
+byte "escrow"
+app_global_get
+!=
+bz aclause_13
+
+gtxn 0 Receiver
+byte "escrow"
+app_global_get
+==
+bz aclause_13
+
+gtxn 0 CloseRemainderTo
+global ZeroAddress
+==
+bz aclause_13
+
+gtxn 1 AssetAmount
+int 0
+==
+bz aclause_13
+
+gtxn 1 Sender
+byte "escrow"
+app_global_get
+==
+bz aclause_13
+
+gtxn 1 AssetReceiver
+byte "escrow"
+app_global_get
+==
+bz aclause_13
+
+gtxn 1 AssetCloseTo
+global ZeroAddress
+==
+bz aclause_13
+
 //*******
 
-fail:
+int 1
+return
+
+//--------------------------------
+
+aclause_13:
+
+//*******
 
 err
 

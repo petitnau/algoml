@@ -84,7 +84,17 @@ return
 aclause_2:
 
 global GroupSize
-int 1
+int 3
+==
+bz aclause_3
+
+gtxn 0 TypeEnum
+int pay
+==
+bz aclause_3
+
+gtxn 1 TypeEnum
+int acfg
 ==
 bz aclause_3
 
@@ -94,18 +104,66 @@ int NoOp
 bz aclause_3
 
 txn NumAppArgs
-int 6
+int 7
 ==
 bz aclause_3
 
 txna ApplicationArgs 0
-byte "ballot"
+byte "tinybond"
 ==
 bz aclause_3
 
 byte "gstate"
 app_global_get
 byte "@escrowinited"
+==
+bz aclause_3
+
+gtxn 0 Amount
+int 100000
+==
+bz aclause_3
+
+gtxn 0 Sender
+byte "escrow"
+app_global_get
+!=
+bz aclause_3
+
+gtxn 0 Receiver
+byte "escrow"
+app_global_get
+==
+bz aclause_3
+
+gtxn 1 ConfigAssetDecimals
+int 0
+==
+bz aclause_3
+
+gtxn 1 ConfigAssetManager
+byte ""
+==
+bz aclause_3
+
+gtxn 1 ConfigAssetReserve
+byte ""
+==
+bz aclause_3
+
+gtxn 1 ConfigAssetFreeze
+byte ""
+==
+bz aclause_3
+
+gtxn 1 ConfigAssetClawback
+byte ""
+==
+bz aclause_3
+
+gtxn 1 Sender
+byte "escrow"
+app_global_get
 ==
 bz aclause_3
 
@@ -141,29 +199,42 @@ byte "gstate"
 byte "#inited"
 app_global_put
 
-byte "candidate_begin"
+byte "preSale"
 txna ApplicationArgs 1
 btoi
 app_global_put
 
-byte "candidate_end"
+byte "sale"
 txna ApplicationArgs 2
 btoi
 app_global_put
 
-byte "vote_begin"
+byte "saleEnd"
 txna ApplicationArgs 3
 btoi
 app_global_put
 
-byte "vote_end"
+byte "maturityDate"
 txna ApplicationArgs 4
 btoi
 app_global_put
 
-byte "vote_token"
+byte "interestRate"
 txna ApplicationArgs 5
 btoi
+app_global_put
+
+byte "preSaleRate"
+txna ApplicationArgs 6
+btoi
+app_global_put
+
+byte "COUPON"
+gaid 1
+app_global_put
+
+byte "maxDep"
+gtxn 1 ConfigAssetTotal
 app_global_put
 
 int 1
@@ -189,7 +260,7 @@ int 1
 bz aclause_4
 
 txna ApplicationArgs 0
-byte "candidate"
+byte "joinSale"
 ==
 bz aclause_4
 
@@ -200,35 +271,10 @@ byte "@"
 !=
 bz aclause_4
 
-int 0
-byte "candidate_begin"
-app_global_get_ex
-swap
-pop
-bz aclause_4
-
-int 0
-byte "candidate_end"
-app_global_get_ex
-swap
-pop
-bz aclause_4
-
-global Round
-byte "candidate_begin"
-app_global_get
->=
-global Round
-byte "candidate_end"
-app_global_get
-<=
-&&
-bz aclause_4
-
 //*******
 
 txn Sender
-byte "votes"
+byte "preSaleAmt"
 int 0
 app_local_put
 
@@ -245,7 +291,7 @@ int 2
 bz aclause_5
 
 gtxn 0 TypeEnum
-int axfer
+int pay
 ==
 bz aclause_5
 
@@ -255,12 +301,12 @@ int NoOp
 bz aclause_5
 
 txn NumAppArgs
-int 2
+int 1
 ==
 bz aclause_5
 
 txna ApplicationArgs 0
-byte "vote"
+byte "deposit"
 ==
 bz aclause_5
 
@@ -272,46 +318,28 @@ byte "@"
 bz aclause_5
 
 int 0
-byte "vote_begin"
+byte "preSale"
 app_global_get_ex
 swap
 pop
 bz aclause_5
 
 int 0
-byte "vote_end"
+byte "sale"
 app_global_get_ex
 swap
 pop
 bz aclause_5
 
 global Round
-byte "vote_begin"
+byte "preSale"
 app_global_get
 >=
 global Round
-byte "vote_end"
+byte "sale"
 app_global_get
 <=
 &&
-bz aclause_5
-
-int 0
-byte "vote_token"
-app_global_get_ex
-swap
-pop
-bz aclause_5
-
-gtxn 0 AssetAmount
-int 1
-==
-bz aclause_5
-
-gtxn 0 XferAsset
-byte "vote_token"
-app_global_get
-==
 bz aclause_5
 
 gtxn 0 Sender
@@ -319,27 +347,69 @@ txn Sender
 ==
 bz aclause_5
 
-gtxn 0 AssetReceiver
+gtxn 0 Receiver
 byte "escrow"
 app_global_get
 ==
 bz aclause_5
 
-gtxn 0 AssetCloseTo
+gtxn 0 CloseRemainderTo
 global ZeroAddress
 ==
 bz aclause_5
 
+int 0
+byte "preSaleRate"
+app_global_get_ex
+swap
+pop
+bz aclause_5
+
+int 0
+byte "maxDep"
+app_global_get_ex
+swap
+pop
+bz aclause_5
+
+gtxn 0 Amount
+byte "preSaleRate"
+app_global_get
+*
+int 100
+/
+byte "maxDep"
+app_global_get
+<=
+bz aclause_5
+
 //*******
 
-txna ApplicationArgs 1
-byte "votes"
-txna ApplicationArgs 1
-byte "votes"
+txn Sender
+byte "preSaleAmt"
+txn Sender
+byte "preSaleAmt"
 app_local_get
-int 1
+gtxn 0 Amount
+byte "preSaleRate"
+app_global_get
+*
+int 100
+/
 +
 app_local_put
+
+byte "maxDep"
+byte "maxDep"
+app_global_get
+gtxn 0 Amount
+byte "preSaleRate"
+app_global_get
+*
+int 100
+/
+-
+app_global_put
 
 int 1
 return
@@ -359,12 +429,12 @@ int pay
 bz aclause_6
 
 gtxn 1 TypeEnum
-int pay
+int axfer
 ==
 bz aclause_6
 
 txn OnCompletion
-int DeleteApplication
+int NoOp
 ==
 bz aclause_6
 
@@ -374,7 +444,7 @@ int 1
 bz aclause_6
 
 txna ApplicationArgs 0
-byte "delete"
+byte "deposit"
 ==
 bz aclause_6
 
@@ -386,48 +456,56 @@ byte "@"
 bz aclause_6
 
 int 0
-byte "vote_end"
+byte "sale"
+app_global_get_ex
+swap
+pop
+bz aclause_6
+
+int 0
+byte "saleEnd"
 app_global_get_ex
 swap
 pop
 bz aclause_6
 
 global Round
-byte "vote_end"
+byte "sale"
 app_global_get
 >=
-bz aclause_6
-
-txn Sender
-global CreatorAddress
-==
-bz aclause_6
-
-int 0
-byte "vote_token"
-app_global_get_ex
-swap
-pop
-bz aclause_6
-
-gtxn 0 Amount
-int 0
-==
+global Round
+byte "saleEnd"
+app_global_get
+<=
+&&
 bz aclause_6
 
 gtxn 0 Sender
+txn Sender
+==
+bz aclause_6
+
+gtxn 0 Receiver
 byte "escrow"
 app_global_get
 ==
 bz aclause_6
 
 gtxn 0 CloseRemainderTo
-global CreatorAddress
+global ZeroAddress
 ==
 bz aclause_6
 
-gtxn 1 Amount
 int 0
+byte "COUPON"
+app_global_get_ex
+swap
+pop
+bz aclause_6
+
+gtxn 1 XferAsset
+byte "COUPON"
+app_global_get
 ==
 bz aclause_6
 
@@ -437,12 +515,39 @@ app_global_get
 ==
 bz aclause_6
 
-gtxn 1 CloseRemainderTo
-global CreatorAddress
+gtxn 1 AssetReceiver
+txn Sender
+==
+bz aclause_6
+
+gtxn 1 AssetCloseTo
+global ZeroAddress
+==
+bz aclause_6
+
+txn Sender
+int 0
+byte "preSaleAmt"
+app_local_get_ex
+swap
+pop
+bz aclause_6
+
+gtxn 0 Amount
+txn Sender
+byte "preSaleAmt"
+app_local_get
++
+gtxn 1 Amount
 ==
 bz aclause_6
 
 //*******
+
+txn Sender
+byte "preSaleAmt"
+int 0
+app_local_put
 
 int 1
 return
@@ -457,12 +562,12 @@ int 3
 bz aclause_7
 
 gtxn 0 TypeEnum
-int pay
+int axfer
 ==
 bz aclause_7
 
 gtxn 1 TypeEnum
-int axfer
+int pay
 ==
 bz aclause_7
 
@@ -477,47 +582,56 @@ int 1
 bz aclause_7
 
 txna ApplicationArgs 0
-byte "optin_token"
+byte "redeem"
 ==
 bz aclause_7
 
-int 0
 byte "gstate"
+app_global_get
+substring 0 1
+byte "@"
+!=
+bz aclause_7
+
+int 0
+byte "maturityDate"
 app_global_get_ex
 swap
 pop
 bz aclause_7
 
-byte "gstate"
+global Round
+byte "maturityDate"
 app_global_get
-byte "@created"
-!=
+>=
 bz aclause_7
 
-gtxn 0 Amount
-int 100000
+int 0
+byte "COUPON"
+app_global_get_ex
+swap
+pop
+bz aclause_7
+
+gtxn 0 XferAsset
+byte "COUPON"
+app_global_get
 ==
 bz aclause_7
 
 gtxn 0 Sender
-byte "escrow"
-app_global_get
-!=
+txn Sender
+==
 bz aclause_7
 
-gtxn 0 Receiver
+gtxn 0 AssetReceiver
 byte "escrow"
 app_global_get
 ==
 bz aclause_7
 
-gtxn 0 CloseRemainderTo
+gtxn 0 AssetCloseTo
 global ZeroAddress
-==
-bz aclause_7
-
-gtxn 1 AssetAmount
-int 0
 ==
 bz aclause_7
 
@@ -527,14 +641,30 @@ app_global_get
 ==
 bz aclause_7
 
-gtxn 1 AssetReceiver
-byte "escrow"
-app_global_get
+gtxn 1 Receiver
+txn Sender
 ==
 bz aclause_7
 
-gtxn 1 AssetCloseTo
+gtxn 1 CloseRemainderTo
 global ZeroAddress
+==
+bz aclause_7
+
+int 0
+byte "interestRate"
+app_global_get_ex
+swap
+pop
+bz aclause_7
+
+gtxn 0 Amount
+gtxn 1 Amount
+byte "interestRate"
+app_global_get
+*
+int 100
+/
 ==
 bz aclause_7
 
@@ -546,6 +676,102 @@ return
 //--------------------------------
 
 aclause_7:
+
+global GroupSize
+int 3
+==
+bz aclause_8
+
+gtxn 0 TypeEnum
+int pay
+==
+bz aclause_8
+
+gtxn 1 TypeEnum
+int axfer
+==
+bz aclause_8
+
+txn OnCompletion
+int NoOp
+==
+bz aclause_8
+
+txn NumAppArgs
+int 1
+==
+bz aclause_8
+
+txna ApplicationArgs 0
+byte "optin_token"
+==
+bz aclause_8
+
+int 0
+byte "gstate"
+app_global_get_ex
+swap
+pop
+bz aclause_8
+
+byte "gstate"
+app_global_get
+byte "@created"
+!=
+bz aclause_8
+
+gtxn 0 Amount
+int 100000
+==
+bz aclause_8
+
+gtxn 0 Sender
+byte "escrow"
+app_global_get
+!=
+bz aclause_8
+
+gtxn 0 Receiver
+byte "escrow"
+app_global_get
+==
+bz aclause_8
+
+gtxn 0 CloseRemainderTo
+global ZeroAddress
+==
+bz aclause_8
+
+gtxn 1 AssetAmount
+int 0
+==
+bz aclause_8
+
+gtxn 1 Sender
+byte "escrow"
+app_global_get
+==
+bz aclause_8
+
+gtxn 1 AssetReceiver
+byte "escrow"
+app_global_get
+==
+bz aclause_8
+
+gtxn 1 AssetCloseTo
+global ZeroAddress
+==
+bz aclause_8
+
+//*******
+
+int 1
+return
+
+//--------------------------------
+
+aclause_8:
 
 //*******
 
