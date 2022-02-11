@@ -67,10 +67,10 @@ withdraw() {
 @gstate paying -> notpaying
 @round (glob.wdstart,glob.wdstart + glob.maxrounds)
 @pay glob.balance of ALGO : escrow -> caller
-@assert glob.balance <= loc.deposit
+@assert glob.balance <= caller.deposit
 @assert caller.pos == glob.paying
 withdraw() {
+    if (glob.balance == caller.deposit) glob.paying += 1
     glob.balance = 0
-    // glob.paying is not incremented
     caller.deposit -= glob.balance
 }
