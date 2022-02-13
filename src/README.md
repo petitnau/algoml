@@ -6,7 +6,7 @@ An AlgoML contract is composed of a series of atomic clauses. Each of these clau
 When compiled into TEAL, the contract is split into blocks, one for each atomic clause.
 Each block consists of a dispatching preamble, followed by the code that implements the state update. The preamble is composed of the preconditions that the clauses impose on the contract (for example the presence of a pay transaction, or an assert condition), and the state update is composed of the state update portion of the clause (for example, the new state in a @gstate clause, or the body of the function clause).
 
-In the rest of this document we will consider the tinybond contract, seeing how the various clauses are compiled. For simplicity, we will look at the compiled code as if it was written in a pseudo-code version of TEAL.
+In the rest of this document we will consider the [tinybond contract](../contracts/tinybond), seeing how the various clauses are compiled. For simplicity, we will look at the compiled code as if it was written in a pseudo-code version of TEAL.
 
 ## Creation of the contract
 
