@@ -8,10 +8,10 @@ homepage: "https://github.com/petitnau/algoml"
 bug-reports: "https://github.com/petitnau/algoml/issues"
 depends: [
   "dune" {>= "2.8"}
-  "batteries" {>= "3.5.0"}
-  "cmdliner" {>= "1.0.4"}
-  "menhir" {>= "20211230"}
-  "ounit2" {>= "2.2.6"}
+  "batteries" {= "3.5.0"}
+  "cmdliner" {= "1.0.4"}
+  "menhir" {= "20211230"}
+  "ounit2" {= "2.2.6"}
   "odoc" {with-doc}
 ]
 build: [

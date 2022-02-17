@@ -12,7 +12,7 @@
  (name algoml)
  (synopsis "An Algorand smart contract modelling language")
  (depends
-  (batteries (>= 3.5.0))
-  (cmdliner (>= 1.0.4))
-  (menhir (>= 20211230))
-  (ounit2 (>= 2.2.6))))
+  (batteries (= 3.5.0))
+  (cmdliner (= 1.0.4))
+  (menhir (= 20211230))
+  (ounit2 (= 2.2.6))))
