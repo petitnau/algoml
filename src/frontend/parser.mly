@@ -172,14 +172,13 @@ state:
 | LSTATE; { TLoc }
 
 pattern:
-| LPAREN; e1=option(exp); COMMA; e2=option(exp); RPAREN; i=bind { RangePattern(e1, e2, i) }
-| e=exp; i=bind { FixedPattern(e, i) }
-| TIMES; i=bind { AnyPattern(i) }
-| (* epsilon; *) i=bind { AnyPattern(i) }
+| LPAREN; e1=option(exp); COMMA; e2=option(exp); RPAREN; i=option(bind) { RangePattern(e1, e2, i) }
+| e=exp; i=option(bind) { FixedPattern(e, i) }
+| TIMES; i=option(bind) { AnyPattern(i) }
+| (* epsilon; *) i=option(bind) { AnyPattern(i) }
 
 bind:
-| (* epsilon *) { None }
-| DOLLAR; i=ide { Some(i) }
+| DOLLAR; i=ide { i }
 
 functionclause:
 | onc=oncomplete; i=ide; LPAREN; pl = separated_list(COMMA, parameter); RPAREN; cl = funblock; { FunctionClause(onc, i, pl, cl) }
