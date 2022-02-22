@@ -138,6 +138,7 @@ To compile the tinybond contract, follow the instructions in the [Using the Algo
 Further AlgoML use cases are presented in the [contracts](contracts) folder:
 - [Automated Market Makers](contracts/amm)
 - [Blind auction](contracts/blind-auction)
+- [Chain-based Ponzi scheme](contracts/chain-ponzi)
 - [Crowdfunding](contracts/crowdfund)
 - [Escrow](contracts/escrow)
 - [King of the Algo Throne](contracts/kotat)
