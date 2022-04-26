@@ -89,7 +89,12 @@ Create tinybond(int preSale, int sale, int saleEnd, int maturityDate,int interes
 	glob.maxDep = budget
 }
 ```
-The function body just initializes the variables in the global state with the actual parameters. The `Create` modifier means that the effect of the clause is to create and initialize the contract.
+The `Create` modifier means that the effect of the clause is to create and initialize the contract.
+The `@newtok` precondition requires that the caller mints some units of a new token synchronously with the contract creation
+(i.e., in the same atomic group of transactions where `tinybond` is called). 
+The name `$COUPON` refers to the identifier of the new token, while `$budget` is the number of minted token units.
+The `@assert` preconditions ensure that the presale period terminates before the sale period, and that the maturity date falls beyond the sale period.
+The function body just initializes the variables in the global state with the actual parameters. 
 
 The following clause allow investors join the presale. This operation does not require to meet any preconditions. The `OptIn` modifier enables these users to have a local state in the contract. The function body initializes the `preSaleAmt` variable of the local state to zero.
 ```java
@@ -126,7 +131,7 @@ After the maturity date has passed, users that bought bonds in the sale/presale 
 @round (glob.maturityDate, )			
 @pay $inAmt of glob.COUPON : caller -> escrow	// the caller transfer bond units to the contract...
 @pay $outAmt of ALGO : escrow -> caller		// ... and redeems ALGOs with interests
-@assert inAmt == outAmt * glob.interestRate / 100
+@assert outAmt == inAmt * glob.interestRate / 100
 redeem() {}
 ```
 
