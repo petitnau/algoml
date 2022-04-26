@@ -3,8 +3,8 @@
 The contract issues bonds, in the form of ASAs, and allows users to redeem them with interests after a maturity date.
 Users can buy bonds in two time periods:
 * the standard sale period, where the bond value equals the amount of invested ALGOs (1 bond = 1 ALGO); 
-* the presale period, where bonds are sold at a discounted price (1 bond = preSaleRate/100 ALGO).
-After the maturity date, users can redeem bonds for ALGOs, at the exchange rate 1 bond = interestRate/100 ALGO.
+* the presale period, where bonds are sold at a discounted price (1 bond = `preSaleRate`/100 ALGO).
+After the maturity date, users can redeem bonds for ALGOs, at the exchange rate 1 bond = `interestRate`/100 ALGO.
 
 ## Contract state
 
@@ -39,7 +39,14 @@ Create tinybond(int preSale, int sale, int saleEnd, int maturityDate,int interes
 	glob.maxDep = budget
 }
 ```
-The function body just initializes the variables in the global state with the actual parameters. The `Create` modifier means that the effect of the clause is to create and initialize the contract.
+
+The `Create` modifier means that the effect of the clause is to create and initialize the contract.
+The `@newtok` precondition requires that the caller mints some units of a new token synchronously with the contract creation
+(i.e., in the same atomic group of transactions where `tinybond` is called). 
+The name `$COUPON` refers to the identifier of the new token, while `$budget` is the number of minted token units.
+The `@assert` preconditions ensure that the presale period terminates before the sale period, and that the maturity date falls beyond the sale period.
+
+The function body just initializes the variables in the global state with the actual parameters. 
 
 ## Joining the presale
 
