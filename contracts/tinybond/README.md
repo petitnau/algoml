@@ -82,7 +82,7 @@ After the maturity date has passed, users that bought bonds in the sale/presale 
 @round (glob.maturityDate, )			
 @pay $inAmt of glob.COUPON : caller -> escrow	// the caller transfer bond units to the contract...
 @pay $outAmt of ALGO : escrow -> caller		// ... and redeems ALGOs with interests
-@assert inAmt == outAmt * glob.interestRate / 100
+@assert outAmt == inAmt * glob.interestRate / 100
 redeem() {}
 ```
 
