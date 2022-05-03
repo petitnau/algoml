@@ -72,7 +72,7 @@ If the contract balance is enough and the withdraw period is not expired, the ne
 @assert caller.pos == glob.ctrPay
 withdraw() {
     glob.balance -= caller.deposit
-    glob.cttPay += 1
+    glob.ctrPay += 1
     caller.deposit = 0
     glob.wdstart = r
 }
