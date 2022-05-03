@@ -71,6 +71,6 @@ withdraw() {
 @assert caller.pos == glob.paying
 withdraw() {
     if (glob.balance == caller.deposit) glob.paying += 1
-    glob.balance = 0
     caller.deposit -= glob.balance
+    glob.balance = 0
 }
