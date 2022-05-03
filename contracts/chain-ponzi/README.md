@@ -88,8 +88,8 @@ Once the clause is executed, the contract state is reverted to `notpaying`.
 @assert caller.pos == glob.ctrPay
 withdraw() {
     if (glob.balance == caller.deposit) glob.ctrPay += 1
-    glob.balance = 0
     caller.deposit -= glob.balance
+    glob.balance = 0
 }
 ```
 
