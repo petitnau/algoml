@@ -2,11 +2,11 @@
 
 This contract is an Algorand adaptation of [King of the Ether Throne](https://www.kingoftheether.com/thrones/kingoftheether/index.html) (KotET).
 
-King of the Algo throne is a Ponzi scheme that follows the following rules:
+King of the Algo throne is a Ponzi scheme with the following rules:
 
-- A user pays x ALGOs to the creator of the contract to become the king.
-- If a user wants to become the new king, they can send double the amount of ALGOs that the previous king paid to dethrone the one that came before them.
-- When a user becomes king, a curse is cast upon them: after r rounds the monarch dies, leaving the throne empty and resetting the throne claim price to the initial value x. 
+- a user pays x ALGOs to the contract creator to become the king;
+- to dethrone the king, one must pay double the amount of ALGOs that the current king paid;
+- when one becomes king, a curse is cast upon them: after r rounds the king dies, leaving the throne empty and resetting the throne claim price to the initial value x. 
 
 ## Contract state
 
